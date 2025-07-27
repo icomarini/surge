@@ -28,8 +28,8 @@ public:
                        Description<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, Texture> {
                            texture } }
         , pipelineLayout { createPipelineLayout(descriptor.setLayout) }
-        , pipeline { createGraphicPipeline<geometry::Position>(
-              command.renderPass, VK_NULL_HANDLE, pipelineLayout,
+        , pipeline { createGraphicPipeline(
+              geometry::createVertexInputState<geometry::Position>(), VK_NULL_HANDLE, pipelineLayout,
               Shader { ShaderInfo<VK_SHADER_STAGE_VERTEX_BIT> { shaders / "skybox.vert.spv", nullptr },
                        ShaderInfo<VK_SHADER_STAGE_FRAGMENT_BIT> { shaders / "skybox.frag.spv", nullptr } },
               VkPipelineRasterizationStateCreateInfo {
@@ -102,6 +102,12 @@ public:
 
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptor.set,
                                 0, nullptr);
+
+        auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
+            vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
+        assert(setPolygonMode);
+        setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+
         vkCmdDrawIndexed(commandBuffer, model.indexCount, 1, 0, 0, 0);
     }
 

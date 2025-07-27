@@ -22,7 +22,6 @@ public:
         : graphicsQueue { getQueue(context().properties.graphicsFamilyIndex) }
         , presentQueue { getQueue(context().properties.presentFamilyIndex) }
         , pool { createCommandPool() }
-        , renderPass { createRenderPass<VK_FORMAT_D32_SFLOAT>() }
     {
     }
 
@@ -64,14 +63,6 @@ public:
             .pCommandBuffers      = &commandBuffer,
             .signalSemaphoreCount = 0,
             .pSignalSemaphores    = nullptr,
-            // const void*                    pNext;
-            // uint32_t                       waitSemaphoreCount;
-            // const VkSemaphore*             pWaitSemaphores;
-            // const VkPipelineStageFlags*    pWaitDstStageMask;
-            // uint32_t                       commandBufferCount;
-            // const VkCommandBuffer*         pCommandBuffers;
-            // uint32_t                       signalSemaphoreCount;
-            // const VkSemaphore*             pSignalSemaphores;
         };
         vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
         vkQueueWaitIdle(graphicsQueue);
@@ -191,58 +182,8 @@ public:
             });
     }
 
-    template<typename... Pipelines>
-    void record(const VkExtent2D extent, const VkFramebuffer framebuffer, const VkCommandBuffer commandBuffer,
-                const Pipelines&... pipelines) const
-    {
-        vkResetCommandBuffer(commandBuffer, 0);
-
-        constexpr VkCommandBufferBeginInfo beginInfo {
-            .sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-            .pNext            = nullptr,
-            .flags            = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
-            .pInheritanceInfo = nullptr,
-        };
-        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to begin recording command buffer!");
-        }
-
-        // (pipelines.drawOffscreen(commandBuffer), ...);
-
-        {
-            const VkRect2D renderArea {
-                .offset = { 0, 0 },
-                .extent = extent,
-            };
-            std::array<VkClearValue, 2> clearValues {};
-            clearValues[0].color        = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-            clearValues[1].depthStencil = { 1.0f, 0 };
-            const VkRenderPassBeginInfo renderPassInfo {
-                .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                .pNext           = nullptr,
-                .renderPass      = renderPass,
-                .framebuffer     = framebuffer,
-                .renderArea      = renderArea,
-                .clearValueCount = static_cast<uint32_t>(clearValues.size()),
-                .pClearValues    = clearValues.data(),
-            };
-
-            vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-            {
-                (pipelines.draw(commandBuffer, extent), ...);
-            }
-            vkCmdEndRenderPass(commandBuffer);
-        }
-        if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to record command buffer!");
-        }
-    }
-
     ~Command()
     {
-        context().destroy(renderPass);
         context().destroy(pool);
     }
 
@@ -254,7 +195,7 @@ private:
     VkCommandPool pool;
 
 public:
-    VkRenderPass renderPass;
+    VkRenderingAttachmentInfoKHR renderingAttachment;
 
 private:
     VkQueue getQueue(const uint32_t index)
@@ -271,89 +212,6 @@ private:
             .pNext            = nullptr,
             .flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
             .queueFamilyIndex = context().properties.graphicsFamilyIndex,
-        });
-    }
-
-    template<VkFormat depthFormat>
-    static VkRenderPass createRenderPass()
-    {
-        const VkAttachmentDescription colorAttachment {
-            .flags          = {},
-            .format         = context().properties.surfaceFormat.format,
-            .samples        = VK_SAMPLE_COUNT_1_BIT,
-            .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
-            .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
-            .finalLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-        };
-
-        constexpr VkAttachmentReference colorAttachmentReference {
-            .attachment = 0,
-            .layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        };
-
-        constexpr VkAttachmentDescription depthAttachment {
-            .flags          = {},
-            .format         = depthFormat,
-            .samples        = VK_SAMPLE_COUNT_1_BIT,
-            .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp        = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
-            .finalLayout    = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-        };
-
-        constexpr VkAttachmentReference depthAttachmentRef {
-            .attachment = 1,
-            .layout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-        };
-
-        // VkSubpassDescriptionFlags       flags;
-        // VkPipelineBindPoint             pipelineBindPoint;
-        // uint32_t                        inputAttachmentCount;
-        // const VkAttachmentReference*    pInputAttachments;
-        // uint32_t                        colorAttachmentCount;
-        // const VkAttachmentReference*    pColorAttachments;
-        // const VkAttachmentReference*    pResolveAttachments;
-        // const VkAttachmentReference*    pDepthStencilAttachment;
-        // uint32_t                        preserveAttachmentCount;
-        // const uint32_t*                 pPreserveAttachments;
-        const VkSubpassDescription subpass {
-            .flags                   = {},
-            .pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS,
-            .inputAttachmentCount    = 0,
-            .pInputAttachments       = nullptr,
-            .colorAttachmentCount    = 1,
-            .pColorAttachments       = &colorAttachmentReference,
-            .pResolveAttachments     = nullptr,
-            .pDepthStencilAttachment = &depthAttachmentRef,
-            .preserveAttachmentCount = 0,
-            .pPreserveAttachments    = nullptr,
-        };
-        constexpr VkSubpassDependency dependency {
-            .srcSubpass    = VK_SUBPASS_EXTERNAL,
-            .dstSubpass    = 0,
-            .srcStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-            .dstStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-            .srcAccessMask = 0,
-            .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-            .dependencyFlags = 0,
-        };
-
-        const std::array attachments = { colorAttachment, depthAttachment };
-        return context().create(VkRenderPassCreateInfo {
-            .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-            .pNext           = nullptr,
-            .flags           = {},
-            .attachmentCount = static_cast<uint32_t>(attachments.size()),
-            .pAttachments    = attachments.data(),
-            .subpassCount    = 1,
-            .pSubpasses      = &subpass,
-            .dependencyCount = 1,
-            .pDependencies   = &dependency,
         });
     }
 };

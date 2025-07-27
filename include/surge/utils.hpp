@@ -42,8 +42,7 @@ constexpr void forEach(const Operation& operation)
         [&]<int index0>()
         {
             forEach<begin1, end1>(
-                [&]<int index1>()
-                {
+                [&]<int index1>() {
                     forEach<begin2, end2>([&]<int index2>()
                                           { operation.template operator()<index0, index1, index2>(); });
                 });

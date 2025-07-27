@@ -15,6 +15,7 @@
 #include <limits>
 #include <map>
 #include <optional>
+// #include <print>
 #include <set>
 #include <vector>
 
@@ -59,6 +60,19 @@ public:
         return surfaceCapabilities;
     }
 
+    // VkSurfaceCapabilities2KHR getSurfaceCapabilities2() const
+    // {
+    //     const VkPhysicalDeviceSurfaceInfo2KHR surfaceInfo {
+    //         .sType   = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
+    //         .pNext   = nullptr,
+    //         .surface = surface,
+    //     };
+    //     VkSurfaceCapabilities2KHR surfaceCapabilities;
+    //     vkGetPhysicalDeviceSurfaceCapabilities2KHR(properties.physicalDevice, &surfaceInfo, &surfaceCapabilities);
+    //     return surfaceCapabilities;
+    // }
+
+
     template<VkMemoryPropertyFlags memoryPropertyFlags>
     uint32_t findMemoryType(const uint32_t typeFilter) const
     {
@@ -95,6 +109,14 @@ public:
 
     uint32_t frameBufferCount() const
     {
+        // const VkPhysicalDeviceSurfaceInfo2KHR surfaceInfo {
+        //     .sType   = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
+        //     .pNext   = nullptr,
+        //     .surface = surface,
+        // };
+        // VkSurfaceCapabilities2KHR surfaceCapabilities2;
+        // vkGetPhysicalDeviceSurfaceCapabilities2KHR(properties.physicalDevice, &surfaceInfo, &surfaceCapabilities2);
+
         const auto         surfaceCapabilities = getSurfaceCapabilities();
         constexpr uint32_t preferredFrameCount { 3 };
         return std::clamp(preferredFrameCount, surfaceCapabilities.minImageCount,
@@ -267,10 +289,10 @@ public:
     }
 
 private:
-    Window     window;
-    VkInstance instance;
+    Window window;
 
 public:
+    VkInstance instance;
     struct Properties
     {
         float              maxSamplerAnisotropy;
@@ -299,6 +321,7 @@ private:
         extensions.insert(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
         extensions.insert(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+        // extensions.insert(VK_KHR_dynamic_rendering);
 
         uint32_t availableExtensionsCount = 0;
         vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionsCount, nullptr);
@@ -309,9 +332,9 @@ private:
         {
             const auto supported =
                 std::find_if(availableExtensions.cbegin(), availableExtensions.cend(),
-                             [&](const auto availableExtension)
-                             { return std::strcmp(availableExtension.extensionName, requiredExtension) == 0; }) !=
-                availableExtensions.cend();
+                             [&](const auto availableExtension) {
+                                 return std::strcmp(availableExtension.extensionName, requiredExtension) == 0;
+                             }) != availableExtensions.cend();
             if (!supported)
             {
                 throw std::runtime_error("missing required extension");
@@ -333,10 +356,10 @@ private:
 
         for (const auto* requestedLayer : validationLayers)
         {
-            const bool supported =
-                std::find_if(availableLayers.cbegin(), availableLayers.cend(), [&](const auto& availableLayer)
-                             { return std::strcmp(availableLayer.layerName, requestedLayer) == 0; }) !=
-                availableLayers.cend();
+            const bool supported = std::find_if(availableLayers.cbegin(), availableLayers.cend(),
+                                                [&](const auto& availableLayer) {
+                                                    return std::strcmp(availableLayer.layerName, requestedLayer) == 0;
+                                                }) != availableLayers.cend();
             if (!supported)
             {
                 throw std::runtime_error("missing requested validation layer");
@@ -362,9 +385,9 @@ private:
         {
             const bool supported =
                 std::find_if(availableExtensions.cbegin(), availableExtensions.cend(),
-                             [&](const auto availableExtension)
-                             { return std::strcmp(availableExtension.extensionName, requiredExtension) == 0; }) !=
-                availableExtensions.cend();
+                             [&](const auto availableExtension) {
+                                 return std::strcmp(availableExtension.extensionName, requiredExtension) == 0;
+                             }) != availableExtensions.cend();
             if (!supported)
             {
                 return false;
@@ -375,8 +398,17 @@ private:
 
     static const std::vector<const char*>& deviceExtensions()
     {
-        static const std::vector<const char*> extensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-                                                             VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME };
+        static const std::vector<const char*> extensions = {
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+            VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
+            VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME,
+            VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME,
+            VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
+            VK_KHR_MULTIVIEW_EXTENSION_NAME,
+            VK_KHR_MAINTENANCE_2_EXTENSION_NAME,
+            VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,
+            // VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME,
+        };
         return extensions;
     }
 
@@ -585,18 +617,63 @@ private:
             .variableMultisampleRate                 = nope,
             .inheritedQueries                        = nope,
         };
+
+        VkPhysicalDeviceExtendedDynamicState3FeaturesEXT dynamicStateFeatures {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT,
+            .pNext = nullptr,
+            .extendedDynamicState3TessellationDomainOrigin         = nope,
+            .extendedDynamicState3DepthClampEnable                 = nope,
+            .extendedDynamicState3PolygonMode                      = VK_TRUE,
+            .extendedDynamicState3RasterizationSamples             = nope,
+            .extendedDynamicState3SampleMask                       = nope,
+            .extendedDynamicState3AlphaToCoverageEnable            = nope,
+            .extendedDynamicState3AlphaToOneEnable                 = nope,
+            .extendedDynamicState3LogicOpEnable                    = nope,
+            .extendedDynamicState3ColorBlendEnable                 = nope,
+            .extendedDynamicState3ColorBlendEquation               = nope,
+            .extendedDynamicState3ColorWriteMask                   = nope,
+            .extendedDynamicState3RasterizationStream              = nope,
+            .extendedDynamicState3ConservativeRasterizationMode    = nope,
+            .extendedDynamicState3ExtraPrimitiveOverestimationSize = nope,
+            .extendedDynamicState3DepthClipEnable                  = nope,
+            .extendedDynamicState3SampleLocationsEnable            = nope,
+            .extendedDynamicState3ColorBlendAdvanced               = nope,
+            .extendedDynamicState3ProvokingVertexMode              = nope,
+            .extendedDynamicState3LineRasterizationMode            = nope,
+            .extendedDynamicState3LineStippleEnable                = nope,
+            .extendedDynamicState3DepthClipNegativeOneToOne        = nope,
+            .extendedDynamicState3ViewportWScalingEnable           = nope,
+            .extendedDynamicState3ViewportSwizzle                  = nope,
+            .extendedDynamicState3CoverageToColorEnable            = nope,
+            .extendedDynamicState3CoverageToColorLocation          = nope,
+            .extendedDynamicState3CoverageModulationMode           = nope,
+            .extendedDynamicState3CoverageModulationTableEnable    = nope,
+            .extendedDynamicState3CoverageModulationTable          = nope,
+            .extendedDynamicState3CoverageReductionMode            = nope,
+            .extendedDynamicState3RepresentativeFragmentTestEnable = nope,
+            .extendedDynamicState3ShadingRateImageEnable           = nope,
+        };
+
         const std::vector<const char*> validationLayers = getValidationLayers();
-        const VkDeviceCreateInfo       deviceCreateInfo {
-                  .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-                  .pNext                   = nullptr,
-                  .flags                   = {},
-                  .queueCreateInfoCount    = static_cast<uint32_t>(queueCreateInfos.size()),
-                  .pQueueCreateInfos       = queueCreateInfos.data(),
-                  .enabledLayerCount       = static_cast<uint32_t>(validationLayers.size()),
-                  .ppEnabledLayerNames     = validationLayers.data(),
-                  .enabledExtensionCount   = static_cast<uint32_t>(deviceExtensions().size()),
-                  .ppEnabledExtensionNames = deviceExtensions().data(),
-                  .pEnabledFeatures        = &deviceFeatures,
+
+
+        const VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeature {
+            .sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
+            .pNext            = &dynamicStateFeatures,
+            .dynamicRendering = VK_TRUE,
+        };
+
+        const VkDeviceCreateInfo deviceCreateInfo {
+            .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+            .pNext                   = &dynamicRenderingFeature,
+            .flags                   = {},
+            .queueCreateInfoCount    = static_cast<uint32_t>(queueCreateInfos.size()),
+            .pQueueCreateInfos       = queueCreateInfos.data(),
+            .enabledLayerCount       = static_cast<uint32_t>(validationLayers.size()),
+            .ppEnabledLayerNames     = validationLayers.data(),
+            .enabledExtensionCount   = static_cast<uint32_t>(deviceExtensions().size()),
+            .ppEnabledExtensionNames = deviceExtensions().data(),
+            .pEnabledFeatures        = &deviceFeatures,
         };
 
         VkDevice device;
@@ -657,7 +734,7 @@ private:
         Handle handle;
         checkConstruction<Handle>(constructor(device, &createInfo, allocator, &handle));
         return handle;
-    };
+    }
 
     template<typename Handle, typename Info, typename Constructor>
     Handle construct(const Constructor constructor, const Info& createInfo) const
@@ -665,7 +742,7 @@ private:
         Handle handle;
         checkConstruction<Handle>(constructor(device, &createInfo, &handle));
         return handle;
-    };
+    }
 };
 
 static const Context& createContext(const std::string& appName, const std::string& engineName, const uint32_t width,

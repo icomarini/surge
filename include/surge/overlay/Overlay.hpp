@@ -29,7 +29,6 @@ public:
         math::Vector<2> translate;
     };
 
-    // using FontTextureInfo = TextureInfo<SceneImageInfo, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>;
 
     Overlay(const Command& command, const std::filesystem::path& shaders, UserInteraction&,
             const std::vector<asset::Asset>& assets)
@@ -38,11 +37,10 @@ public:
         , model {}
         , descriptor { 1, TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT> { fontTexture } }
         , graphicsQueue { command.graphicsQueue }
-        , pipelineCache { createPipelineCache() }
-        , pipelineLayout { createPipelineLayout(descriptor.setLayout,
-                                                createPushConstantRange<PushConstBlock>(VK_SHADER_STAGE_VERTEX_BIT)) }
-        , pipeline { createGraphicPipeline<LoadedOverlay::Vertex>(
-              command.renderPass, pipelineCache, pipelineLayout,
+        , pipelineLayout { createPipelineLayout(createPushConstantRange<PushConstBlock>(VK_SHADER_STAGE_VERTEX_BIT),
+                                                descriptor.setLayout) }
+        , pipeline { createGraphicPipeline(
+              geometry::createVertexInputState<LoadedOverlay::Vertex>(), VK_NULL_HANDLE, pipelineLayout,
               Shader { ShaderInfo<VK_SHADER_STAGE_VERTEX_BIT> { shaders / "ui.vert.spv", nullptr },
                        ShaderInfo<VK_SHADER_STAGE_FRAGMENT_BIT> { shaders / "ui.frag.spv", nullptr } },
               VkPipelineRasterizationStateCreateInfo {
@@ -97,7 +95,8 @@ public:
         io.DisplaySize             = ImVec2(extent.width, extent.height);
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
-        constexpr float scaling = 1.25;
+        // constexpr float scaling = 1.25;
+        constexpr float scaling = 1;
         io.AddMousePosEvent(scaling * static_cast<float>(ui.mouse.position.at(0)),
                             scaling * static_cast<float>(ui.mouse.position.at(1)));
         io.AddMouseWheelEvent(ui.mouse.wheel.at(0), ui.mouse.wheel.at(1));
@@ -226,6 +225,11 @@ public:
                                 0, nullptr);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
+        auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
+            vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
+        assert(setPolygonMode);
+        setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+
         const VkViewport viewport {
             .x        = 0.0f,
             .y        = 0.0f,
@@ -267,12 +271,12 @@ public:
                     const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[j];
                     const VkRect2D   scissorRect {
                           .offset {
-                            std::max((int32_t)(pcmd->ClipRect.x), 0),
-                            std::max((int32_t)(pcmd->ClipRect.y), 0),
+                            std::max(static_cast<int32_t>(pcmd->ClipRect.x), 0),
+                            std::max(static_cast<int32_t>(pcmd->ClipRect.y), 0),
                         },
                           .extent {
-                            (uint32_t)(pcmd->ClipRect.z - pcmd->ClipRect.x),
-                            (uint32_t)(pcmd->ClipRect.w - pcmd->ClipRect.y),
+                            static_cast<uint32_t>(pcmd->ClipRect.z - pcmd->ClipRect.x),
+                            static_cast<uint32_t>(pcmd->ClipRect.w - pcmd->ClipRect.y),
                         },
                     };
                     vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
@@ -289,7 +293,6 @@ public:
         // ImGui::DestroyContext();
         context().destroy(pipeline);
         context().destroy(pipelineLayout);
-        context().destroy(pipelineCache);
     }
 
 private:
@@ -324,7 +327,6 @@ private:
 
     VkQueue graphicsQueue;
 
-    VkPipelineCache  pipelineCache;
     VkPipelineLayout pipelineLayout;
     VkPipeline       pipeline;
 

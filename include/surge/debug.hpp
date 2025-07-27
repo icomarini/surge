@@ -10,6 +10,14 @@ namespace surge
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(const VkDebugUtilsMessageSeverityFlagBitsEXT /*messageSeverity*/,
                                              const VkDebugUtilsMessageTypeFlagsEXT /*messageType*/,
                                              const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
+                                             void* /*userData*/);
+VkDebugUtilsMessengerEXT       createDebugMessenger(const VkInstance instance);
+void                           destroyDebugMessenger(const VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
+                                                     const VkAllocationCallbacks* pAllocator);
+
+VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(const VkDebugUtilsMessageSeverityFlagBitsEXT /*messageSeverity*/,
+                                             const VkDebugUtilsMessageTypeFlagsEXT /*messageType*/,
+                                             const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
                                              void* /*userData*/)
 {
     std::cerr << std::endl;
@@ -33,8 +41,8 @@ VkDebugUtilsMessengerEXT createDebugMessenger(const VkInstance instance)
         .pUserData       = nullptr,
     };
 
-    const auto vkCreateDebugUtilsMessengerEXT =
-        (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    const auto vkCreateDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
+        vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
     if (vkCreateDebugUtilsMessengerEXT == nullptr)
     {
         throw std::runtime_error("Failed to set up debug messenger!");
@@ -49,11 +57,11 @@ VkDebugUtilsMessengerEXT createDebugMessenger(const VkInstance instance)
 }
 
 
-void destroyDebugMessenger(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
+void destroyDebugMessenger(const VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
                            const VkAllocationCallbacks* pAllocator)
 {
-    auto vkDestroyDebugUtilsMessengerEXT =
-        (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+    auto vkDestroyDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
+        vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
     if (vkDestroyDebugUtilsMessengerEXT == nullptr)
     {
         throw std::runtime_error("Failed to destroy debug messenger!");

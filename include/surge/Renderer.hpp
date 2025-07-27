@@ -11,9 +11,49 @@
 namespace surge
 {
 
+VkPolygonMode translate(const PolygonMode polygonMode);
+VkPolygonMode translate(const PolygonMode polygonMode)
+{
+    switch (polygonMode)
+    {
+    case PolygonMode::point:
+        return VK_POLYGON_MODE_POINT;
+    case PolygonMode::line:
+        return VK_POLYGON_MODE_LINE;
+    case PolygonMode::fill:
+        return VK_POLYGON_MODE_FILL;
+    default:
+        throw;
+    }
+}
+
 class Renderer
 {
 public:
+    // enum class Topology
+    // {
+    //     vertexList,
+    //     lineList,
+    // };
+
+    // struct PipelineID
+    // {
+    //     PolygonMode polygonMode;
+    //     Topology    topology;
+    // };
+
+
+    // struct compare
+    // {
+    //     bool operator()(PipelineID lhs, PipelineID rhs) const
+    //     {
+    //         return lhs.polygonMode == rhs.polygonMode ? lhs.topology < rhs.topology : lhs.polygonMode <
+    //         rhs.polygonMode;
+    //     }
+    // };
+
+    // using Pipelines = std::map<PipelineID, VkPipeline, compare>;
+
     struct NodePushBlock
     {
         math::Matrix<4, 4> matrix;
@@ -22,200 +62,196 @@ public:
     };
     // static_assert(sizeof(PushBlock) < 128);
 
-    Renderer(const Command& command, const std::filesystem::path& shaders, std::vector<asset::Asset>& assets)
+
+    struct Renderable
+    {
+        const asset::Asset& asset;
+        VkPipelineLayout    pipelineLayout;
+        VkPipeline          pipeline;
+        // Pipelines           pipelines;
+
+        void drawNode(const VkCommandBuffer commandBuffer, const asset::Node& node,
+                      const math::Matrix<4, 4>& globalMatrix) const
+        {
+            if (!node.state.active)
+            {
+                return;
+            }
+
+            const NodePushBlock nodePushBlock { node.matrix() * globalMatrix, node.state.vertexStageFlag,
+                                                node.state.fragmentStageFlag };
+
+            if (node.mesh)
+            {
+                for (const auto& primitive : node.mesh->primitives)
+                {
+                    constexpr VkDeviceSize offset { 0 };
+                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &asset.model.vertexBuffer.buffer, &offset);
+                    vkCmdBindIndexBuffer(commandBuffer, asset.model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+                    auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
+                        vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
+                    assert(setPolygonMode);
+                    setPolygonMode(commandBuffer, translate(node.state.polygonMode));
+
+                    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+                    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
+                                            &primitive.material.descriptorSet, 0, nullptr);
+
+                    vkCmdPushConstants(commandBuffer, pipelineLayout,
+                                       VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                                       sizeof(NodePushBlock), &nodePushBlock);
+
+                    vkCmdDrawIndexed(commandBuffer, primitive.indexCount, 1, primitive.firstIndex, 0, 0);
+
+                    // if (primitive.state.boundingBox)
+                    // {
+                    //     [[maybe_unused]] const auto scale =
+                    //         0.5f * node.state.scale * (primitive.bb.max - primitive.bb.min);
+                    //     // const math::Vector<3> scale       = { 1, 1, 1 };
+                    //     [[maybe_unused]] const auto translation =
+                    //         node.state.translation + 0.5f * (primitive.bb.max + primitive.bb.min);
+                    //     const NodePushBlock bboxPushBlock { nodePushBlock.matrix, nodePushBlock.vertexStageFlag,
+                    //                                         nodePushBlock.fragmentStageFlag };
+                    //     vkCmdPushConstants(commandBuffer, descriptorlessPipelineLayout,
+                    //                        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                    //                        sizeof(NodePushBlock), &bboxPushBlock);
+
+                    //     constexpr VkDeviceSize offset { 0 };
+                    //     // vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cube.vertexBuffer.buffer, &offset);
+                    //     // vkCmdBindIndexBuffer(commandBuffer, cube.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                    //     // vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    //     //                   pipelines.at(PipelineID { PolygonMode::line, Topology::lineList }));
+                    //     // vkCmdDrawIndexed(commandBuffer, cube.indexCount, 1, 0, 0, 0);
+
+                    //     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &coordinateSystem.vertexBuffer.buffer, &offset);
+                    //     vkCmdBindIndexBuffer(commandBuffer, defaults.coordinateSystem.indexBuffer.buffer, 0,
+                    //                          VK_INDEX_TYPE_UINT32);
+                    //     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    //                       pipelines.at(PipelineID { PolygonMode::line, Topology::lineList }));
+                    //     vkCmdDrawIndexed(commandBuffer, defaults.coordinateSystem.indexCount, 1, 0, 0, 0);
+                    // }
+                }
+            }
+            for (const auto& child : node.children)
+            {
+                drawNode(commandBuffer, child, nodePushBlock.matrix);
+            }
+        }
+
+        void draw(const VkCommandBuffer commandBuffer, const math::Matrix<4, 4>& globalMatrix) const
+        {
+            if (!asset.state.active)
+            {
+                return;
+            }
+
+            if (asset.jointMatrices)
+            {
+                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1,
+                                        &asset.jointMatrices->descriptorSet, 0, nullptr);
+            }
+            for (const auto& node : asset.mainScene().nodes)
+            {
+                drawNode(commandBuffer, node, globalMatrix);
+            }
+        }
+
+        ~Renderable()
+        {
+            context().destroy(pipeline);
+            context().destroy(pipelineLayout);
+        }
+    };
+
+    Renderer(const std::filesystem::path& shaders, std::vector<asset::Asset>& assets)
         : assets { assets }
         , camera { 16.0 / 9.0, { 0.0f, 0.0f, 3.0f }, { 0.0f, 0.0f, -1.0f } }
-        , cube { command, geometry::cubeLine, true, SceneModelInfo {} }
-        , coordinateSystem { command, geometry::coordinateSystem, true, SceneModelInfo {} }
-        , descriptorSetLayouts { {
-              assets.front().materialDescriptorSetLayout,
-              assets.front().meshDescriptorSetLayout,
-              assets.front().jointMatrices->descriptorSetLayout,
-          } }
-        , assetPipelineLayout { createPipelineLayout(
-              descriptorSetLayouts.front(),
-              createPushConstantRange<NodePushBlock>(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)) }
-        , descriptorlessPipelineLayout { createPipelineLayout(
-              createPushConstantRange<NodePushBlock>(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)) }
-        , pipelines {
-            { PipelineID { PolygonMode::line, Topology::lineList },
-              createGraphicPipeline<geometry::PositionAndColor>(
-                  command.renderPass, VK_NULL_HANDLE, descriptorlessPipelineLayout,
-                  Shader { ShaderInfo<VK_SHADER_STAGE_VERTEX_BIT> { shaders / "bbox.vert.spv", nullptr },
-                           ShaderInfo<VK_SHADER_STAGE_FRAGMENT_BIT> { shaders / "bbox.frag.spv", nullptr } },
-                  createRasterizationStateInfo(VK_POLYGON_MODE_LINE),
-                  VkPipelineInputAssemblyStateCreateInfo {
-                      .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-                      .pNext                  = nullptr,
-                      .flags                  = {},
-                      .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
-                      .primitiveRestartEnable = VK_FALSE,
-                  }) },
-            { PipelineID { PolygonMode::point, Topology::vertexList },
-              createGraphicPipeline<asset::Asset::Vertex>(
-                  command.renderPass, VK_NULL_HANDLE, assetPipelineLayout,
-                  Shader { ShaderInfo<VK_SHADER_STAGE_VERTEX_BIT> { shaders / "asset.vert.spv", nullptr },
-                           ShaderInfo<VK_SHADER_STAGE_FRAGMENT_BIT> { shaders / "asset.frag.spv", nullptr } },
-                  createRasterizationStateInfo(VK_POLYGON_MODE_POINT)) },
-            { PipelineID { PolygonMode::line, Topology::vertexList },
-              createGraphicPipeline<asset::Asset::Vertex>(
-                  command.renderPass, VK_NULL_HANDLE, assetPipelineLayout,
-                  Shader { ShaderInfo<VK_SHADER_STAGE_VERTEX_BIT> { shaders / "asset.vert.spv", nullptr },
-                           ShaderInfo<VK_SHADER_STAGE_FRAGMENT_BIT> { shaders / "asset.frag.spv", nullptr } },
-                  createRasterizationStateInfo(VK_POLYGON_MODE_LINE)) },
-            { PipelineID { PolygonMode::fill, Topology::vertexList },
-              createGraphicPipeline<asset::Asset::Vertex>(
-                  command.renderPass, VK_NULL_HANDLE, assetPipelineLayout,
-                  Shader { ShaderInfo<VK_SHADER_STAGE_VERTEX_BIT> { shaders / "asset.vert.spv", nullptr },
-                           ShaderInfo<VK_SHADER_STAGE_FRAGMENT_BIT> { shaders / "asset.frag.spv", nullptr } },
-                  createRasterizationStateInfo(VK_POLYGON_MODE_FILL)) },
-        }
+        , renderables { createRenderables(shaders, assets) }
     {
     }
 
     std::vector<asset::Asset>&  assets;
     mutable Camera<true, false> camera;
+    std::vector<Renderable>     renderables;
 
-    Model cube;
-    Model coordinateSystem;
-
-    std::vector<std::array<VkDescriptorSetLayout, 3>> descriptorSetLayouts;
-    VkPipelineLayout                                  assetPipelineLayout;
-    VkPipelineLayout                                  descriptorlessPipelineLayout;
-
-    enum class Topology
-    {
-        vertexList,
-        lineList,
-    };
-
-    struct PipelineID
-    {
-        PolygonMode polygonMode;
-        Topology    topology;
-    };
-
-
-    struct compare
-    {
-        bool operator()(PipelineID lhs, PipelineID rhs) const
-        {
-            return lhs.polygonMode == rhs.polygonMode ? lhs.topology < rhs.topology : lhs.polygonMode < rhs.polygonMode;
-        }
-    };
-
-    using Pipelines = std::map<PipelineID, VkPipeline, compare>;
-    Pipelines pipelines;
 
     void update(const VkExtent2D, const UserInteraction& ui)
     {
         camera.update(ui);
-        // pushConstantBlock.fragmentStageFlag = ui.wireframe;
         for (auto& asset : assets)
         {
             asset.update(ui.elapsedTime);
         }
     }
 
-    // void drawOffscreen(const VkCommandBuffer commandBuffer) const
+    // void draw(const VkCommandBuffer commandBuffer, const Model& model, const asset::Node& node,
+    //           const math::Matrix<4, 4>& globalMatrix) const
     // {
+    //     if (!node.state.active)
+    //     {
+    //         return;
+    //     }
+
+    //     const NodePushBlock nodePushBlock { node.matrix() * globalMatrix, node.state.vertexStageFlag,
+    //                                         node.state.fragmentStageFlag };
+
+    //     if (node.mesh)
+    //     {
+    //         for (const auto& primitive : node.mesh->primitives)
+    //         {
+    //             constexpr VkDeviceSize offset { 0 };
+    //             vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model.vertexBuffer.buffer, &offset);
+    //             vkCmdBindIndexBuffer(commandBuffer, model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+    //             const PipelineID pipelineId { node.state.polygonMode, Topology::vertexList };
+    //             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.at(pipelineId));
+
+    //             const std::array descriptorSets { primitive.material.descriptorSet, node.mesh->descriptorSet };
+    //             vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, assetPipelineLayout, 0,
+    //                                     static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0,
+    //                                     nullptr);
+
+    //             vkCmdPushConstants(commandBuffer, assetPipelineLayout,
+    //                                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+    //                                sizeof(NodePushBlock), &nodePushBlock);
+
+    //             vkCmdDrawIndexed(commandBuffer, primitive.indexCount, 1, primitive.firstIndex, 0, 0);
+
+    //             if (primitive.state.boundingBox)
+    //             {
+    //                 [[maybe_unused]] const auto scale = 0.5f * node.state.scale * (primitive.bb.max -
+    //                 primitive.bb.min);
+    //                 // const math::Vector<3> scale       = { 1, 1, 1 };
+    //                 [[maybe_unused]] const auto translation =
+    //                     node.state.translation + 0.5f * (primitive.bb.max + primitive.bb.min);
+    //                 const NodePushBlock bboxPushBlock { nodePushBlock.matrix, nodePushBlock.vertexStageFlag,
+    //                                                     nodePushBlock.fragmentStageFlag };
+    //                 vkCmdPushConstants(commandBuffer, descriptorlessPipelineLayout,
+    //                                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+    //                                    sizeof(NodePushBlock), &bboxPushBlock);
+
+    //                 constexpr VkDeviceSize offset { 0 };
+    //                 // vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cube.vertexBuffer.buffer, &offset);
+    //                 // vkCmdBindIndexBuffer(commandBuffer, cube.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+    //                 // vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+    //                 //                   pipelines.at(PipelineID { PolygonMode::line, Topology::lineList }));
+    //                 // vkCmdDrawIndexed(commandBuffer, cube.indexCount, 1, 0, 0, 0);
+
+    //                 vkCmdBindVertexBuffers(commandBuffer, 0, 1, &coordinateSystem.vertexBuffer.buffer, &offset);
+    //                 vkCmdBindIndexBuffer(commandBuffer, coordinateSystem.indexBuffer.buffer, 0,
+    //                 VK_INDEX_TYPE_UINT32); vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+    //                                   pipelines.at(PipelineID { PolygonMode::line, Topology::lineList }));
+    //                 vkCmdDrawIndexed(commandBuffer, coordinateSystem.indexCount, 1, 0, 0, 0);
+    //             }
+    //         }
+    //     }
+    //     for (const auto& child : node.children)
+    //     {
+    //         draw(commandBuffer, model, child, nodePushBlock.matrix);
+    //     }
     // }
-
-    void draw(const VkCommandBuffer commandBuffer, const Model& model, const asset::Node& node,
-              const math::Matrix<4, 4>& globalMatrix) const
-    {
-        if (!node.state.active)
-        {
-            return;
-        }
-
-        // const math::Scaling     scaling { node.state.scale };
-        // const math::Rotation    rotation { node.state.attitude };
-        // const math::Translation translation { node.state.translation };
-
-        // const math::Transformation transformation { node.state.scale, node.state.translation, node.state.attitude };
-
-        // const auto transformation = translation * rotation * scaling;
-
-        const NodePushBlock nodePushBlock { node.matrix() * globalMatrix, node.state.vertexStageFlag,
-                                            node.state.fragmentStageFlag };
-
-
-        // assert(equalm(math::Scaling { node.state.scale }, math::Scaling { node.state.transformation.scale }));
-
-        // assert(equalm(math::Translation { node.state.translation },
-        //               math::Translation { node.state.transformation.translation }));
-
-        // const math::Rotation rot { node.state.rotation };
-        // std::cout << "old rotation from " << node.state.rotation << std::endl;
-        // std::cout << toString(rot) << std::endl;
-
-        // const math::Rotation trot { node.state.transformation.rotation };
-        // std::cout << "new rotation:" << std::endl;
-        // std::cout << toString(trot) << std::endl;
-
-        // assert(equalm(rot, trot));
-
-        // assert(equalm(nodePushBlock.matrix, node.state.transformation.matrix() * globalMatrix));
-
-        // const NodePushBlock nodePushBlock { node.state.transformation.matrix() * globalMatrix,
-        //                                     node.state.vertexStageFlag, node.state.fragmentStageFlag };
-
-
-        if (node.mesh)
-        {
-            for (const auto& primitive : node.mesh->primitives)
-            {
-                constexpr VkDeviceSize offset { 0 };
-                vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model.vertexBuffer.buffer, &offset);
-                vkCmdBindIndexBuffer(commandBuffer, model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-
-                const PipelineID pipelineId { node.state.polygonMode, Topology::vertexList };
-                vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.at(pipelineId));
-
-                const std::array descriptorSets { primitive.material.descriptorSet, node.mesh->descriptorSet };
-                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, assetPipelineLayout, 0,
-                                        static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0,
-                                        nullptr);
-
-                vkCmdPushConstants(commandBuffer, assetPipelineLayout,
-                                   VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(NodePushBlock),
-                                   &nodePushBlock);
-
-                vkCmdDrawIndexed(commandBuffer, primitive.indexCount, 1, primitive.firstIndex, 0, 0);
-
-                if (primitive.state.boundingBox)
-                {
-                    [[maybe_unused]] const auto scale = 0.5f * node.state.scale * (primitive.bb.max - primitive.bb.min);
-                    // const math::Vector<3> scale       = { 1, 1, 1 };
-                    [[maybe_unused]] const auto translation =
-                        node.state.translation + 0.5f * (primitive.bb.max + primitive.bb.min);
-                    const NodePushBlock bboxPushBlock { nodePushBlock.matrix, nodePushBlock.vertexStageFlag,
-                                                        nodePushBlock.fragmentStageFlag };
-                    vkCmdPushConstants(commandBuffer, descriptorlessPipelineLayout,
-                                       VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
-                                       sizeof(NodePushBlock), &bboxPushBlock);
-
-                    constexpr VkDeviceSize offset { 0 };
-                    // vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cube.vertexBuffer.buffer, &offset);
-                    // vkCmdBindIndexBuffer(commandBuffer, cube.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-                    // vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    //                   pipelines.at(PipelineID { PolygonMode::line, Topology::lineList }));
-                    // vkCmdDrawIndexed(commandBuffer, cube.indexCount, 1, 0, 0, 0);
-
-                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &coordinateSystem.vertexBuffer.buffer, &offset);
-                    vkCmdBindIndexBuffer(commandBuffer, coordinateSystem.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-                    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                      pipelines.at(PipelineID { PolygonMode::line, Topology::lineList }));
-                    vkCmdDrawIndexed(commandBuffer, coordinateSystem.indexCount, 1, 0, 0, 0);
-                }
-            }
-        }
-        for (const auto& child : node.children)
-        {
-            draw(commandBuffer, model, child, nodePushBlock.matrix);
-        }
-    }
 
     void draw(const VkCommandBuffer commandBuffer, const VkExtent2D extent) const
     {
@@ -235,30 +271,41 @@ public:
         };
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-        for (const auto& asset : assets)
+        for (const auto& renderable : renderables)
         {
-            if (!asset.state.active)
-            {
-                continue;
-            }
-
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, assetPipelineLayout, 2, 1,
-                                    &asset.jointMatrices->descriptorSet, 0, nullptr);
-            for (const auto& node : asset.mainScene().nodes)
-            {
-                draw(commandBuffer, asset.model, node, camera.viewProjection());
-            }
+            renderable.draw(commandBuffer, camera.viewProjection());
         }
     }
 
-    ~Renderer()
+
+private:
+    static std::vector<Renderable> createRenderables(const std::filesystem::path&     shaders,
+                                                     const std::vector<asset::Asset>& assets)
     {
-        for (auto pipeline : pipelines)
+        std::vector<Renderable> renderables;
+        renderables.reserve(assets.size());
+        for (const auto& asset : assets)
         {
-            context().destroy(pipeline.second);
+            constexpr VkPushConstantRange pushConstantRange { createPushConstantRange<NodePushBlock>(
+                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT) };
+
+            const VkPipelineLayout pipelineLayout {
+                asset.jointMatrices ? createPipelineLayout(pushConstantRange, asset.materialDescriptorSetLayout,
+                                                           asset.jointMatrices->descriptorSetLayout) :
+                                      createPipelineLayout(pushConstantRange, asset.materialDescriptorSetLayout)
+            };
+
+            const auto   verticesShader  = shaders / (asset.shader + ".vert.spv");
+            const auto   fragmentsShader = shaders / (asset.shader + ".frag.spv");
+            const Shader shader {
+                ShaderInfo<VK_SHADER_STAGE_VERTEX_BIT> { verticesShader, nullptr },
+                ShaderInfo<VK_SHADER_STAGE_FRAGMENT_BIT> { fragmentsShader, nullptr },
+            };
+            renderables.emplace_back(
+                asset, pipelineLayout,
+                createGraphicPipeline(asset.vertexInputState, VK_NULL_HANDLE, pipelineLayout, shader));
         }
-        context().destroy(assetPipelineLayout);
-        context().destroy(descriptorlessPipelineLayout);
+        return renderables;
     }
 };
 

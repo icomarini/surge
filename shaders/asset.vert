@@ -1,5 +1,4 @@
 #version 450
-// #extension GL_KHR_vulkan_glsl : enable
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inColor;
@@ -7,12 +6,6 @@ layout(location = 2) in vec3 inNormal;
 layout(location = 3) in vec2 inTexCoord;
 layout(location = 4) in vec4 inJointIndices;
 layout(location = 5) in vec4 inJointWeights;
-
-// layout(set = 1, binding = 0) uniform UniformBufferObject
-// {
-//     mat4 mvp;
-// }
-// ubo;
 
 layout(push_constant) uniform PushConstants
 {
@@ -22,7 +15,7 @@ layout(push_constant) uniform PushConstants
 }
 pushConstants;
 
-layout(std430, set = 2, binding = 0) readonly buffer JointMatrices
+layout(std430, set = 1, binding = 0) readonly buffer JointMatrices
 {
     mat4 jointMatrices[];
 };
@@ -38,7 +31,7 @@ void main()
                    inJointWeights.z * jointMatrices[int(inJointIndices.z)] +
                    inJointWeights.w * jointMatrices[int(inJointIndices.w)];
 
-    gl_Position  = skinMat * pushConstants.mvp * vec4(inPosition, 1.0);
+    gl_Position  = pushConstants.mvp * /*skinMat **/ vec4(inPosition, 1.0);
     fragTexCoord = inTexCoord;
     fragColor    = inColor;
     fragNormal   = inNormal;

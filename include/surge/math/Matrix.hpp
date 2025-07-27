@@ -31,7 +31,7 @@ concept ValidIndices = HasSizes<M> && (row < rows<M> && col < cols<M>);
 
 template<Size row, Size col, typename M>
     requires ValidIndices<row, col, M>
-consteval Size index(const M&)
+consteval Size index()
 {
     return row * rows<M> + col;
 }
@@ -83,14 +83,14 @@ template<Size row, Size col, StaticMatrix M>
     requires ValidIndices<row, col, M> && HasSingleSubscriptOperator<M>
 constexpr auto& get(M& m)
 {
-    return m[index<row, col>(m)];
+    return m[index<row, col, M>()];
 }
 
 template<Size row, Size col, StaticMatrix M>
     requires ValidIndices<row, col, M> && HasSingleSubscriptOperator<M>
 constexpr auto& get(const M& m)
 {
-    return m[index<row, col>(m)];
+    return m[index<row, col, M>()];
 }
 
 

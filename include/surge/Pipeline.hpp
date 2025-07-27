@@ -9,93 +9,6 @@
 
 namespace surge
 {
-template<Size size, geometry::Format format>
-constexpr VkFormat extractFormat()
-{
-    constexpr std::array lut {
-        std::pair { std::pair { 1, geometry::Format::sfloat }, VK_FORMAT_R32_SFLOAT },
-        std::pair { std::pair { 2, geometry::Format::sfloat }, VK_FORMAT_R32G32_SFLOAT },
-        std::pair { std::pair { 3, geometry::Format::sfloat }, VK_FORMAT_R32G32B32_SFLOAT },
-        std::pair { std::pair { 4, geometry::Format::sfloat }, VK_FORMAT_R32G32B32A32_SFLOAT },
-        std::pair { std::pair { 1, geometry::Format::unorm }, VK_FORMAT_R8_UNORM },
-        std::pair { std::pair { 2, geometry::Format::unorm }, VK_FORMAT_R8G8_UNORM },
-        std::pair { std::pair { 3, geometry::Format::unorm }, VK_FORMAT_R8G8B8_UNORM },
-        std::pair { std::pair { 4, geometry::Format::unorm }, VK_FORMAT_R8G8B8A8_UNORM },
-    };
-
-    VkFormat result;
-    forEach<0, lut.size()>(
-        [&]<int i>()
-        {
-            constexpr auto t = lut.at(i);
-            if constexpr (t.first.first == size && t.first.second == format)
-            {
-                result = t.second;
-            }
-        });
-    return result;
-};
-
-template<typename... Attributes>
-static constexpr auto createAttributeDescriptions(geometry::Vertex<Attributes...>)
-{
-    using Vertex = geometry::Vertex<Attributes...>;
-    std::array<VkVertexInputAttributeDescription, Vertex::attributeCount> attributeDescriptions;
-    forEach<0, Vertex::attributeCount>(
-        [&]<int index>()
-        {
-            using Attribute              = typename Vertex::Attribute<index>;
-            attributeDescriptions[index] = {
-                .location = index,
-                .binding  = 0,
-                .format   = extractFormat<Attribute::size, Attribute::format>(),
-                .offset   = Vertex::template computeByteOffset<Attribute::attribute>(),
-            };
-        });
-    return attributeDescriptions;
-}
-
-template<typename Vertex>
-VkPipelineVertexInputStateCreateInfo createVertexInputState()
-{
-    static constexpr VkVertexInputBindingDescription bindingDescription {
-        .binding   = 0,
-        .stride    = sizeof(Vertex),
-        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
-
-    };
-    static constexpr auto attributeDescriptions = createAttributeDescriptions(Vertex {});
-
-    static constexpr VkPipelineVertexInputStateCreateInfo vertexInputState {
-        .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-        .pNext                           = nullptr,
-        .flags                           = {},
-        .vertexBindingDescriptionCount   = 1,
-        .pVertexBindingDescriptions      = &bindingDescription,
-        .vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
-        .pVertexAttributeDescriptions    = attributeDescriptions.data(),
-    };
-    return vertexInputState;
-}
-
-struct VoidVertex
-{
-};
-
-template<>
-VkPipelineVertexInputStateCreateInfo createVertexInputState<VoidVertex>()
-{
-    static constexpr VkPipelineVertexInputStateCreateInfo vertexInputState {
-        .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-        .pNext                           = nullptr,
-        .flags                           = {},
-        .vertexBindingDescriptionCount   = 0,
-        .pVertexBindingDescriptions      = nullptr,
-        .vertexAttributeDescriptionCount = 0,
-        .pVertexAttributeDescriptions    = nullptr,
-    };
-    return vertexInputState;
-}
 
 template<typename Type>
 constexpr VkPushConstantRange createPushConstantRange(const VkShaderStageFlags stageFlags)
@@ -107,19 +20,11 @@ constexpr VkPushConstantRange createPushConstantRange(const VkShaderStageFlags s
     };
 }
 
-VkPipelineLayout createPipelineLayout(const VkDescriptorSetLayout descriptorSetLayout,
-                                      const VkPushConstantRange   pushConstantRange)
-{
-    return context().create(VkPipelineLayoutCreateInfo {
-        .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-        .pNext                  = nullptr,
-        .flags                  = {},
-        .setLayoutCount         = 1,
-        .pSetLayouts            = &descriptorSetLayout,
-        .pushConstantRangeCount = 1,
-        .pPushConstantRanges    = &pushConstantRange,
-    });
-}
+VkPipelineLayout createPipelineLayout(const VkDescriptorSetLayout descriptorSetLayout);
+template<typename... DescriptorSetLayouts>
+VkPipelineLayout createPipelineLayout(const VkPushConstantRange pushConstantRange,
+                                      const DescriptorSetLayouts... descriptorSetLayouts);
+VkPipelineLayout createPipelineLayout(const VkPushConstantRange pushConstantRange);
 
 VkPipelineLayout createPipelineLayout(const VkDescriptorSetLayout descriptorSetLayout)
 {
@@ -135,16 +40,17 @@ VkPipelineLayout createPipelineLayout(const VkDescriptorSetLayout descriptorSetL
 }
 
 
-template<typename DescriptorSetLayouts>
-VkPipelineLayout createPipelineLayout(const DescriptorSetLayouts descriptorSetLayouts,
-                                      const VkPushConstantRange  pushConstantRange)
+template<typename... DescriptorSetLayouts>
+VkPipelineLayout createPipelineLayout(const VkPushConstantRange pushConstantRange,
+                                      const DescriptorSetLayouts... descriptorSetLayouts)
 {
+    const std::array layouts { descriptorSetLayouts... };
     return context().create(VkPipelineLayoutCreateInfo {
         .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
         .pNext                  = nullptr,
         .flags                  = {},
-        .setLayoutCount         = static_cast<uint32_t>(descriptorSetLayouts.size()),
-        .pSetLayouts            = descriptorSetLayouts.data(),
+        .setLayoutCount         = static_cast<uint32_t>(layouts.size()),
+        .pSetLayouts            = layouts.data(),
         .pushConstantRangeCount = 1,
         .pPushConstantRanges    = &pushConstantRange,
     });
@@ -163,18 +69,9 @@ VkPipelineLayout createPipelineLayout(const VkPushConstantRange pushConstantRang
     });
 }
 
-VkPipelineCache createPipelineCache()
-{
-    return context().create(VkPipelineCacheCreateInfo {
-        .sType           = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
-        .pNext           = nullptr,
-        .flags           = {},
-        .initialDataSize = 0,
-        .pInitialData    = nullptr,
-    });
-}
+constexpr VkPipelineRasterizationStateCreateInfo createRasterizationStateInfo(const VkPolygonMode polygonMode);
 
-VkPipelineRasterizationStateCreateInfo createRasterizationStateInfo(const VkPolygonMode polygonMode)
+constexpr VkPipelineRasterizationStateCreateInfo createRasterizationStateInfo(const VkPolygonMode polygonMode)
 {
     return VkPipelineRasterizationStateCreateInfo {
         .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -193,12 +90,13 @@ VkPipelineRasterizationStateCreateInfo createRasterizationStateInfo(const VkPoly
     };
 }
 
-template<typename Vertex, typename ShaderStages, typename... CreateInfos>
-VkPipeline createGraphicPipeline(const VkRenderPass renderPass, const VkPipelineCache pipelineCache,
-                                 const VkPipelineLayout pipelineLayout, const ShaderStages& shaderStages,
-                                 CreateInfos... createInfos)
+
+template<typename ShaderStages, typename... CreateInfos>
+VkPipeline createGraphicPipeline(const VkPipelineVertexInputStateCreateInfo vertexInputState,
+                                 const VkPipelineCache pipelineCache, const VkPipelineLayout pipelineLayout,
+                                 const ShaderStages& shaderStages, CreateInfos... createInfos)
 {
-    const auto vertexInputState = createVertexInputState<Vertex>();
+    // const auto vertexInputState = createVertexInputState<Vertex>();
 
     const auto createInfoTuple = std::make_tuple(createInfos...);
     using CreateInfoTuple      = std::tuple<CreateInfos...>;
@@ -221,6 +119,7 @@ VkPipeline createGraphicPipeline(const VkRenderPass renderPass, const VkPipeline
             }
         }
     };
+
 
     const auto inputAssemblyState = getOr(VkPipelineInputAssemblyStateCreateInfo {
         .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
@@ -306,8 +205,8 @@ VkPipeline createGraphicPipeline(const VkRenderPass renderPass, const VkPipeline
         .blendConstants  = { 0.0f, 0.0f, 0.0f, 0.0f },
     });
 
-    const auto                             dynamicStates = getOr(std::array<VkDynamicState, 3> {
-        VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_DEPTH_BIAS });
+    const auto dynamicStates = getOr(std::array { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR,
+                                                  VK_DYNAMIC_STATE_DEPTH_BIAS, VK_DYNAMIC_STATE_POLYGON_MODE_EXT });
     const VkPipelineDynamicStateCreateInfo dynamicState {
         .sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
         .pNext             = nullptr,
@@ -316,9 +215,19 @@ VkPipeline createGraphicPipeline(const VkRenderPass renderPass, const VkPipeline
         .pDynamicStates    = dynamicStates.data(),
     };
 
+    const VkPipelineRenderingCreateInfoKHR pipelineRenderingCreateInfo {
+        .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
+        .pNext                   = nullptr,
+        .viewMask                = 0,
+        .colorAttachmentCount    = 1,
+        .pColorAttachmentFormats = &context().properties.surfaceFormat.format,
+        .depthAttachmentFormat   = VK_FORMAT_D32_SFLOAT,
+        .stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
+    };
+
     const VkGraphicsPipelineCreateInfo pipelineInfo {
         .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-        .pNext               = nullptr,
+        .pNext               = &pipelineRenderingCreateInfo,
         .flags               = {},
         .stageCount          = static_cast<uint32_t>(shaderStages.shaders.size()),
         .pStages             = shaderStages.shaders.data(),
@@ -332,11 +241,12 @@ VkPipeline createGraphicPipeline(const VkRenderPass renderPass, const VkPipeline
         .pColorBlendState    = &colorBlendState,
         .pDynamicState       = &dynamicState,
         .layout              = pipelineLayout,
-        .renderPass          = renderPass,
+        .renderPass          = VK_NULL_HANDLE,
         .subpass             = 0,
         .basePipelineHandle  = VK_NULL_HANDLE,
         .basePipelineIndex   = -1,
     };
+
 
     VkPipeline pipeline;
     if (vkCreateGraphicsPipelines(context().device, pipelineCache, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS)
@@ -344,5 +254,13 @@ VkPipeline createGraphicPipeline(const VkRenderPass renderPass, const VkPipeline
         throw std::runtime_error("failed to create graphics pipeline!");
     }
     return pipeline;
+}
+
+template<typename Vertex, typename ShaderStages, typename... CreateInfos>
+VkPipeline createGraphicPipeline(const VkPipelineCache pipelineCache, const VkPipelineLayout pipelineLayout,
+                                 const ShaderStages& shaderStages, CreateInfos... createInfos)
+{
+    return createGraphicPipeline(geometry::createVertexInputState<Vertex>(), pipelineCache, pipelineLayout,
+                                 shaderStages, createInfos...);
 }
 }  // namespace surge

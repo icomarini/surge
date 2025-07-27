@@ -3,6 +3,7 @@
 #include "surge/Context.hpp"
 #include "surge/Command.hpp"
 #include "surge/Descriptor.hpp"
+#include "surge/Image.hpp"
 
 namespace surge
 {

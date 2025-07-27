@@ -1,10 +1,11 @@
 #!/bin/bash
 
-glslc=/home/ico/projects/extern/shaderc/install/bin/glslc
-options="-Werror"
+glslc=/usr/local/bin/glslc
+options="" #"-Werror"
 
-shaders_dir=/home/ico/projects/surge/shaders
-build_dir=/home/ico/projects/surge/build/shaders
+root_folder=$(dirname "$0")
+shaders_dir=${root_folder}/shaders
+build_dir=${root_folder}/build/shaders
 mkdir -p $build_dir
 
 for shader in ${shaders_dir}/*.vert

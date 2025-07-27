@@ -10,11 +10,11 @@ class Swapchain
 {
 public:
     template<typename DepthImageInfo>
-    Swapchain(const VkRenderPass renderPass, DepthImageInfo)
+    Swapchain(DepthImageInfo)
         : extent { computeExtent() }
         , swapchain { createSwapChain(extent) }
         , depthImage { extent, DepthImageInfo {} }
-        , frames { createFrames(swapchain, extent, depthImage.view, renderPass) }
+        , frames { createFrames(swapchain) }
     {
     }
 
@@ -23,16 +23,10 @@ public:
         return frames.size();
     }
 
-    VkFramebuffer frameBuffer(const uint32_t imageIndex) const
-    {
-        return frames.at(imageIndex).framebuffer;
-    }
-
     ~Swapchain()
     {
-        for (const auto [imageView, frameBuffer] : frames)
+        for (const auto [_, imageView] : frames)
         {
-            context().destroy(frameBuffer);
             context().destroy(imageView);
         }
         context().destroy(swapchain);
@@ -45,11 +39,13 @@ public:
 private:
     struct Frame
     {
-        VkImageView   imageView;
-        VkFramebuffer framebuffer;
+        VkImage     image;
+        VkImageView imageView;
     };
 
-    Image              depthImage;
+public:
+    Image depthImage;
+
     std::vector<Frame> frames;
 
 private:
@@ -69,9 +65,18 @@ private:
     {
         const std::array indices { context().properties.graphicsFamilyIndex, context().properties.presentFamilyIndex };
         const auto       sameQueueFamilies = indices.at(0) == indices.at(1);
+
+        constexpr VkSwapchainPresentScalingCreateInfoEXT presentScaling {
+            .sType           = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_SCALING_CREATE_INFO_EXT,
+            .pNext           = nullptr,
+            .scalingBehavior = VK_PRESENT_SCALING_ONE_TO_ONE_BIT_EXT,
+            .presentGravityX = 0,
+            .presentGravityY = 0,
+        };
+
         return context().create(VkSwapchainCreateInfoKHR {
             .sType                 = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-            .pNext                 = nullptr,
+            .pNext                 = &presentScaling,
             .flags                 = {},
             .surface               = context().surface,
             .minImageCount         = context().frameBufferCount(),
@@ -91,8 +96,7 @@ private:
         });
     }
 
-    static std::vector<Frame> createFrames(const VkSwapchainKHR swapchain, const VkExtent2D extent,
-                                           const VkImageView depthImageView, const VkRenderPass renderPass)
+    static std::vector<Frame> createFrames(const VkSwapchainKHR swapchain)
     {
         uint32_t count {};
         vkGetSwapchainImagesKHR(context().device, swapchain, &count, VK_NULL_HANDLE);
@@ -103,36 +107,31 @@ private:
         frames.reserve(count);
         for (const auto image : images)
         {
-            constexpr VkImageSubresourceRange subresourceRange {
-                .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-                .baseMipLevel   = 0,
-                .levelCount     = 1,
-                .baseArrayLayer = 0,
-                .layerCount     = 1,
-            };
-            const auto       imageView = context().create(VkImageViewCreateInfo {
-                      .sType            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-                      .pNext            = nullptr,
-                      .flags            = {},
-                      .image            = image,
-                      .viewType         = VK_IMAGE_VIEW_TYPE_2D,
-                      .format           = context().properties.surfaceFormat.format,
-                      .components       = {},
-                      .subresourceRange = subresourceRange,
+            // constexpr VkImageSubresourceRange subresourceRange {
+            //     .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+            //     .baseMipLevel   = 0,
+            //     .levelCount     = 1,
+            //     .baseArrayLayer = 0,
+            //     .layerCount     = 1,
+            // };
+            const auto imageView = context().create(VkImageViewCreateInfo {
+                .sType      = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+                .pNext      = nullptr,
+                .flags      = {},
+                .image      = image,
+                .viewType   = VK_IMAGE_VIEW_TYPE_2D,
+                .format     = context().properties.surfaceFormat.format,
+                .components = {},
+                .subresourceRange =
+                    VkImageSubresourceRange {
+                        .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                        .baseMipLevel   = 0,
+                        .levelCount     = 1,
+                        .baseArrayLayer = 0,
+                        .layerCount     = 1,
+                    },
             });
-            const std::array attachments { imageView, depthImageView };
-            const auto       frameBuffer = context().create(VkFramebufferCreateInfo {
-                      .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-                      .pNext           = nullptr,
-                      .flags           = {},
-                      .renderPass      = renderPass,
-                      .attachmentCount = static_cast<uint32_t>(attachments.size()),
-                      .pAttachments    = attachments.data(),
-                      .width           = extent.width,
-                      .height          = extent.height,
-                      .layers          = 1,
-            });
-            frames.emplace_back(imageView, frameBuffer);
+            frames.emplace_back(image, imageView);
         }
         return frames;
     }

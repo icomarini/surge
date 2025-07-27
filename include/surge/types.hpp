@@ -25,6 +25,8 @@ enum class PolygonMode : UInt8
     fill
 };
 
+bool operator<(const PolygonMode a, const PolygonMode b);
+
 bool operator<(const PolygonMode a, const PolygonMode b)
 {
     return static_cast<UInt8>(a) < static_cast<UInt8>(b);

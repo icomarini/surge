@@ -6,7 +6,9 @@
 
 namespace surge::overlay
 {
-std::string idName(uint32_t id, const std::string& name)
+std::string idName(const uint32_t id, const std::string& name);
+
+std::string idName(const uint32_t id, const std::string& name)
 {
     return std::to_string(id) + ": " + name;
 }

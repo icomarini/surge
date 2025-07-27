@@ -1,66 +1,109 @@
 cmake_minimum_required(VERSION 3.27)
-project(ico VERSION 0.01)
+project(surge VERSION 0.01)
 
-# --- extern stuff ------------------------------------------------------------
 
-# vulkan
+# vulkan ======================================================================
 find_package(Vulkan REQUIRED)
 
-# glfw
+
+# glfw ========================================================================
 find_package(glfw3 3.3 REQUIRED)
 
-# stb
-set(std_dir //home/ico/projects/extern/stb)
+
+# stb =========================================================================
+if (NOT DEFINED LIB_STB_INCLUDE)
+    message(FATAL_ERROR "Missing path to stb include folder" )
+endif()
+message("Path to stb include folder: '${LIB_STB_INCLUDE}'" )
+
 add_library(stb INTERFACE)
-target_include_directories(stb INTERFACE ${std_dir})
+target_include_directories(stb INTERFACE ${LIB_STB_INCLUDE})
 
-# tinyonbjloader
-set(tinyobjloader_dir /home/ico/projects/extern/tinyobjloader)
+
+# tinyonbjloader =============================================================
+if (NOT DEFINED LIB_TINYOBJLOADER_INCLUDE)
+    message(FATAL_ERROR "Missing path to tinyonbjloader include folder" )
+endif()
+message("Path to tinyonbjloader include folder: '${LIB_TINYOBJLOADER_INCLUDE}'" )
+
 add_library(tinyobjloader INTERFACE)
-target_include_directories(tinyobjloader INTERFACE ${tinyobjloader_dir})
+target_include_directories(tinyobjloader INTERFACE ${LIB_TINYOBJLOADER_INCLUDE})
 
-# ktx
-set(ktx_dir /home/ico/projects/extern/KTX-Software/install)
+
+# ktx =========================================================================
+if (NOT DEFINED LIB_KTX_INCLUDE)
+    message(FATAL_ERROR "Missing path to Ktx include folder" )
+endif()
+message("Path to Ktx include folder: '${LIB_KTX_INCLUDE}'" )
+if (NOT DEFINED LIB_KTX_LIB)
+    message(FATAL_ERROR "Missing path to Ktx library folder" )
+endif()
+message("Path to Ktx library folder: '${LIB_KTX_LIB}'" )
+
 add_library(ktx STATIC IMPORTED)
-set_property(TARGET ktx PROPERTY IMPORTED_LOCATION ${ktx_dir}/lib/libktx.a)
-target_include_directories(ktx INTERFACE ${ktx_dir}/include)
+set_property(TARGET ktx PROPERTY IMPORTED_LOCATION ${LIB_KTX_LIB}/libktx.a)
+target_include_directories(ktx INTERFACE ${LIB_KTX_INCLUDE})
+# find_library(ktx ktx "${LIB_KTX_LIB}")
+# target_link_libraries(ktx INTERFACE IMPORTED_LOCATION ktx)
 
-# fastgltf
-set(fastgltf_dir /home/ico/projects/extern/fastgltf/install)
+
+# fastgltf ====================================================================
+if (NOT DEFINED LIB_FASTGLTF_INCLUDE)
+    message(FATAL_ERROR "Missing path to fastgltf include folder" )
+endif()
+message("Path to fastgltf include folder: '${LIB_FASTGLTF_INCLUDE}'" )
+if (NOT DEFINED LIB_FASTGLTF_LIB)
+    message(FATAL_ERROR "Missing path to fastgltf library folder" )
+endif()
+message("Path to fastgltf library folder: '${LIB_FASTGLTF_LIB}'" )
+
 add_library(fastgltf STATIC IMPORTED)
-set_property(TARGET fastgltf PROPERTY IMPORTED_LOCATION ${fastgltf_dir}/lib/libfastgltf.a)
-target_include_directories(fastgltf INTERFACE ${fastgltf_dir}/include)
+set_property(TARGET fastgltf PROPERTY IMPORTED_LOCATION ${LIB_FASTGLTF_LIB}/libfastgltf.a)
+target_include_directories(fastgltf INTERFACE ${LIB_FASTGLTF_INCLUDE})
 
-# imgui
-set(imgui_dir /home/ico/projects/extern/imgui)
+
+# imgui =======================================================================
+if (NOT DEFINED LIB_IMGUI_SOURCE)
+    message(FATAL_ERROR "Missing path to ImGUI source folder" )
+endif()
+message("Path to ImGUI source folder: '${LIB_IMGUI_SOURCE}'" )
+
 add_library(imgui STATIC
-    ${imgui_dir}/imgui.cpp
-    ${imgui_dir}/imgui_demo.cpp
-    ${imgui_dir}/imgui_draw.cpp
-    ${imgui_dir}/imgui_tables.cpp
-    ${imgui_dir}/imgui_widgets.cpp
-    ${imgui_dir}/backends/imgui_impl_vulkan.cpp
-    ${imgui_dir}/backends/imgui_impl_glfw.cpp
+    ${LIB_IMGUI_SOURCE}/imgui.cpp
+    ${LIB_IMGUI_SOURCE}/imgui_demo.cpp
+    ${LIB_IMGUI_SOURCE}/imgui_draw.cpp
+    ${LIB_IMGUI_SOURCE}/imgui_tables.cpp
+    ${LIB_IMGUI_SOURCE}/imgui_widgets.cpp
+    # ${LIB_IMGUI_SOURCE}/backends/imgui_impl_vulkan.cpp
+    # ${LIB_IMGUI_SOURCE}/backends/imgui_impl_glfw.cpp
     )
-target_include_directories(imgui PUBLIC ${imgui_dir})
-target_include_directories(imgui PUBLIC ${imgui_dir}/backends)
+target_include_directories(imgui PUBLIC ${LIB_IMGUI_SOURCE})
+# target_include_directories(imgui PUBLIC ${LIB_IMGUI_SOURCE}/backends)
 
 
-# miniaudio
+# miniaudio ===================================================================
+if (NOT DEFINED LIB_MINIAUDIO_SOURCE)
+    message(FATAL_ERROR "Missing path to miniaudio source folder" )
+endif()
+message("Path to miniaudio source folder: '${LIB_MINIAUDIO_SOURCE}'" )
+
 set(miniaudio_dir /home/ico/projects/extern/miniaudio)
 add_library(miniaudio STATIC
-    ${miniaudio_dir}/miniaudio.c
+    ${LIB_MINIAUDIO_SOURCE}/miniaudio.c
     )
-target_include_directories(miniaudio PUBLIC ${miniaudio_dir})
+target_include_directories(miniaudio PUBLIC ${LIB_MINIAUDIO_SOURCE})
 
-# clay
-# set(clay_dir /home/ico/projects/extern/clay)
+
+# clay ========================================================================
 # add_library(clay INTERFACE)
-# target_include_directories(clay INTERFACE ${clay_dir})
+# target_include_directories(clay INTERFACE ${LIB_CLAY_INCLUDE})
 
-# --- app stuff ---------------------------------------------------------------
+
+# surge =======================================================================
 add_executable (surge.bin main.cpp)
-target_include_directories(surge.bin PUBLIC /home/ico/projects/surge/include)
+set_property(TARGET surge.bin PROPERTY CXX_STANDARD 23)
+
+target_include_directories(surge.bin PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(surge.bin LINK_PUBLIC
     vulkan
     glfw
