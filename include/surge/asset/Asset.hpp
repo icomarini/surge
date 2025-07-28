@@ -157,26 +157,26 @@ public:
             state.jointMatrices.clear();
             state.jointMatrices.reserve(skin.joints.size());
 
-            std::cout << " === Update joints" << std::endl;
+            // std::cout << " === Update joints" << std::endl;
 
             auto nodeMatrix = node.nodeMatrix();
 
-            std::cout << "node matrix:" << std::endl;
-            std::cout << math::toString(nodeMatrix) << std::endl;
+            // std::cout << "node matrix:" << std::endl;
+            // std::cout << math::toString(nodeMatrix) << std::endl;
 
             const auto inverse = math::inverse(node.nodeMatrix());
 
-            std::cout << "inverse node matrix:" << std::endl;
-            std::cout << math::toString(inverse) << std::endl;
+            // std::cout << "inverse node matrix:" << std::endl;
+            // std::cout << math::toString(inverse) << std::endl;
 
             int jointId { 0 };
             for (const auto& [node, inverseBindMatrix] : skin.joints)
             {
-                std::cout << "joint " << jointId++ << "|" << node.name << "========================" << std::endl;
+                // std::cout << "joint " << jointId++ << "|" << node.name << "========================" << std::endl;
                 // const auto matrix = node.nodeMatrix() * inverseBindMatrix;
                 auto nodeMatrix = node.nodeMatrix();
-                std::cout << "node matrix" << std::endl;
-                std::cout << math::toString(nodeMatrix) << std::endl;
+                // std::cout << "node matrix" << std::endl;
+                // std::cout << math::toString(nodeMatrix) << std::endl;
 
                 const math::Matrix<4, 4> id {
                     1, 0, 0, 0,  //
@@ -189,8 +189,8 @@ public:
                 // const auto& jointMatrix =
                 //     state.jointMatrices.emplace_back(math::transpose(inverseBindMatrix * nodeMatrix * inverse));
 
-                std::cout << "joint matrix" << std::endl;
-                std::cout << math::toString(jointMatrix) << std::endl;
+                // std::cout << "joint matrix" << std::endl;
+                // std::cout << math::toString(jointMatrix) << std::endl;
             }
 
             assert(jointMatrices);

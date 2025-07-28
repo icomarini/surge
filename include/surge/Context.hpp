@@ -24,6 +24,35 @@ namespace surge
 class Context
 {
 public:
+    static constexpr std::array extensions {
+#ifndef NDEBUG
+        VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+#endif
+        VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
+        VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME,
+        VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME,
+    };
+
+#ifndef NDEBUG
+    static constexpr std::array validationLayers {
+        "VK_LAYER_KHRONOS_validation",
+    };
+#else
+    static constexpr std::array<const char*, 0> validationLayers {};
+#endif
+
+    static constexpr std::array deviceExtensions {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
+        VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME,
+        VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME,
+        VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
+        VK_KHR_MULTIVIEW_EXTENSION_NAME,
+        VK_KHR_MAINTENANCE_2_EXTENSION_NAME,
+        VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,
+        VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
+    };
+
     Context(const std::string& appName, const std::string& engineName, const uint32_t width, const uint32_t height,
             UserInteraction& userInteraction)
         : window { appName, width, height, userInteraction }
@@ -293,7 +322,7 @@ private:
 
 public:
     VkInstance instance;
-    struct Properties
+    struct PhysicalDevice
     {
         float              maxSamplerAnisotropy;
         uint32_t           graphicsFamilyIndex;
@@ -303,9 +332,9 @@ public:
         VkPhysicalDevice   physicalDevice;
     };
 
-    VkSurfaceKHR surface;
-    Properties   properties;
-    VkDevice     device;
+    VkSurfaceKHR   surface;
+    PhysicalDevice properties;
+    VkDevice       device;
 
 #ifndef NDEBUG
 private:
@@ -313,67 +342,107 @@ private:
 #endif
 
 private:
-    static std::vector<const char*> getExtensions(const std::set<const char*>& windowExtensions)
+    template<typename Handle>
+    static void checkConstruction(const VkResult result)
     {
-        auto extensions = windowExtensions;
+        if (result != VK_SUCCESS)
+        {
+            throw std::runtime_error(std::string("failed to create ") + typeid(Handle).name());
+        }
+    }
 
-#ifndef NDEBUG
-        extensions.insert(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif
-        extensions.insert(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-        // extensions.insert(VK_KHR_dynamic_rendering);
+    template<typename Handle, typename Info, typename Constructor>
+    Handle construct(const Constructor constructor, const Info& createInfo,
+                     const VkAllocationCallbacks* allocator) const
+    {
+        Handle handle;
+        checkConstruction<Handle>(constructor(device, &createInfo, allocator, &handle));
+        return handle;
+    }
 
+    template<typename Handle, typename Info, typename Constructor>
+    Handle construct(const Constructor constructor, const Info& createInfo) const
+    {
+        Handle handle;
+        checkConstruction<Handle>(constructor(device, &createInfo, &handle));
+        return handle;
+    }
+
+    static void checkExtensions(const std::vector<const char*>& requiredExtensions)
+    {
         uint32_t availableExtensionsCount = 0;
         vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionsCount, nullptr);
         std::vector<VkExtensionProperties> availableExtensions(availableExtensionsCount);
         vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionsCount, availableExtensions.data());
 
-        for (const auto* requiredExtension : extensions)
+        for (const auto* requiredExtension : requiredExtensions)
         {
             const auto supported =
                 std::find_if(availableExtensions.cbegin(), availableExtensions.cend(),
-                             [&](const auto availableExtension) {
-                                 return std::strcmp(availableExtension.extensionName, requiredExtension) == 0;
-                             }) != availableExtensions.cend();
+                             [&](const auto availableExtension)
+                             { return std::strcmp(availableExtension.extensionName, requiredExtension) == 0; }) !=
+                availableExtensions.cend();
             if (!supported)
             {
-                throw std::runtime_error("missing required extension");
+                throw std::runtime_error(std::string("missing required extension ") + requiredExtension);
             }
         }
-
-        return std::vector<const char*>(extensions.begin(), extensions.end());
     }
 
-    static std::vector<const char*> getValidationLayers()
+    static void checkValidationLayers(const auto& requestedLayers)
     {
-#ifndef NDEBUG
-        static const std::vector<const char*> validationLayers { "VK_LAYER_KHRONOS_validation" };
-
         uint32_t availableLayerCount;
         vkEnumerateInstanceLayerProperties(&availableLayerCount, nullptr);
         std::vector<VkLayerProperties> availableLayers(availableLayerCount);
         vkEnumerateInstanceLayerProperties(&availableLayerCount, availableLayers.data());
 
-        for (const auto* requestedLayer : validationLayers)
+        for (const auto* requestedLayer : requestedLayers)
         {
-            const bool supported = std::find_if(availableLayers.cbegin(), availableLayers.cend(),
-                                                [&](const auto& availableLayer) {
-                                                    return std::strcmp(availableLayer.layerName, requestedLayer) == 0;
-                                                }) != availableLayers.cend();
+            const bool supported =
+                std::find_if(availableLayers.cbegin(), availableLayers.cend(), [&](const auto& availableLayer)
+                             { return std::strcmp(availableLayer.layerName, requestedLayer) == 0; }) !=
+                availableLayers.cend();
             if (!supported)
             {
-                throw std::runtime_error("missing requested validation layer");
+                throw std::runtime_error(std::string("missing required validation layer") + requestedLayer);
             }
         }
-
-        return validationLayers;
-#else
-        return std::vector<const char*> {};
-#endif
     }
 
-    static bool checkDeviceExtensionsSupport(VkPhysicalDevice                physicalDevice,
-                                             const std::vector<const char*>& requiredExtensions)
+    static VkInstance createInstance(const std::string& appName, const std::string& engineName,
+                                     const std::vector<const char*>& windowExtensions)
+    {
+        checkValidationLayers(validationLayers);
+
+        auto requiredExtensions = windowExtensions;
+        requiredExtensions.insert(requiredExtensions.begin(), extensions.begin(), extensions.end());
+        checkExtensions(requiredExtensions);
+
+        const VkApplicationInfo appInfo {
+            .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+            .pNext              = nullptr,
+            .pApplicationName   = appName.c_str(),
+            .applicationVersion = VK_MAKE_VERSION(1, 3, 250),
+            .pEngineName        = engineName.c_str(),
+            .engineVersion      = VK_MAKE_VERSION(1, 0, 0),
+            .apiVersion         = VK_API_VERSION_1_0,
+        };
+        const VkInstanceCreateInfo instanceCreateInfo {
+            .sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+            .pNext                   = nullptr,
+            .flags                   = {},
+            .pApplicationInfo        = &appInfo,
+            .enabledLayerCount       = static_cast<uint32_t>(validationLayers.size()),
+            .ppEnabledLayerNames     = validationLayers.data(),
+            .enabledExtensionCount   = static_cast<uint32_t>(requiredExtensions.size()),
+            .ppEnabledExtensionNames = requiredExtensions.data(),
+        };
+        VkInstance instance;
+        checkConstruction<VkInstance>(vkCreateInstance(&instanceCreateInfo, nullptr, &instance));
+        return instance;
+    }
+
+    static bool checkDeviceExtensionsSupport(const VkPhysicalDevice physicalDevice, const auto& requiredExtensions)
     {
         uint32_t availableExtensionsCount;
         vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &availableExtensionsCount, nullptr);
@@ -385,31 +454,15 @@ private:
         {
             const bool supported =
                 std::find_if(availableExtensions.cbegin(), availableExtensions.cend(),
-                             [&](const auto availableExtension) {
-                                 return std::strcmp(availableExtension.extensionName, requiredExtension) == 0;
-                             }) != availableExtensions.cend();
+                             [&](const auto availableExtension)
+                             { return std::strcmp(availableExtension.extensionName, requiredExtension) == 0; }) !=
+                availableExtensions.cend();
             if (!supported)
             {
                 return false;
             }
         }
         return true;
-    }
-
-    static const std::vector<const char*>& deviceExtensions()
-    {
-        static const std::vector<const char*> extensions = {
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-            VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
-            VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME,
-            VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME,
-            VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
-            VK_KHR_MULTIVIEW_EXTENSION_NAME,
-            VK_KHR_MAINTENANCE_2_EXTENSION_NAME,
-            VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,
-            // VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME,
-        };
-        return extensions;
     }
 
     static std::optional<VkSurfaceFormatKHR> chooseSwapSurfaceFormat(const VkPhysicalDevice physicalDevice,
@@ -457,8 +510,8 @@ private:
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 
-    static std::optional<Properties> isPhysicalDeviceSuitable(const VkSurfaceKHR     surface,
-                                                              const VkPhysicalDevice physicalDevice)
+    static std::optional<PhysicalDevice> isPhysicalDeviceSuitable(const VkSurfaceKHR     surface,
+                                                                  const VkPhysicalDevice physicalDevice)
     {
         VkPhysicalDeviceProperties physicalDeviceProperties;
         vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
@@ -468,7 +521,7 @@ private:
             VkPhysicalDeviceFeatures physicalDeviceFeatures;
             vkGetPhysicalDeviceFeatures(physicalDevice, &physicalDeviceFeatures);
             if (!physicalDeviceFeatures.samplerAnisotropy || !physicalDeviceFeatures.geometryShader ||
-                !checkDeviceExtensionsSupport(physicalDevice, deviceExtensions()))
+                !checkDeviceExtensionsSupport(physicalDevice, deviceExtensions))
             {
                 return std::nullopt;
             }
@@ -514,16 +567,16 @@ private:
             }
         }
 
-        return std::optional<Properties> { std::in_place,
-                                           physicalDeviceProperties.limits.maxSamplerAnisotropy,
-                                           graphicsFamilyIndex.value(),
-                                           presentFamilyIndex.value(),
-                                           surfaceFormat.value(),
-                                           presentMode.value(),
-                                           physicalDevice };
+        return std::optional<PhysicalDevice> { std::in_place,
+                                               physicalDeviceProperties.limits.maxSamplerAnisotropy,
+                                               graphicsFamilyIndex.value(),
+                                               presentFamilyIndex.value(),
+                                               surfaceFormat.value(),
+                                               presentMode.value(),
+                                               physicalDevice };
     }
 
-    static Properties pickPhysicalDevice(const VkInstance instance, const VkSurfaceKHR surface)
+    static PhysicalDevice pickPhysicalDevice(const VkInstance instance, const VkSurfaceKHR surface)
     {
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -544,11 +597,9 @@ private:
                                  const uint32_t presentFamilyIndex)
     {
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-        std::set<uint32_t>                   uniqueQueueFamilies = { graphicsFamilyIndex, presentFamilyIndex };
-
-        constexpr float queuePriority = 1.0f;
-        for (uint32_t queueFamily : uniqueQueueFamilies)
+        for (const auto queueFamily : std::set { graphicsFamilyIndex, presentFamilyIndex })
         {
+            constexpr float               queuePriority = 1.0f;
             const VkDeviceQueueCreateInfo queueCreateInfo {
                 .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
                 .pNext            = nullptr,
@@ -559,6 +610,7 @@ private:
             };
             queueCreateInfos.push_back(queueCreateInfo);
         }
+
         constexpr auto                     nope = VK_FALSE;
         constexpr VkPhysicalDeviceFeatures deviceFeatures {
             .robustBufferAccess                      = nope,
@@ -654,9 +706,6 @@ private:
             .extendedDynamicState3ShadingRateImageEnable           = nope,
         };
 
-        const std::vector<const char*> validationLayers = getValidationLayers();
-
-
         const VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeature {
             .sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
             .pNext            = &dynamicStateFeatures,
@@ -671,77 +720,14 @@ private:
             .pQueueCreateInfos       = queueCreateInfos.data(),
             .enabledLayerCount       = static_cast<uint32_t>(validationLayers.size()),
             .ppEnabledLayerNames     = validationLayers.data(),
-            .enabledExtensionCount   = static_cast<uint32_t>(deviceExtensions().size()),
-            .ppEnabledExtensionNames = deviceExtensions().data(),
+            .enabledExtensionCount   = static_cast<uint32_t>(deviceExtensions.size()),
+            .ppEnabledExtensionNames = deviceExtensions.data(),
             .pEnabledFeatures        = &deviceFeatures,
         };
 
         VkDevice device;
-        if (vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create logical device!");
-        }
-
+        checkConstruction<VkDevice>(vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device));
         return device;
-    }
-
-    static VkInstance createInstance(const std::string& appName, const std::string& engineName,
-                                     const std::set<const char*>& windowExtensions)
-    {
-        const auto extensions       = getExtensions(windowExtensions);
-        const auto validationLayers = getValidationLayers();
-
-        const VkApplicationInfo appInfo {
-            .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-            .pNext              = nullptr,
-            .pApplicationName   = appName.c_str(),
-            .applicationVersion = VK_MAKE_VERSION(1, 3, 250),
-            .pEngineName        = engineName.c_str(),
-            .engineVersion      = VK_MAKE_VERSION(1, 0, 0),
-            .apiVersion         = VK_API_VERSION_1_0,
-        };
-        const VkInstanceCreateInfo instanceCreateInfo {
-            .sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-            .pNext                   = nullptr,
-            .flags                   = {},
-            .pApplicationInfo        = &appInfo,
-            .enabledLayerCount       = static_cast<uint32_t>(validationLayers.size()),
-            .ppEnabledLayerNames     = validationLayers.data(),
-            .enabledExtensionCount   = static_cast<uint32_t>(extensions.size()),
-            .ppEnabledExtensionNames = extensions.data(),
-        };
-        VkInstance instance;
-        if (vkCreateInstance(&instanceCreateInfo, nullptr, &instance) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create instance!");
-        }
-        return instance;
-    }
-
-    template<typename Handle>
-    static void checkConstruction(const VkResult result)
-    {
-        if (result != VK_SUCCESS)
-        {
-            throw std::runtime_error(std::string("failed to create ") + typeid(Handle).name());
-        }
-    }
-
-    template<typename Handle, typename Info, typename Constructor>
-    Handle construct(const Constructor constructor, const Info& createInfo,
-                     const VkAllocationCallbacks* allocator) const
-    {
-        Handle handle;
-        checkConstruction<Handle>(constructor(device, &createInfo, allocator, &handle));
-        return handle;
-    }
-
-    template<typename Handle, typename Info, typename Constructor>
-    Handle construct(const Constructor constructor, const Info& createInfo) const
-    {
-        Handle handle;
-        checkConstruction<Handle>(constructor(device, &createInfo, &handle));
-        return handle;
     }
 };
 

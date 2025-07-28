@@ -100,10 +100,6 @@ public:
                                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1,
                                  &imageMemoryBarrierBegin);
 
-            const VkClearValue clearValue {
-                .color = { { 0.0f, 0.0f, 0.0f, 1.0f } },
-            };
-
             const VkRenderingAttachmentInfo colorAttachmentInfo {
                 .sType              = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
                 .pNext              = nullptr,

@@ -28,11 +28,11 @@ public:
         glfwSetScrollCallback(glfwWindow, Callback::mouseWheel);
     }
 
-    std::set<const char*> extensions() const
+    std::vector<const char*> extensions() const
     {
         uint32_t     count      = 0;
         const char** extensions = glfwGetRequiredInstanceExtensions(&count);
-        return std::set<const char*>(extensions, extensions + count);
+        return std::vector<const char*>(extensions, extensions + count);
     }
 
     VkExtent2D extent() const
@@ -196,7 +196,7 @@ private:
             glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
             glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
             glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
-            glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
+            // glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
         }
 
         ~GlfwContext()
