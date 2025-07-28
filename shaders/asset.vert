@@ -31,7 +31,7 @@ void main()
                    inJointWeights.z * jointMatrices[int(inJointIndices.z)] +
                    inJointWeights.w * jointMatrices[int(inJointIndices.w)];
 
-    gl_Position  = pushConstants.mvp * /*skinMat **/ vec4(inPosition, 1.0);
+    gl_Position  = pushConstants.mvp * skinMat * vec4(inPosition, 1.0);
     fragTexCoord = inTexCoord;
     fragColor    = inColor;
     fragNormal   = inNormal;

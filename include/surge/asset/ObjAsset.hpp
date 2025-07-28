@@ -199,10 +199,9 @@ public:
         return Node {
             .name      = baptize<This::node>(0),
             .parent    = nullptr,
-            .children = {}, 
-            .mesh      = &mesh,  // , skin { nullptr }
+            .children  = {}, 
+            .mesh      = &mesh,
             .skinIndex = {},
-            .inverseBindMatrix = {},
             .state     = { 
                     .active            = false,
                     .polygonMode       = PolygonMode::fill,

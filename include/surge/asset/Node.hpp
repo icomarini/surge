@@ -23,15 +23,12 @@ struct Node
         math::Vector<3>    scale { 1, 1, 1 };
     };
 
-    std::string       name;
-    Node* const       parent;
-    std::vector<Node> children;
-    const Mesh*       mesh;
-
-    std::optional<uint32_t>           skinIndex;
-    std::optional<math::Matrix<4, 4>> inverseBindMatrix;
-
-    mutable State state;
+    std::string             name;
+    Node* const             parent;
+    std::vector<Node>       children;
+    const Mesh*             mesh;
+    std::optional<uint32_t> skinIndex;
+    mutable State           state;
 
 
     math::Matrix<4, 4> matrix() const
@@ -61,17 +58,17 @@ struct Node
         auto* currentParent = parent;
         while (currentParent)
         {
-            nodeMatrix    = nodeMatrix * currentParent->matrix();
+            nodeMatrix    = currentParent->matrix() * nodeMatrix;
             currentParent = currentParent->parent;
         }
         return nodeMatrix;
     }
 
 
-    template<typename Camera>
-    void update(const Camera& camera, const UserInteraction& ui) const
-    {
-    }
+    // template<typename Camera>
+    // void update(const Camera& camera, const UserInteraction& ui) const
+    // {
+    // }
 
 private:
 };

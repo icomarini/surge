@@ -90,8 +90,6 @@ static void overlay(const asset::Node& node, uint32_t& nodeId)
                 ImGui::EndCombo();
             }
 
-            slider("translation ", node.name, node.state.translation, xyzw);
-            slider("scale       ", node.name, node.state.scale, xyzw);
             // slider("rotation    ", node.name, node.state.rotation, xyzw);
             // slider("attitude    ", node.name, node.state.attitude, ypr, -180.0f, 180.0f);
 
@@ -102,6 +100,9 @@ static void overlay(const asset::Node& node, uint32_t& nodeId)
         }
 
         // ImGui::Text("index: %d", node.index);
+        slider("translation ", node.name, node.state.translation, xyzw);
+        slider("rotation    ", node.name, node.state.rotation, xyzw);
+        slider("scale       ", node.name, node.state.scale, xyzw);
         ImGui::Text("mesh:  %s", node.mesh ? node.mesh->name.c_str() : "none");
         ImGui::Text("skin:  %s", node.skinIndex ? std::to_string(node.skinIndex.value()).c_str() : "none");
 

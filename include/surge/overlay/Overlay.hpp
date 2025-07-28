@@ -95,8 +95,8 @@ public:
         io.DisplaySize             = ImVec2(extent.width, extent.height);
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
-        // constexpr float scaling = 1.25;
-        constexpr float scaling = 1;
+        constexpr float scaling = 2;
+        // constexpr float scaling = 1;
         io.AddMousePosEvent(scaling * static_cast<float>(ui.mouse.position.at(0)),
                             scaling * static_cast<float>(ui.mouse.position.at(1)));
         io.AddMouseWheelEvent(ui.mouse.wheel.at(0), ui.mouse.wheel.at(1));

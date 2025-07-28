@@ -198,35 +198,35 @@ std::pair<math::Vector<2>, math::Vector<2>> overlay(const asset::Asset&    asset
             if (ImGui::TreeNode(jointMatrixName.c_str()))
             {
                 ImGui::Text("%s", math::toString(jointMatrix).c_str());
-                // math::Vector<4> row0 {
-                //     math::get<0, 0>(jointMatrix),
-                //     math::get<0, 1>(jointMatrix),
-                //     math::get<0, 2>(jointMatrix),
-                //     math::get<0, 3>(jointMatrix),
-                // };
-                // math::Vector<4> row1 {
-                //     math::get<1, 0>(jointMatrix),
-                //     math::get<1, 1>(jointMatrix),
-                //     math::get<1, 2>(jointMatrix),
-                //     math::get<1, 3>(jointMatrix),
-                // };
-                // math::Vector<4> row2 {
-                //     math::get<2, 0>(jointMatrix),
-                //     math::get<2, 1>(jointMatrix),
-                //     math::get<2, 2>(jointMatrix),
-                //     math::get<2, 3>(jointMatrix),
-                // };
-                // math::Vector<4> row3 {
-                //     math::get<3, 0>(jointMatrix),
-                //     math::get<3, 1>(jointMatrix),
-                //     math::get<3, 2>(jointMatrix),
-                //     math::get<3, 3>(jointMatrix),
-                // };
+                math::Vector<4> row0 {
+                    math::get<0, 0>(jointMatrix),
+                    math::get<0, 1>(jointMatrix),
+                    math::get<0, 2>(jointMatrix),
+                    math::get<0, 3>(jointMatrix),
+                };
+                math::Vector<4> row1 {
+                    math::get<1, 0>(jointMatrix),
+                    math::get<1, 1>(jointMatrix),
+                    math::get<1, 2>(jointMatrix),
+                    math::get<1, 3>(jointMatrix),
+                };
+                math::Vector<4> row2 {
+                    math::get<2, 0>(jointMatrix),
+                    math::get<2, 1>(jointMatrix),
+                    math::get<2, 2>(jointMatrix),
+                    math::get<2, 3>(jointMatrix),
+                };
+                math::Vector<4> row3 {
+                    math::get<3, 0>(jointMatrix),
+                    math::get<3, 1>(jointMatrix),
+                    math::get<3, 2>(jointMatrix),
+                    math::get<3, 3>(jointMatrix),
+                };
 
-                // slider("", jointMatrixName + "0", row0, xyzw);
-                // slider("", jointMatrixName, row1, xyzw);
-                // slider("", jointMatrixName, row2, xyzw);
-                // slider("", jointMatrixName, row3, xyzw);
+                slider("", jointMatrixName + "0", row0, xyzw);
+                slider("", jointMatrixName, row1, xyzw);
+                slider("", jointMatrixName, row2, xyzw);
+                slider("", jointMatrixName, row3, xyzw);
 
                 ImGui::TreePop();
             }

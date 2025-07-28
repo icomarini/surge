@@ -456,7 +456,6 @@ public:
             gltfNode.meshIndex ? &meshes.at(gltfNode.meshIndex.value()) : nullptr,  //
             gltfNode.skinIndex ? std::optional<uint32_t> { static_cast<uint32_t>(gltfNode.skinIndex.value()) } :
                                  std::optional<uint32_t> {},
-            std::nullopt,  //
             Node::State {
                 .active            = true,
                 .polygonMode       = PolygonMode::fill,
