@@ -58,9 +58,9 @@ public:
         : window { appName, width, height, userInteraction }
         , instance { createInstance(appName, engineName, window.extensions()) }
         , surface { window.createSurface(instance) }
-        , properties { pickPhysicalDevice(instance, surface) }
-        , device { createLogicalDevice(properties.physicalDevice, properties.graphicsFamilyIndex,
-                                       properties.presentFamilyIndex) }
+        , physicalDevice { pickPhysicalDevice(instance, surface) }
+        , device { createLogicalDevice(physicalDevice.physicalDevice, physicalDevice.graphicsFamilyIndex,
+                                       physicalDevice.presentFamilyIndex) }
 #ifndef NDEBUG
         , debugMessenger { createDebugMessenger(instance) }
 #endif
@@ -84,29 +84,26 @@ public:
 
     VkSurfaceCapabilitiesKHR getSurfaceCapabilities() const
     {
-        VkSurfaceCapabilitiesKHR surfaceCapabilities;
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(properties.physicalDevice, surface, &surfaceCapabilities);
-        return surfaceCapabilities;
+        const VkPhysicalDeviceSurfaceInfo2KHR surfaceInfo {
+            .sType   = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
+            .pNext   = nullptr,
+            .surface = surface,
+        };
+        VkSurfaceCapabilities2KHR surfaceCapabilities2 {
+            .sType               = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR,
+            .pNext               = nullptr,
+            .surfaceCapabilities = {},
+        };
+        vkGetPhysicalDeviceSurfaceCapabilities2KHR(physicalDevice.physicalDevice, &surfaceInfo, &surfaceCapabilities2);
+        return surfaceCapabilities2.surfaceCapabilities;
     }
-
-    // VkSurfaceCapabilities2KHR getSurfaceCapabilities2() const
-    // {
-    //     const VkPhysicalDeviceSurfaceInfo2KHR surfaceInfo {
-    //         .sType   = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
-    //         .pNext   = nullptr,
-    //         .surface = surface,
-    //     };
-    //     VkSurfaceCapabilities2KHR surfaceCapabilities;
-    //     vkGetPhysicalDeviceSurfaceCapabilities2KHR(properties.physicalDevice, &surfaceInfo, &surfaceCapabilities);
-    //     return surfaceCapabilities;
-    // }
 
 
     template<VkMemoryPropertyFlags memoryPropertyFlags>
     uint32_t findMemoryType(const uint32_t typeFilter) const
     {
         VkPhysicalDeviceMemoryProperties memoryProperties;
-        vkGetPhysicalDeviceMemoryProperties(properties.physicalDevice, &memoryProperties);
+        vkGetPhysicalDeviceMemoryProperties(physicalDevice.physicalDevice, &memoryProperties);
 
         for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
         {
@@ -123,7 +120,7 @@ public:
     bool formatIsFilterable(const VkFormat format, const VkImageTiling tiling) const
     {
         VkFormatProperties formatProperties;
-        vkGetPhysicalDeviceFormatProperties(properties.physicalDevice, format, &formatProperties);
+        vkGetPhysicalDeviceFormatProperties(physicalDevice.physicalDevice, format, &formatProperties);
 
         if (tiling == VK_IMAGE_TILING_OPTIMAL)
         {
@@ -138,15 +135,8 @@ public:
 
     uint32_t frameBufferCount() const
     {
-        // const VkPhysicalDeviceSurfaceInfo2KHR surfaceInfo {
-        //     .sType   = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
-        //     .pNext   = nullptr,
-        //     .surface = surface,
-        // };
-        // VkSurfaceCapabilities2KHR surfaceCapabilities2;
-        // vkGetPhysicalDeviceSurfaceCapabilities2KHR(properties.physicalDevice, &surfaceInfo, &surfaceCapabilities2);
+        const auto surfaceCapabilities = getSurfaceCapabilities();
 
-        const auto         surfaceCapabilities = getSurfaceCapabilities();
         constexpr uint32_t preferredFrameCount { 3 };
         return std::clamp(preferredFrameCount, surfaceCapabilities.minImageCount,
                           surfaceCapabilities.maxImageCount == 0 ? std::numeric_limits<uint32_t>::max() :
@@ -321,7 +311,8 @@ private:
     Window window;
 
 public:
-    VkInstance instance;
+    VkInstance   instance;
+    VkSurfaceKHR surface;
     struct PhysicalDevice
     {
         float              maxSamplerAnisotropy;
@@ -330,11 +321,8 @@ public:
         VkSurfaceFormatKHR surfaceFormat;
         VkPresentModeKHR   presentMode;
         VkPhysicalDevice   physicalDevice;
-    };
-
-    VkSurfaceKHR   surface;
-    PhysicalDevice properties;
-    VkDevice       device;
+    } physicalDevice;
+    VkDevice device;
 
 #ifndef NDEBUG
 private:

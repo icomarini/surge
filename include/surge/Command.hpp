@@ -19,8 +19,8 @@ class Command
 {
 public:
     Command()
-        : graphicsQueue { getQueue(context().properties.graphicsFamilyIndex) }
-        , presentQueue { getQueue(context().properties.presentFamilyIndex) }
+        : graphicsQueue { getQueue(context().physicalDevice.graphicsFamilyIndex) }
+        , presentQueue { getQueue(context().physicalDevice.presentFamilyIndex) }
         , pool { createCommandPool() }
     {
     }
@@ -211,7 +211,7 @@ private:
             .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
             .pNext            = nullptr,
             .flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-            .queueFamilyIndex = context().properties.graphicsFamilyIndex,
+            .queueFamilyIndex = context().physicalDevice.graphicsFamilyIndex,
         });
     }
 };

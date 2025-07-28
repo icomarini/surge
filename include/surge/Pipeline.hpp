@@ -220,7 +220,7 @@ VkPipeline createGraphicPipeline(const VkPipelineVertexInputStateCreateInfo vert
         .pNext                   = nullptr,
         .viewMask                = 0,
         .colorAttachmentCount    = 1,
-        .pColorAttachmentFormats = &context().properties.surfaceFormat.format,
+        .pColorAttachmentFormats = &context().physicalDevice.surfaceFormat.format,
         .depthAttachmentFormat   = VK_FORMAT_D32_SFLOAT,
         .stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
     };

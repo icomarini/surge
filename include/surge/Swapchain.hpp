@@ -63,13 +63,14 @@ private:
 
     static VkSwapchainKHR createSwapChain(const VkExtent2D extent)
     {
-        const std::array indices { context().properties.graphicsFamilyIndex, context().properties.presentFamilyIndex };
+        const std::array indices { context().physicalDevice.graphicsFamilyIndex,
+                                   context().physicalDevice.presentFamilyIndex };
         const auto       sameQueueFamilies = indices.at(0) == indices.at(1);
 
         constexpr VkSwapchainPresentScalingCreateInfoEXT presentScaling {
             .sType           = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_SCALING_CREATE_INFO_EXT,
             .pNext           = nullptr,
-            .scalingBehavior = VK_PRESENT_SCALING_ONE_TO_ONE_BIT_EXT,
+            .scalingBehavior = 0,
             .presentGravityX = 0,
             .presentGravityY = 0,
         };
@@ -80,8 +81,8 @@ private:
             .flags                 = {},
             .surface               = context().surface,
             .minImageCount         = context().frameBufferCount(),
-            .imageFormat           = context().properties.surfaceFormat.format,
-            .imageColorSpace       = context().properties.surfaceFormat.colorSpace,
+            .imageFormat           = context().physicalDevice.surfaceFormat.format,
+            .imageColorSpace       = context().physicalDevice.surfaceFormat.colorSpace,
             .imageExtent           = extent,
             .imageArrayLayers      = 1,
             .imageUsage            = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
@@ -90,7 +91,7 @@ private:
             .pQueueFamilyIndices   = sameQueueFamilies ? nullptr : indices.data(),
             .preTransform          = context().getSurfaceCapabilities().currentTransform,
             .compositeAlpha        = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-            .presentMode           = context().properties.presentMode,
+            .presentMode           = context().physicalDevice.presentMode,
             .clipped               = VK_TRUE,
             .oldSwapchain          = VK_NULL_HANDLE,
         });
@@ -120,7 +121,7 @@ private:
                 .flags      = {},
                 .image      = image,
                 .viewType   = VK_IMAGE_VIEW_TYPE_2D,
-                .format     = context().properties.surfaceFormat.format,
+                .format     = context().physicalDevice.surfaceFormat.format,
                 .components = {},
                 .subresourceRange =
                     VkImageSubresourceRange {
