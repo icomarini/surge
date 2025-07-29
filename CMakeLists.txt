@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.27)
 project(surge VERSION 0.01)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
+include(compile_shaders)
 
 # vulkan ======================================================================
 find_package(Vulkan REQUIRED)
@@ -115,3 +117,20 @@ target_link_libraries(surge.bin LINK_PUBLIC
     miniaudio 
     # clay
     )
+
+# shaders
+set(SHADERS
+    asset.frag
+    asset.vert
+    bbox.frag
+    bbox.vert
+    shader.frag
+    shader.vert
+    skybox.frag
+    skybox.vert
+    ui.frag
+    ui.vert
+)
+
+list(TRANSFORM SHADERS PREPEND "${PROJECT_SOURCE_DIR}/shaders/")
+target_shaders(surge.bin ${SHADERS})
