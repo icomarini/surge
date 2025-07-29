@@ -2,10 +2,8 @@
 
 #include "surge/Defaults.hpp"
 #include "surge/asset/Mesh.hpp"
-// #include "surge/asset/GltfAsset.hpp"
-// #include "surge/asset/Skin.hpp"
 #include "surge/math/angles.hpp"
-#include "glm/gtx/quaternion.hpp"
+// #include "glm/gtx/quaternion.hpp"
 
 namespace surge::asset
 {

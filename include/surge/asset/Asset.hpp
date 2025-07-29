@@ -219,9 +219,9 @@ public:
 
             const auto inverse = math::inverse(node.nodeMatrix());
 
-            for (const auto& [node, inverseBindMatrix] : skin.joints)
+            for (const auto& [jointNode, inverseBindMatrix] : skin.joints)
             {
-                state.jointMatrices.emplace_back(inverseBindMatrix * node.nodeMatrix() * inverse);
+                state.jointMatrices.emplace_back(inverse * jointNode.nodeMatrix() * inverseBindMatrix);
             }
 
             assert(jointMatrices);
