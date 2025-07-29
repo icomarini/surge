@@ -221,7 +221,7 @@ public:
 
             for (const auto& [jointNode, inverseBindMatrix] : skin.joints)
             {
-                state.jointMatrices.emplace_back(inverse * jointNode.nodeMatrix() * inverseBindMatrix);
+                state.jointMatrices.emplace_back(inverseBindMatrix * jointNode.nodeMatrix() * inverse);
             }
 
             assert(jointMatrices);

@@ -244,46 +244,6 @@ public:
         }
     }
 
-    // template<std::size_t row, std::size_t col>
-    // constexpr Type at() const
-    // {
-    //     static_assert(row < 4 && col < 4);
-    //     if constexpr (row == 0 && col == 0)
-    //     {
-    //         return a00;
-    //     }
-    //     else if constexpr (row == 1 && col == 1)
-    //     {
-    //         return a11;
-    //     }
-    //     else if constexpr (row == 2 && col == 2)
-    //     {
-    //         return a22;
-    //     }
-    //     else if constexpr (row == 3 && col == 2)
-    //     {
-    //         return a32;
-    //     }
-    //     else if constexpr (row == 2 && col == 3)
-    //     {
-    //         return -1;
-    //     }
-    //     else
-    //     {
-    //         return 0;
-    //     }
-    // }
-
-    // template<std::size_t row, std::size_t col>
-    // static constexpr bool nonzero()
-    // {
-    //     static_assert(row < 4 && col < 4);
-    //     return (row == 0 && col == 0) || (row == 1 && col == 1) || (row == 2 && col == 2) || (row == 3 && col == 2)
-    //     ||
-    //            (row == 2 && col == 3);
-    // }
-
-    // private:
     T a11;
     T a00;
     T a22;

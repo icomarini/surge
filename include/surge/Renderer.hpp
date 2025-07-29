@@ -78,7 +78,9 @@ public:
                 return;
             }
 
-            const NodePushBlock nodePushBlock { node.matrix() * globalMatrix, node.state.vertexStageFlag,
+            // const NodePushBlock nodePushBlock { node.matrix() * globalMatrix, node.state.vertexStageFlag,
+            //                                     node.state.fragmentStageFlag };
+            const NodePushBlock nodePushBlock { node.matrix(), node.state.vertexStageFlag,
                                                 node.state.fragmentStageFlag };
 
             if (node.mesh)
@@ -96,8 +98,10 @@ public:
 
                     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-                    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
-                                            &primitive.material.descriptorSet, 0, nullptr);
+                    // bind material
+                    constexpr uint32_t materialIndex = 1;
+                    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
+                                            materialIndex, 1, &primitive.material.descriptorSet, 0, nullptr);
 
                     vkCmdPushConstants(commandBuffer, pipelineLayout,
                                        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
@@ -140,17 +144,25 @@ public:
             }
         }
 
-        void draw(const VkCommandBuffer commandBuffer, const math::Matrix<4, 4>& globalMatrix) const
+        void draw(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor,
+                  const math::Matrix<4, 4>& globalMatrix) const
         {
             if (!asset.state.active)
             {
                 return;
             }
 
+            // bind scene uniform
+            constexpr uint32_t sceneUniformIndex = 0;
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, sceneUniformIndex,
+                                    1, &sceneDescriptor, 0, nullptr);
+
             if (asset.jointMatrices)
             {
-                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1,
-                                        &asset.jointMatrices->descriptorSet, 0, nullptr);
+                // bind joint matrices ssbo
+                constexpr uint32_t jointMatricesIndex = 2;
+                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
+                                        jointMatricesIndex, 1, &asset.jointMatrices->descriptorSet, 0, nullptr);
             }
             for (const auto& node : asset.mainScene().nodes)
             {
@@ -168,18 +180,28 @@ public:
     Renderer(const std::filesystem::path& shaders, std::vector<asset::Asset>& assets)
         : assets { assets }
         , camera { 16.0 / 9.0, { 0.0f, 0.0f, 3.0f }, { 0.0f, 0.0f, -1.0f } }
-        , renderables { createRenderables(shaders, assets) }
+        , scene { 2 * sizeof(math::Matrix<4, 4>), UniformBufferInfo {} }
+        , descriptor { 1, UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT> { scene } }
+        , renderables { createRenderables(shaders, descriptor, assets) }
     {
     }
 
     std::vector<asset::Asset>&  assets;
     mutable Camera<true, false> camera;
+    Buffer                      scene;
+    Descriptor                  descriptor;
     std::vector<Renderable>     renderables;
 
 
     void update(const VkExtent2D, const UserInteraction& ui)
     {
         camera.update(ui);
+        const std::array sceneMatrices {
+            math::fullMatrix(camera.mats.perspective),
+            math::fullMatrix(camera.mats.view),
+        };
+        memcpy(scene.mapped, sceneMatrices.data(), 2 * sizeof(math::Matrix<4, 4>));
+
         for (auto& asset : assets)
         {
             asset.update(ui.elapsedTime);
@@ -273,13 +295,13 @@ public:
 
         for (const auto& renderable : renderables)
         {
-            renderable.draw(commandBuffer, camera.viewProjection());
+            renderable.draw(commandBuffer, descriptor.set, camera.viewProjection());
         }
     }
 
 
 private:
-    static std::vector<Renderable> createRenderables(const std::filesystem::path&     shaders,
+    static std::vector<Renderable> createRenderables(const std::filesystem::path& shaders, const Descriptor& descriptor,
                                                      const std::vector<asset::Asset>& assets)
     {
         std::vector<Renderable> renderables;
@@ -290,9 +312,10 @@ private:
                 VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT) };
 
             const VkPipelineLayout pipelineLayout {
-                asset.jointMatrices ? createPipelineLayout(pushConstantRange, asset.materialDescriptorSetLayout,
-                                                           asset.jointMatrices->descriptorSetLayout) :
-                                      createPipelineLayout(pushConstantRange, asset.materialDescriptorSetLayout)
+                asset.jointMatrices ?
+                    createPipelineLayout(pushConstantRange, descriptor.setLayout, asset.materialDescriptorSetLayout,
+                                         asset.jointMatrices->descriptorSetLayout) :
+                    createPipelineLayout(pushConstantRange, descriptor.setLayout, asset.materialDescriptorSetLayout)
             };
 
             const auto   verticesShader  = shaders / (asset.shader + ".vert.spv");

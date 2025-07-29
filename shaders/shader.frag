@@ -1,12 +1,9 @@
 #version 450
 
-layout(binding = 0) uniform sampler2D texSampler;
-
+// input ========================================
 layout(location = 0) in vec2 fragTexCoord;
 layout(location = 1) in vec3 fragColor;
 layout(location = 2) in vec3 fragNormal;
-
-layout(location = 0) out vec4 outColor;
 
 layout(push_constant) uniform PushConstants
 {
@@ -15,6 +12,12 @@ layout(push_constant) uniform PushConstants
     uint fragmentStageFlag;
 }
 pushConstants;
+
+layout(set = 1, binding = 0) uniform sampler2D texSampler;
+
+// output =======================================
+layout(location = 0) out vec4 outColor;
+
 
 void main()
 {

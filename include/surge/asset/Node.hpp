@@ -46,8 +46,9 @@ struct Node
             math::get<1>(state.translation),
             math::get<2>(state.translation),
         };
-        return math::transpose(math::Translation { translation } * math::Rotation { state.rotation } *
-                               math::Scaling { state.scale } * correction);
+        // return math::transpose(math::Translation { translation } * math::Rotation { state.rotation } *
+        //                        math::Scaling { state.scale } * correction);
+        return math::Translation { translation } * math::Rotation { state.rotation } * math::Scaling { state.scale };
     }
 
     math::Matrix<4, 4> nodeMatrix() const
@@ -56,7 +57,7 @@ struct Node
         auto* currentParent = parent;
         while (currentParent)
         {
-            nodeMatrix    = currentParent->matrix() * nodeMatrix;
+            nodeMatrix    = nodeMatrix * currentParent->matrix();
             currentParent = currentParent->parent;
         }
         return nodeMatrix;

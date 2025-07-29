@@ -73,6 +73,22 @@ public:
     static constexpr auto cols = c;
 };
 
+
+template<StaticMatrix M>
+Matrix<rows<M>, cols<M>, ValueType<M>> fullMatrix(const M& matrix)
+{
+    Matrix<rows<M>, cols<M>, ValueType<M>> full {};
+    forEach<0, rows<M>, 0, cols<M>>(
+        [&]<Size row, Size col>()
+        {
+            if constexpr (nonzero<row, col, M>)
+            {
+                get<col, row>(full) = get<row, col>(matrix);
+            }
+        });
+    return full;
+}
+
 template<Size r, Size c, typename T>
 constexpr Size rows<Matrix<r, c, T>> = Matrix<r, c, T>::rows;
 
