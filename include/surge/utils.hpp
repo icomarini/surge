@@ -86,6 +86,7 @@ inline constexpr bool is_specialization_of_v = is_specialization_of<T, Primary>:
 //     using Ts::operator()...;
 // };
 
+std::filesystem::path executablePath(int argc, char* argv[]);
 std::filesystem::path executablePath(int argc, char* argv[])
 {
     assert(argc > 0);
