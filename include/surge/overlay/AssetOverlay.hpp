@@ -125,6 +125,7 @@ std::pair<math::Vector<2>, math::Vector<2>> overlay(const asset::Asset&    asset
     {
         uint32_t sceneId {};
         uint32_t nodeId {};
+        ImGui::Text("main scene: %lo", asset.mainSceneIndex);
         for (const auto& scene : asset.scenes)
         {
             if (ImGui::TreeNode(idName(sceneId++, scene.name).c_str()))

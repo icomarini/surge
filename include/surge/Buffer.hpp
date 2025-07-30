@@ -61,6 +61,7 @@ private:
     template<VkBufferUsageFlags bufferUsageFlags>
     static VkBuffer createBuffer(const VkDeviceSize size)
     {
+        assert(size > 0);
         return context().create(VkBufferCreateInfo {
             .sType                 = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             .pNext                 = nullptr,

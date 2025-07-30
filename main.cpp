@@ -32,7 +32,7 @@ class HelloTriangleApplication
 public:
     const uint32_t    WIDTH      = 1600;
     const uint32_t    HEIGHT     = 900;
-    const std::string appName    = "Il Carchino Online";
+    const std::string appName    = "surge-app";
     const std::string engineName = "surge";
 
     HelloTriangleApplication(const std::map<std::string, std::filesystem::path>& resources)
@@ -106,7 +106,9 @@ private:
                                                   const std::map<std::string, std::filesystem::path>& resources)
     {
         // constexpr std::array names { "oaktree", "helmet", "dragon", "buggy" };
-        constexpr std::array names { "man" };
+        constexpr std::array names { "buggy" };
+        // constexpr std::array names { "simple" };
+        // constexpr std::array names { "man" };
 
         std::vector<surge::asset::Asset> assets;
         assets.reserve(names.size() + 1);
@@ -115,9 +117,9 @@ private:
             assets.emplace_back(command, defaults, surge::asset::GltfAsset { name, resources.at(name) });
         }
 
-        assets.emplace_back(command, defaults,
-                            surge::asset::ObjAsset { "viking room", resources.at("vikingRoomModel"),
-                                                     resources.at("vikingRoomTexture") });
+        // assets.emplace_back(command, defaults,
+        //                     surge::asset::ObjAsset { "viking room", resources.at("vikingRoomModel"),
+        //                                              resources.at("vikingRoomTexture") });
 
         // activate oaktree
 
@@ -166,7 +168,8 @@ int main(int argc, char* argv[])
             { "dragon", "/home/ico/projects/extern/Vulkan/assets/models/chinesedragon.gltf" },
             { "buggy", "/home/ico/projects/extern/Vulkan/assets/models/gltf/"
                        "glTF-Embedded/Buggy.gltf" },
-            { "man", "/home/ico/projects/extern/Vulkan/assets/models/CesiumMan/glTF/CesiumMan.gltf" }
+            { "man", "/home/ico/projects/extern/Vulkan/assets/models/CesiumMan/glTF/CesiumMan.gltf" },
+            { "simple", "/home/ico/projects/surge/models/skinning_example.gltf" }
         };
 
         std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge begun" << std::endl;

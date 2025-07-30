@@ -67,6 +67,7 @@ public:
 
     Model              model;
     std::vector<Scene> scenes;
+    std::size_t        mainSceneIndex;
 
     std::vector<Skin>      skins;
     std::vector<Animation> animations;
@@ -76,7 +77,7 @@ public:
         VkDescriptorSetLayout descriptorSetLayout;
         VkDescriptorSet       descriptorSet;
     };
-    std::optional<ShaderStorageBufferObject> jointMatrices;
+    std::optional<ShaderStorageBufferObject> jointMatricesSSBO;
 
     struct State
     {
@@ -85,13 +86,13 @@ public:
     };
     mutable State state;
 
-    using UniformBufferDescr = UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT>;
-    using SSBODescr          = Description<VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, Buffer>;
+    // using UniformBufferDescr = UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT>;
+    using SSBODescr = Description<VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, Buffer>;
 
     Asset(const Command& command, const Defaults& defaults, const GltfAsset& gltf)
         : name { gltf.name }
         , path { gltf.path }
-        , shader { "asset" }
+        , shader { gltf.shader() }
         , textures { gltf.createTextures(command, defaults) }
         , descriptorPool { gltf.createDescriptorPool() }
         , materialDescriptorSetLayout { gltf.createMaterialDescriptorSetLayout() }
@@ -100,9 +101,11 @@ public:
         , vertexInputState { geometry::createVertexInputState<GltfAsset::Vertex>() }
         , model { gltf.createModel(command, meshes) }
         , scenes { gltf.createScenes(meshes) }
+        , mainSceneIndex { gltf.mainSceneIndex() }
         , skins { gltf.createSkins(scenes.front().nodesLut) }
         , animations { gltf.createAnimations(scenes.front().nodesLut) }
-        , jointMatrices { std::in_place, computeJointMatricesSize(skins), descriptorPool }
+        // , jointMatricesSSBO { std::in_place, computeJointMatricesSize(skins), descriptorPool }
+        , jointMatricesSSBO { createJointMatricesSSBO(descriptorPool, skins) }
         , state { false, std::vector<math::Matrix<4, 4>> {} }
     {
         assert(scenes.size() > 0);
@@ -122,7 +125,7 @@ public:
         , scenes { obj.createScene(meshes.front()) }
         , skins {}
         , animations {}
-        , jointMatrices {}
+        , jointMatricesSSBO {}
         , state { false, std::vector<math::Matrix<4, 4>> {} }
     {
         assert(scenes.size() > 0);
@@ -224,8 +227,8 @@ public:
                 state.jointMatrices.emplace_back(inverseBindMatrix * jointNode.nodeMatrix() * inverse);
             }
 
-            assert(jointMatrices);
-            memcpy(jointMatrices->buffer.mapped, state.jointMatrices.data(),
+            assert(jointMatricesSSBO);
+            memcpy(jointMatricesSSBO->buffer.mapped, state.jointMatrices.data(),
                    state.jointMatrices.size() * sizeof(math::Matrix<4, 4>));
         }
 
@@ -237,21 +240,30 @@ public:
 
     const auto& mainScene() const
     {
-        assert(!scenes.empty());
-        return scenes.front();
+        return scenes.at(mainSceneIndex);
     }
     auto& mainScene()
     {
-        assert(!scenes.empty());
-        return scenes.front();
+        return scenes.at(mainSceneIndex);
     }
 
 private:
-    Size computeJointMatricesSize(const std::vector<Skin> skins)
+    Size computeJointMatricesSize(const std::vector<Skin>& skins)
     {
         return sizeof(math::Matrix<4, 4>) * std::accumulate(skins.begin(), skins.end(), 0,
                                                             [](Size total, const Skin& skin)
                                                             { return total + skin.joints.size(); });
+    }
+
+    static std::optional<ShaderStorageBufferObject> createJointMatricesSSBO(const VkDescriptorPool   descriptorPool,
+                                                                            const std::vector<Skin>& skins)
+    {
+        const auto size { sizeof(math::Matrix<4, 4>) * std::accumulate(skins.begin(), skins.end(), 0,
+                                                                       [](const Size total, const Skin& skin)
+                                                                       { return total + skin.joints.size(); }) };
+
+        return size > 0 ? std::optional<ShaderStorageBufferObject> { std::in_place, size, descriptorPool } :
+                          std::optional<ShaderStorageBufferObject> {};
     }
 };
 

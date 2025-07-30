@@ -157,12 +157,12 @@ public:
             vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, sceneUniformIndex,
                                     1, &sceneDescriptor, 0, nullptr);
 
-            if (asset.jointMatrices)
+            if (asset.jointMatricesSSBO)
             {
                 // bind joint matrices ssbo
                 constexpr uint32_t jointMatricesIndex = 2;
                 vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
-                                        jointMatricesIndex, 1, &asset.jointMatrices->descriptorSet, 0, nullptr);
+                                        jointMatricesIndex, 1, &asset.jointMatricesSSBO->descriptorSet, 0, nullptr);
             }
             for (const auto& node : asset.mainScene().nodes)
             {
@@ -179,11 +179,12 @@ public:
 
     Renderer(const std::filesystem::path& shaders, std::vector<asset::Asset>& assets)
         : assets { assets }
-        , camera { 16.0 / 9.0, { 0.0f, 0.0f, 3.0f }, { 0.0f, 0.0f, -1.0f } }
+        , camera { 16.0 / 9.0, { 0.0f, 1.0f, 3.0f }, { 0.0f, 0.0f, -1.0f } }
         , scene { 2 * sizeof(math::Matrix<4, 4>), UniformBufferInfo {} }
         , descriptor { 1, UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT> { scene } }
         , renderables { createRenderables(shaders, descriptor, assets) }
     {
+        assets.front().mainScene().nodes.front().state.polygonMode = PolygonMode::line;
     }
 
     std::vector<asset::Asset>&  assets;
@@ -312,9 +313,9 @@ private:
                 VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT) };
 
             const VkPipelineLayout pipelineLayout {
-                asset.jointMatrices ?
+                asset.jointMatricesSSBO ?
                     createPipelineLayout(pushConstantRange, descriptor.setLayout, asset.materialDescriptorSetLayout,
-                                         asset.jointMatrices->descriptorSetLayout) :
+                                         asset.jointMatricesSSBO->descriptorSetLayout) :
                     createPipelineLayout(pushConstantRange, descriptor.setLayout, asset.materialDescriptorSetLayout)
             };
 

@@ -120,8 +120,10 @@ target_link_libraries(surge.bin LINK_PUBLIC
 
 # shaders
 set(SHADERS
-    asset.frag
-    asset.vert
+    gltf_animated.frag
+    gltf_animated.vert
+    gltf_static.frag
+    gltf_static.vert
     bbox.frag
     bbox.vert
     shader.frag

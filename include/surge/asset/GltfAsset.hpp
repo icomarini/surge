@@ -76,6 +76,11 @@ public:
     std::filesystem::path path;
     fastgltf::Asset       asset;
 
+    std::string shader() const
+    {
+        return asset.skins.empty() ? "gltf_static" : "gltf_animated";
+    }
+
     Sampler createSampler(const uint32_t samplerIndex) const
     {
         constexpr auto extractFilter = [](const fastgltf::Filter filter)
@@ -338,11 +343,11 @@ public:
             mesh.primitives.reserve(fastgltfMesh.primitives.size());
             for (const fastgltf::Primitive& primitive : fastgltfMesh.primitives)
             {
-                const fastgltf::Accessor& posAccessor =
+                const fastgltf::Accessor& positionAccessor =
                     asset.accessors.at(primitive.findAttribute("POSITION")->accessorIndex);
 
-                const auto indexCount  = asset.accessors[primitive.indicesAccessor.value()].count;
-                const auto vertexCount = posAccessor.count;
+                const auto indexCount  = asset.accessors.at(primitive.indicesAccessor.value()).count;
+                const auto vertexCount = positionAccessor.count;
 
                 // constexpr auto cast = [](auto t) { return static_cast<Float32>(t); };
 
@@ -354,9 +359,23 @@ public:
                 //     [&](const std::pmr::vector<int64_t>& vector) -> math::Vector<3>
                 //     { return math::Vector<3> { cast(vector.at(0)), cast(vector.at(1)), cast(vector.at(2)) }; },
                 // };
-                const math::Vector<3> min { 0, 0, 0 };  // std::visit(visitor, posAccessor.min);
-                const math::Vector<3> max { 1, 1, 1 };  // std::visit(visitor, posAccessor.max);
-
+                constexpr auto  minValue = std::numeric_limits<math::Vector<3>::value_type>::min();
+                constexpr auto  maxValue = std::numeric_limits<math::Vector<3>::value_type>::min();
+                math::Vector<3> min { maxValue, maxValue, maxValue };
+                math::Vector<3> max { minValue, minValue, minValue };
+                using PositionAttribute =
+                    typename Vertex::Attribute<Vertex::attributeIndex<geometry::Attribute::position>()>::Value;
+                fastgltf::iterateAccessor<PositionAttribute>(asset, positionAccessor,
+                                                             [&](const auto& value)
+                                                             {
+                                                                 forEach<0, 3>(
+                                                                     [&]<int i>
+                                                                     {
+                                                                         get<i>(min) = std::min(get<i>(min), value[i]);
+                                                                         get<i>(max) = std::max(get<i>(max), value[i]);
+                                                                     });
+                                                             });
+                forEach<0, 3>([&]<int i> { assert(get<i>(min) <= get<i>(max)); });
 
                 const auto& material =
                     primitive.materialIndex ? materials.at(primitive.materialIndex.value()) : defaults.material;
@@ -496,6 +515,11 @@ public:
         return scenes;
     }
 
+    std::size_t mainSceneIndex() const
+    {
+        return asset.defaultScene.value_or(0);
+    }
+
     std::vector<Skin> createSkins(const std::vector<Node*>& nodesLut) const
     {
         std::vector<Skin> skins;
@@ -511,10 +535,15 @@ public:
             for (const auto joint : fastgltfSkin.joints)
             {
                 assert(fastgltfSkin.inverseBindMatrices);
+                const auto& accessor = asset.accessors.at(fastgltfSkin.inverseBindMatrices.value());
                 skin.joints.emplace_back(
                     *nodesLut.at(joint),
-                    fastgltf::getAccessorElement<math::Matrix<4, 4>>(
-                        asset, asset.accessors.at(fastgltfSkin.inverseBindMatrices.value()), jointId++));
+                    math::transpose(fastgltf::getAccessorElement<math::Matrix<4, 4>>(asset, accessor, jointId++)));
+
+                // === TEST ===
+                std::cout << "Joint " << jointId << std::endl;
+                std::cout << math::toString(skin.joints.back().inverseBindMatrix) << std::endl;
+                // === TEST ===
             }
         }
 
