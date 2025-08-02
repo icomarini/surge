@@ -220,11 +220,11 @@ public:
             state.jointMatrices.clear();
             state.jointMatrices.reserve(skin.joints.size());
 
-            const auto inverse = math::inverse(node.nodeMatrix());
+            const auto inverse = math::inverse(node.globalMatrix());
 
             for (const auto& [jointNode, inverseBindMatrix] : skin.joints)
             {
-                state.jointMatrices.emplace_back(inverseBindMatrix * jointNode.nodeMatrix() * inverse);
+                state.jointMatrices.emplace_back(inverseBindMatrix * jointNode.globalMatrix() * inverse);
             }
 
             assert(jointMatricesSSBO);

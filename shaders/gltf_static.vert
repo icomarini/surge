@@ -11,6 +11,7 @@ layout(location = 5) in vec4 inJointWeights;
 layout(push_constant) uniform PushConstants
 {
     mat4 model;
+    vec4 baseColorFactor;
     uint vertexStageFlag;
     uint fragmentStageFlag;
 };
@@ -30,6 +31,6 @@ void main()
 {
     gl_Position  = vec4(inPosition, 1.0) * model * view * projection;
     fragTexCoord = inTexCoord;
-    fragColor    = inColor;
+    fragColor    = baseColorFactor.rgb;
     fragNormal   = inNormal;
 }

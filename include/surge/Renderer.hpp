@@ -57,6 +57,7 @@ public:
     struct NodePushBlock
     {
         math::Matrix<4, 4> matrix;
+        math::Vector<4>    baseColorFactor;
         uint32_t           vertexStageFlag;
         uint32_t           fragmentStageFlag;
     };
@@ -80,8 +81,12 @@ public:
 
             // const NodePushBlock nodePushBlock { node.matrix() * globalMatrix, node.state.vertexStageFlag,
             //                                     node.state.fragmentStageFlag };
-            const NodePushBlock nodePushBlock { node.matrix(), node.state.vertexStageFlag,
-                                                node.state.fragmentStageFlag };
+            NodePushBlock nodePushBlock {
+                .matrix            = globalMatrix * node.globalMatrix(),
+                .baseColorFactor   = {},
+                .vertexStageFlag   = node.state.vertexStageFlag,
+                .fragmentStageFlag = node.state.fragmentStageFlag,
+            };
 
             if (node.mesh)
             {
@@ -103,6 +108,8 @@ public:
                     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
                                             materialIndex, 1, &primitive.material.descriptorSet, 0, nullptr);
 
+                    nodePushBlock.baseColorFactor   = primitive.material.baseColorFactor;
+                    nodePushBlock.fragmentStageFlag = 1;
                     vkCmdPushConstants(commandBuffer, pipelineLayout,
                                        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                                        sizeof(NodePushBlock), &nodePushBlock);
@@ -179,7 +186,7 @@ public:
 
     Renderer(const std::filesystem::path& shaders, std::vector<asset::Asset>& assets)
         : assets { assets }
-        , camera { 16.0 / 9.0, { 0.0f, 1.0f, 3.0f }, { 0.0f, 0.0f, -1.0f } }
+        , camera { 16.0 / 9.0, { 10.0f, 1.0f, 10.0f }, { 0.0f, 0.0f, -1.0f } }
         , scene { 2 * sizeof(math::Matrix<4, 4>), UniformBufferInfo {} }
         , descriptor { 1, UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT> { scene } }
         , renderables { createRenderables(shaders, descriptor, assets) }
@@ -296,7 +303,8 @@ public:
 
         for (const auto& renderable : renderables)
         {
-            renderable.draw(commandBuffer, descriptor.set, camera.viewProjection());
+            constexpr math::Scaling<> scaling { 0.1f, 0.1f, 0.1f };
+            renderable.draw(commandBuffer, descriptor.set, math::fullMatrix(scaling));
         }
     }
 

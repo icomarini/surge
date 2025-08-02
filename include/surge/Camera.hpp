@@ -25,7 +25,7 @@ public:
         , pitch { 0.0f }
         , vecs { .position = position, .front = front, .up = { 0, 1, 0 }, }
         , mats {
-            .perspective = { math::deg2rad(45.0f), aspect, 0.1f, 10.0f },
+            .perspective = { math::deg2rad(45.0f), aspect, 0.1f, 1024.0f },
             .view        = { vecs.position, vecs.position + vecs.front, vecs.up },
         }
     {

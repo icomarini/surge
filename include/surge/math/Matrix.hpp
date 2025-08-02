@@ -6,22 +6,23 @@
 // #include "glm/glm.hpp"
 
 #include <concepts>
-
+#include <format>
 
 namespace surge::math
 {
 
 template<typename M>
-constexpr Size rows = 0;
+constexpr int rows = -1;
 
 template<typename M>
-constexpr Size cols = 0;
+constexpr int cols = -1;
 
 template<typename M>
-concept HasRows = requires { rows<M>; };
+// concept HasRows = requires { rows<M>; };
+concept HasRows = rows<M> > 0;
 
 template<typename M>
-concept HasColumns = requires { cols<M>; };
+concept HasColumns = cols<M> > 0;
 
 template<typename M>
 concept HasSizes = HasRows<M> && HasColumns<M>;
@@ -282,47 +283,74 @@ Matrix<rows<M>, cols<M>, ValueType<M>> inverse(const M& m)
     return det != ValueType<M> { 0 } ? inv / det : throw std::runtime_error("Singular matrix");
 }
 
-template<typename M>
-    requires StaticMatrix<M>
-std::string toString(const M& m)
+std::string toString(const float* const p, const int rows, const int cols);
+std::string toString(const float* const p, const int rows, const int cols)
 {
-    static_assert(rows<M> != 0);
-    static_assert(cols<M> != 0);
-
     std::stringstream stream;
-    stream << std::fixed << std::setw(8) << std::setprecision(3);  // << std::setfill('0');
+    // stream << std::fixed << std::setw(8) << std::setprecision(3);  // << std::setfill('0');
     // stream << "[";
-    forEach<0, rows<M>>(
-        [&]<int row>()
+    int index = 0;
+    for (int row = 0; row < rows; ++row)
+    {
+        stream << "|";
+        for (int col = 1; col < cols; ++col)
         {
-            stream << "\t";
-            if constexpr (nonzero<row, 0, M>)
-            {
-                const auto value = get<row, 0>(m);
-                stream << "[" << (value < 0 ? "" : " ") << value;
-            }
-            else
-            {
-                stream << "[" << " o.o  ";
-            }
-            // const auto value = get<row, 0>(m);
-            // stream << "[" << (value < 0 ? "" : " ") << value;
-            forEach<1, cols<M>>(
-                [&]<int col>()
-                {
-                    if constexpr (nonzero<row, col, M>)
-                    {
-                        const auto value = get<row, col>(m);
-                        stream << ", " << (value < 0 ? "" : " ") << value;
-                    }
-                    else
-                    {
-                        stream << ", " << " o.o  ";
-                    }
-                });
-            stream << "]" << (row == rows<M> - 1 ? "" : ",\n");
-        });
-    stream << "]\n";
+            stream << toString(p[index]);
+            ++index;
+        }
+        stream << "|\n";
+    }
     return stream.str();
 }
+
+template<Size r, Size c, typename T>
+std::string toString(const Matrix<r, c, T>& m)
+{
+    return toString(&get<0, 0>(m), r, c);
+}
+
+// template<typename M>
+//     requires StaticMatrix<M>
+// std::string toString(const M& m)
+// {
+//     return toString(fullMatrix(m));
+// static_assert(rows<M> != 0);
+// static_assert(cols<M> != 0);
+
+// std::stringstream stream;
+// stream << std::fixed << std::setw(8) << std::setprecision(3);  // << std::setfill('0');
+// // stream << "[";
+// forEach<0, rows<M>>(
+//     [&]<int row>()
+//     {
+//         stream << "\t";
+//         if constexpr (nonzero<row, 0, M>)
+//         {
+//             const auto value = get<row, 0>(m);
+//             stream << "[" << (value < 0 ? "" : " ") << value;
+//         }
+//         else
+//         {
+//             stream << "[" << " o.o  ";
+//         }
+//         // const auto value = get<row, 0>(m);
+//         // stream << "[" << (value < 0 ? "" : " ") << value;
+//         forEach<1, cols<M>>(
+//             [&]<int col>()
+//             {
+//                 if constexpr (nonzero<row, col, M>)
+//                 {
+//                     const auto value = get<row, col>(m);
+//                     stream << ", " << (value < 0 ? "" : " ") << value;
+//                 }
+//                 else
+//                 {
+//                     stream << ", " << " o.o  ";
+//                 }
+//             });
+//         stream << "]" << (row == rows<M> - 1 ? "" : ",\n");
+//     });
+// stream << "]\n";
+// return stream.str();
+// }
 }  // namespace surge::math

@@ -5,6 +5,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <format>
 #include <numbers>
 
 namespace surge::math
@@ -53,5 +54,18 @@ template<typename Type, typename ScalarType>
 constexpr Type lerp(const Type& x, const Type& y, const ScalarType t)
 {
     return (1 - t) * x + t * y;
+}
+
+std::string toString(const std::floating_point auto x)
+{
+    if (x == 0)
+    {
+        return "    o.o      ";
+    }
+    if (const auto a = std::abs(x); a >= 1000 || a < 0.001)
+    {
+        return std::format("{:>13}", std::format("{:01.3e}", x));
+    }
+    return std::format("{:>9}    ", std::format("{:3.3f}", x));
 }
 }  // namespace surge::math

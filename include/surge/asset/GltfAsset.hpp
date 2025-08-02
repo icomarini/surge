@@ -12,6 +12,8 @@
 #include "fastgltf/util.hpp"
 #include "fastgltf/glm_element_traits.hpp"
 
+#include "simdjson.h"
+
 #include <filesystem>
 
 namespace fastgltf
@@ -63,7 +65,8 @@ public:
     GltfAsset(const std::string& name, const std::filesystem::path& path)
         : name { name }
         , path { path }
-        , asset { createAsset(path) }
+        , nodeNames {}
+        , asset { createAsset(path, nodeNames) }
     {
     }
 
@@ -72,9 +75,10 @@ public:
     //     return asset.nodes.at(nodeId);
     // }
 
-    std::string           name;
-    std::filesystem::path path;
-    fastgltf::Asset       asset;
+    std::string              name;
+    std::filesystem::path    path;
+    std::vector<std::string> nodeNames;
+    fastgltf::Asset          asset;
 
     std::string shader() const
     {
@@ -351,14 +355,6 @@ public:
 
                 // constexpr auto cast = [](auto t) { return static_cast<Float32>(t); };
 
-                // const fastgltf::visitor visitor = {
-                //     [](auto& arg) -> math::Vector<3> { throw std::runtime_error("unsupported visitor"); },
-                //     [](const std::monostate) -> math::Vector<3> { return {}; },
-                //     [&](const std::pmr::vector<double>& vector) -> math::Vector<3>
-                //     { return math::Vector<3> { cast(vector.at(0)), cast(vector.at(1)), cast(vector.at(2)) }; },
-                //     [&](const std::pmr::vector<int64_t>& vector) -> math::Vector<3>
-                //     { return math::Vector<3> { cast(vector.at(0)), cast(vector.at(1)), cast(vector.at(2)) }; },
-                // };
                 constexpr auto  minValue = std::numeric_limits<math::Vector<3>::value_type>::min();
                 constexpr auto  maxValue = std::numeric_limits<math::Vector<3>::value_type>::min();
                 math::Vector<3> min { maxValue, maxValue, maxValue };
@@ -463,7 +459,7 @@ public:
     void createNode(std::vector<Node>& nodes, Node* const parent, const std::vector<Mesh>& meshes, const Size nodeId,
                     std::vector<Node*>& nodesLut) const
     {
-        assert(nodesLut[nodeId] == nullptr);
+        assert(nodesLut.at(nodeId) == nullptr);
         const auto& gltfNode = asset.nodes.at(nodeId);
         assert(std::holds_alternative<fastgltf::TRS>(gltfNode.transform));
         const auto& trs = std::get<fastgltf::TRS>(gltfNode.transform);
@@ -481,19 +477,52 @@ public:
                 .vertexStageFlag   = 0,
                 .fragmentStageFlag = 0,
                 .translation       = math::Vector<3> { trs.translation[0], trs.translation[1], trs.translation[2] },
-                .rotation          = { trs.rotation[0], trs.rotation[1], trs.rotation[2], trs.rotation[3] },
-                .scale             = math::Vector<3> { trs.scale[0], trs.scale[1], trs.scale[2] },
+                .rotation = math::Quaternion<> { trs.rotation[0], trs.rotation[1], trs.rotation[2], trs.rotation[3] },
+                .scale    = math::Vector<3> { trs.scale[0], trs.scale[1], trs.scale[2] },
                 // .attitude          = math::toEulerAngles(
                 // math::Quaternion<> { trs.rotation[0], trs.rotation[1], trs.rotation[2], trs.rotation[3] }),
             });
-
-        assert(nodesLut[nodeId] == nullptr);
         nodesLut[nodeId] = &node;
+
+        // === TEST ===
+        glm::vec3 tl(trs.translation[0], trs.translation[1], trs.translation[2]);
+        glm::quat rot(trs.rotation[3], trs.rotation[0], trs.rotation[1], trs.rotation[2]);
+        glm::vec3 sc(trs.scale[0], trs.scale[1], trs.scale[2]);
+
+        glm::mat4 tm = glm::translate(glm::mat4(1.f), tl);
+        glm::mat4 rm = glm::toMat4(rot);
+        glm::mat4 sm = glm::scale(glm::mat4(1.f), sc);
+        static_assert(math::StaticMatrix<glm::mat4>);
+        // assert(math::Translation { node.state.translation } == tm);
+        // === TEST ===
 
         node.children.reserve(gltfNode.children.size());
         for (const auto& childId : gltfNode.children)
         {
             createNode(node.children, &node, meshes, childId, nodesLut);
+        }
+    }
+
+    static void printNode(const Node& node)
+    {
+        // auto toString = [](const math::Matrix<4, 4>& m)
+        // {
+        //     auto*             p = &math::get<0, 0>(m);
+        //     std::stringstream s;
+        //     s << std::fixed << std::setw(8) << std::setprecision(3);
+        //     s << p[0] << "  " << p[1] << "  " << p[2] << "  " << p[3] << std::endl;
+        //     s << p[4] << "  " << p[5] << "  " << p[6] << "  " << p[7] << std::endl;
+        //     s << p[8] << "  " << p[9] << "  " << p[10] << "  " << p[11] << std::endl;
+        //     s << p[12] << "  " << p[13] << "  " << p[14] << "  " << p[15] << std::endl;
+        //     return s.str();
+        // };
+
+        std::cout << "node " << node.name << ":" << std::endl;
+        std::cout << math::toString(node.localMatrix()) << std::endl;
+        // std::cout << math::toString(node.globalMatrix()) << std::endl;
+        for (const auto& node : node.children)
+        {
+            printNode(node);
         }
     }
 
@@ -512,6 +541,12 @@ public:
                 createNode(scene.nodes, nullptr, meshes, nodeId, scene.nodesLut);
             }
         }
+
+        for (const auto& node : scenes.front().nodes)
+        {
+            printNode(node);
+        }
+
         return scenes;
     }
 
@@ -633,13 +668,29 @@ public:
     }
 
 private:
-    static fastgltf::Asset createAsset(const std::filesystem::path& path)
+    static fastgltf::Asset createAsset(const std::filesystem::path& path, std::vector<std::string>& nodeNames)
     {
         const auto errorMessage = [&](const fastgltf::Error error)
         {
             return "failed to load asset at path '" + path.string() +
                    "': " + std::string { fastgltf::getErrorName(error) };
         };
+
+        const auto extrasCallback =
+            [](simdjson::dom::object* extras, std::size_t objectIndex, fastgltf::Category category, void* userPointer)
+        {
+            if (category != fastgltf::Category::Nodes)
+                return;
+            auto* nodeNames = static_cast<std::vector<std::string>*>(userPointer);
+            nodeNames->resize(fastgltf::max(nodeNames->size(), objectIndex + 1));
+
+            std::string_view nodeName;
+            if ((*extras)["name"].get_string().get(nodeName) == simdjson::SUCCESS)
+            {
+                (*nodeNames)[objectIndex] = std::string(nodeName);
+            }
+        };
+
 
         auto data = fastgltf::GltfDataBuffer::FromPath(path);
         if (!data)
@@ -650,9 +701,18 @@ private:
         [[maybe_unused]] const auto type = fastgltf::determineGltfFileType(data.get());
         assert(type == fastgltf::GltfType::glTF);
 
+        fastgltf::Parser parser;
+        parser.setExtrasParseCallback(extrasCallback);
+        parser.setUserPointer(&nodeNames);
+
         constexpr auto options = fastgltf::Options::DontRequireValidAssetMember | fastgltf::Options::AllowDouble |
                                  fastgltf::Options::DecomposeNodeMatrices | fastgltf::Options::LoadExternalBuffers;
-        auto load = fastgltf::Parser().loadGltf(data.get(), path.parent_path(), options);
+        auto load = parser.loadGltfJson(data.get(), path.parent_path(), options);
+        fastgltf::validate(load.get());
+
+        // parser.loadGltfJson()
+
+        // auto load = parser.loadGltf(data.get(), path.parent_path(), options);
         if (!load)
         {
             throw std::runtime_error(errorMessage(load.error()));

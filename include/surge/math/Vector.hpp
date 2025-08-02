@@ -13,10 +13,10 @@ namespace surge::math
 {
 
 template<typename V>
-constexpr Size length = 0;
+constexpr int length = -1;
 
 template<typename V>
-concept HasLength = requires { length<V>; };
+concept HasLength = length<V> > 0;  // requires { length<V>; };
 
 
 template<Size index, typename V>
@@ -180,19 +180,19 @@ constexpr V normalize(const V& v)
     return v / n;
 }
 
-template<surge::Size size, typename Type = surge::Float32>
-std::string toString(const surge::math::Vector<size, Type>& vec)
-{
-    std::stringstream stream;
-    stream << "[";
-    if constexpr (size > 0)
-    {
-        stream << vec[0];
-        surge::forEach<1, size>([&]<int i>() { stream << ", " << vec[i]; });
-    }
-    stream << "]";
-    return stream.str();
-}
+// template<surge::Size size, typename Type = surge::Float32>
+// std::string toString(const surge::math::Vector<size, Type>& vec)
+// {
+//     std::stringstream stream;
+//     stream << "[";
+//     if constexpr (size > 0)
+//     {
+//         stream << vec[0];
+//         surge::forEach<1, size>([&]<int i>() { stream << ", " << vec[i]; });
+//     }
+//     stream << "]";
+//     return stream.str();
+// }
 
 template<Size size, typename Type = Float32>
 constexpr bool equal(const Vector<size, Type>& a, const Vector<size, Type>& b, const float tolerance = 1.e-5)

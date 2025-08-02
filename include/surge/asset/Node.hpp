@@ -29,16 +29,16 @@ struct Node
     mutable State           state;
 
 
-    math::Matrix<4, 4> matrix() const
+    math::Matrix<4, 4> localMatrix() const
     {
-        const auto               sintheta { std::sin(math::deg2rad(180.0f)) };
-        const auto               costheta { std::cos(math::deg2rad(180.0f)) };
-        const math::Matrix<4, 4> correction {
-            costheta,  0, sintheta, 0,  //
-            0,         1, 0,        0,  //
-            -sintheta, 0, costheta, 0,  //
-            0,         0, 0,        1,  //
-        };
+        // const auto               sintheta { std::sin(math::deg2rad(180.0f)) };
+        // const auto               costheta { std::cos(math::deg2rad(180.0f)) };
+        // const math::Matrix<4, 4> correction {
+        //     costheta,  0, sintheta, 0,  //
+        //     0,         1, 0,        0,  //
+        //     -sintheta, 0, costheta, 0,  //
+        //     0,         0, 0,        1,  //
+        // };
 
         // return translation * rotation * scaling;
         // const math::Vector<3> translation {
@@ -50,15 +50,17 @@ struct Node
         //                        math::Scaling { state.scale } * correction);
         return math::Translation { state.translation } * math::Rotation { state.rotation } *
                math::Scaling { state.scale };
+        // return math::Scaling { state.scale } * math::Rotation { state.rotation } *
+        //        math::Translation { state.translation };
     }
 
-    math::Matrix<4, 4> nodeMatrix() const
+    math::Matrix<4, 4> globalMatrix() const
     {
-        auto  nodeMatrix    = matrix();
+        auto  nodeMatrix    = localMatrix();
         auto* currentParent = parent;
         while (currentParent)
         {
-            nodeMatrix    = currentParent->matrix() * nodeMatrix;
+            nodeMatrix    = nodeMatrix * currentParent->localMatrix();
             currentParent = currentParent->parent;
         }
         return nodeMatrix;

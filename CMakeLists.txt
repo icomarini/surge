@@ -64,6 +64,21 @@ set_property(TARGET fastgltf PROPERTY IMPORTED_LOCATION ${LIB_FASTGLTF_LIB}/libf
 target_include_directories(fastgltf INTERFACE ${LIB_FASTGLTF_INCLUDE})
 
 
+# fastgltf ====================================================================
+if (NOT DEFINED LIB_SIMDJSON_INCLUDE)
+    message(FATAL_ERROR "Missing path to simdjson include folder" )
+endif()
+message("Path to simdjson include folder: '${LIB_SIMDJSON_INCLUDE}'" )
+if (NOT DEFINED LIB_SIMDJSON_LIB)
+    message(FATAL_ERROR "Missing path to simdjson library folder" )
+endif()
+message("Path to simdjson library folder: '${LIB_SIMDJSON_LIB}'" )
+
+add_library(simdjson STATIC IMPORTED)
+set_property(TARGET simdjson PROPERTY IMPORTED_LOCATION ${LIB_SIMDJSON_LIB}/libsimdjson.a)
+target_include_directories(simdjson INTERFACE ${LIB_SIMDJSON_INCLUDE})
+
+
 # imgui =======================================================================
 if (NOT DEFINED LIB_IMGUI_SOURCE)
     message(FATAL_ERROR "Missing path to ImGUI source folder" )
@@ -80,7 +95,6 @@ add_library(imgui STATIC
     # ${LIB_IMGUI_SOURCE}/backends/imgui_impl_glfw.cpp
     )
 target_include_directories(imgui PUBLIC ${LIB_IMGUI_SOURCE})
-# target_include_directories(imgui PUBLIC ${LIB_IMGUI_SOURCE}/backends)
 
 
 # miniaudio ===================================================================
@@ -114,6 +128,7 @@ target_link_libraries(surge.bin LINK_PUBLIC
     imgui
     ktx
     fastgltf
+    simdjson
     miniaudio 
     # clay
     )

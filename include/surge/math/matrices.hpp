@@ -4,6 +4,8 @@
 #include "surge/math/math.hpp"
 #include "surge/math/Matrix.hpp"
 
+#include "glm/glm.hpp"
+
 #include <sstream>
 
 namespace surge::math
@@ -359,5 +361,23 @@ constexpr auto& get(const View<T>& t)
         return zero;
     }
 }
+
+// glm
+template<>
+constexpr Size rows<glm::mat4> = 4;
+
+template<>
+constexpr Size cols<glm::mat4> = 4;
+
+template<Size row, Size col>
+constexpr bool nonzero<row, col, glm::mat4> = true;
+
+template<Size row, Size col>
+    requires ValidIndices<row, col, glm::mat4>
+constexpr auto& get(const glm::mat4& m)
+{
+    return m[row][col];
+}
+
 
 }  // namespace surge::math

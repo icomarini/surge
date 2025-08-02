@@ -7,7 +7,8 @@ layout(location = 2) in vec3 fragNormal;
 
 layout(push_constant) uniform PushConstants
 {
-    mat4 mvp;
+    mat4 model;
+    vec4 baseColorFactor;
     uint vertexStageFlag;
     uint fragmentStageFlag;
 }
