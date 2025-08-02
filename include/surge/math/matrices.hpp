@@ -4,8 +4,6 @@
 #include "surge/math/math.hpp"
 #include "surge/math/Matrix.hpp"
 
-#include "glm/glm.hpp"
-
 #include <sstream>
 
 namespace surge::math
@@ -15,15 +13,14 @@ template<Size s, typename T = Float32>
 class Identity
 {
 public:
-    static constexpr Size size = s;
-    using value_type           = T;
+    using value_type = T;
 };
 
 template<Size s, typename T>
-constexpr Size rows<Identity<s, T>> = Identity<s, T>::size;
+constexpr Size rows<Identity<s, T>> = s;
 
 template<Size s, typename T>
-constexpr Size cols<Identity<s, T>> = Identity<s, T>::size;
+constexpr Size cols<Identity<s, T>> = s;
 
 template<Size r, Size c, Size s, typename T>
     requires ValidIndices<r, c, Identity<s, T>>
@@ -31,7 +28,7 @@ constexpr bool nonzero<r, c, Identity<s, T>> = r == c;
 
 template<Size row, Size col, Size size, typename T>
     requires ValidIndices<row, col, Identity<size, T>>
-constexpr auto get(const Identity<size, T>& m)
+constexpr auto& get(const Identity<size, T>& m)
 {
     if constexpr (row == col)
     {
@@ -66,11 +63,9 @@ template<Size row, Size col, typename T>
     requires ValidIndices<row, col, Translation<T>> && HasSingleSubscriptOperator<Translation<T>>
 constexpr auto& get(const Translation<T>& t)
 {
-    static constexpr T zero { 0 };
-    static constexpr T one { 1 };
     if constexpr (row == col)
     {
-        return one;
+        return one<T>;
     }
     else if constexpr (col == 3)
     {
@@ -78,7 +73,7 @@ constexpr auto& get(const Translation<T>& t)
     }
     else
     {
-        return zero;
+        return zero<T>;
     }
 }
 
@@ -167,7 +162,7 @@ constexpr bool nonzero<row, col, Rotation<T>> = ((row < 3 && col < 3) || (row ==
 
 template<Size row, Size col, typename T>
     requires ValidIndices<row, col, Rotation<T>>
-constexpr auto get(const Rotation<T>& rotation)
+constexpr auto& get(const Rotation<T>& rotation)
 {
     if constexpr (row < 3 && col < 3)
     {
@@ -175,11 +170,11 @@ constexpr auto get(const Rotation<T>& rotation)
     }
     else if constexpr (row == 3 && col == 3)
     {
-        return T { 1 };
+        return one<T>;
     }
     else
     {
-        return T { 0 };
+        return zero<T>;
     }
 }
 
@@ -285,13 +280,11 @@ constexpr auto& get(const Perspective<flipY, T>& t)
     }
     else if constexpr (row == 2 && col == 3)
     {
-        static constexpr T negativeOne { -1 };
-        return negativeOne;
+        return negativeOne<T>;
     }
     else
     {
-        static constexpr T zero { 0 };
-        return zero;
+        return zero<T>;
     }
 }
 
@@ -301,9 +294,6 @@ class View
 {
 public:
     using value_type = T;
-
-    // static constexpr std::size_t rows = 4;
-    // static constexpr std::size_t cols = 4;
 
     View(const Vector<3, T>& eye, const Vector<3, T>& center, const Vector<3, T>& up)
         : f { -normalize(center - eye) }
@@ -352,32 +342,32 @@ constexpr auto& get(const View<T>& t)
     }
     else if constexpr (row == 3 && col == 3)
     {
-        static constexpr T one { 1 };
-        return one;
+        return one<T>;
     }
     else
     {
-        static constexpr T zero { 0 };
-        return zero;
+        return zero<T>;
     }
 }
 
-// glm
-template<>
-constexpr Size rows<glm::mat4> = 4;
+// // glm
+// template<>
+// constexpr Size rows<glm::mat4> = 4;
 
-template<>
-constexpr Size cols<glm::mat4> = 4;
+// template<>
+// constexpr Size cols<glm::mat4> = 4;
 
-template<Size row, Size col>
-constexpr bool nonzero<row, col, glm::mat4> = true;
+// template<Size row, Size col>
+// constexpr bool nonzero<row, col, glm::mat4> = true;
 
-template<Size row, Size col>
-    requires ValidIndices<row, col, glm::mat4>
-constexpr auto& get(const glm::mat4& m)
-{
-    return m[row][col];
-}
+// template<Size row, Size col>
+//     requires ValidIndices<row, col, glm::mat4>
+// constexpr auto get(const glm::mat4& m)
+// {
+//     return m[row][col];
+// }
+
+// static_assert(HasGetter<glm::mat4>);
 
 
 }  // namespace surge::math

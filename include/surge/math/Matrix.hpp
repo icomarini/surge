@@ -3,7 +3,7 @@
 #include "surge/utils.hpp"
 #include "surge/math/Vector.hpp"
 
-// #include "glm/glm.hpp"
+#include "glm/glm.hpp"
 
 #include <concepts>
 #include <format>
@@ -18,7 +18,6 @@ template<typename M>
 constexpr int cols = -1;
 
 template<typename M>
-// concept HasRows = requires { rows<M>; };
 concept HasRows = rows<M> > 0;
 
 template<typename M>
@@ -51,10 +50,13 @@ template<typename M>
 concept HasSingleSubscriptOperator = !HasDoubleSubscriptOperator<M> && requires(M m, Size i) { m[i]; };
 
 template<typename M>
-concept StaticMatrix = HasRows<M> && HasColumns<M>;  // && HasType<M>;
+concept HasGetter = requires(M m, ValueType<M> x) { x = get<0, 0>(m); };
 
 template<typename M>
-concept SquareMatrix = (rows<M> == cols<M>);  // && HasType<M>;
+concept StaticMatrix = HasRows<M> && HasColumns<M> && HasValue<M>;  // && HasGetter<M>;
+
+template<typename M>
+concept SquareMatrix = StaticMatrix<M> && (rows<M> == cols<M>);
 
 template<typename A, typename B>
 concept SameRows = HasRows<A> && HasRows<B> && rows<A> == rows<B>;
@@ -69,9 +71,9 @@ concept SameSizes = SameRows<A, B> && SameColumns<A, B>;
 template<Size r, Size c, typename T = float>
 class Matrix : public std::array<T, r * c>
 {
-public:
-    static constexpr auto rows = r;
-    static constexpr auto cols = c;
+    // public:
+    //     static constexpr auto rows = r;
+    //     static constexpr auto cols = c;
 };
 
 
@@ -91,25 +93,41 @@ Matrix<rows<M>, cols<M>, ValueType<M>> fullMatrix(const M& matrix)
 }
 
 template<Size r, Size c, typename T>
-constexpr Size rows<Matrix<r, c, T>> = Matrix<r, c, T>::rows;
+constexpr Size rows<Matrix<r, c, T>> = r;
 
 template<Size r, Size c, typename T>
-constexpr Size cols<Matrix<r, c, T>> = Matrix<r, c, T>::cols;
+constexpr Size cols<Matrix<r, c, T>> = c;
 
-template<Size row, Size col, StaticMatrix M>
-    requires ValidIndices<row, col, M> && HasSingleSubscriptOperator<M>
-constexpr auto& get(M& m)
+template<Size row, Size col, Size rows, Size cols, typename T>
+    requires ValidIndices<row, col, Matrix<rows, cols, T>>
+constexpr auto& get(Matrix<rows, cols, T>& m)
 {
-    return m[index<row, col, M>()];
+    return m[index<row, col, Matrix<rows, cols, T>>()];
 }
 
-template<Size row, Size col, StaticMatrix M>
-    requires ValidIndices<row, col, M> && HasSingleSubscriptOperator<M>
-constexpr auto& get(const M& m)
+template<Size row, Size col, Size rows, Size cols, typename T>
+    requires ValidIndices<row, col, Matrix<rows, cols, T>>
+constexpr auto& get(const Matrix<rows, cols, T>& m)
 {
-    return m[index<row, col, M>()];
+    return m[index<row, col, Matrix<rows, cols, T>>()];
 }
 
+// glm
+template<>
+constexpr Size rows<glm::mat4> = 4;
+
+template<>
+constexpr Size cols<glm::mat4> = 4;
+
+template<Size row, Size col>
+constexpr bool nonzero<row, col, glm::mat4> = true;
+
+template<Size row, Size col>
+    requires ValidIndices<row, col, glm::mat4>
+constexpr auto get(const glm::mat4& m)
+{
+    return m[row][col];
+}
 
 // operations
 template<StaticMatrix A, StaticMatrix B>

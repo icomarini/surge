@@ -493,7 +493,21 @@ public:
         glm::mat4 rm = glm::toMat4(rot);
         glm::mat4 sm = glm::scale(glm::mat4(1.f), sc);
         static_assert(math::StaticMatrix<glm::mat4>);
-        // assert(math::Translation { node.state.translation } == tm);
+        static_assert(math::HasGetter<math::Matrix<4, 4>>);
+
+        auto x = math::get<3, 2>(tm);
+
+
+        const math::Vector<3> zeroes { 0, 0, 0 };
+        static_assert(math::HasGetter<math::Translation<>>);
+        static_assert(math::HasGetter<math::Scaling<>>);
+        static_assert(math::HasGetter<math::Rotation<>>);
+
+        // static_assert(math::HasGetter<glm::mat4>);
+
+        assert(math::transpose(math::Translation { node.state.translation }) == tm);
+        assert(math::Scaling { node.state.scale } == sm);
+        assert(math::Rotation { node.state.rotation } == rm);
         // === TEST ===
 
         node.children.reserve(gltfNode.children.size());

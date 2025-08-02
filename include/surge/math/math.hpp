@@ -10,6 +10,15 @@
 
 namespace surge::math
 {
+template<typename T>
+static constexpr T zero { 0 };
+
+template<typename T>
+static constexpr T one { 1 };
+
+template<typename T>
+static constexpr T negativeOne { -1 };
+
 template<typename Type>
 constexpr Type deg2rad(const Type a)
 {
