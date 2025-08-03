@@ -5,6 +5,7 @@
 #include "surge/asset/Skin.hpp"
 #include "surge/geometry/Shape.hpp"
 #include "surge/geometry/Vertex.hpp"
+#include "surge/math/Vector.hpp"
 
 #include "fastgltf/core.hpp"
 #include "fastgltf/tools.hpp"
@@ -508,6 +509,11 @@ public:
         assert(math::transpose(math::Translation { node.state.translation }) == tm);
         assert(math::Scaling { node.state.scale } == sm);
         assert(math::Rotation { node.state.rotation } == rm);
+        // std::cout << math::toString(node.state.rotation) << std::endl;
+
+        std::cout << "node " << nodeId << std::endl;
+        std::cout << math::toString(math::Rotation { node.state.rotation }) << std::endl;
+        std::cout << math::toString(rm) << std::endl;
         // === TEST ===
 
         node.children.reserve(gltfNode.children.size());
@@ -531,8 +537,8 @@ public:
         //     return s.str();
         // };
 
-        std::cout << "node " << node.name << ":" << std::endl;
-        std::cout << math::toString(node.localMatrix()) << std::endl;
+        // std::cout << "node " << node.name << ":" << std::endl;
+        // std::cout << math::toString(node.localMatrix()) << std::endl;
         // std::cout << math::toString(node.globalMatrix()) << std::endl;
         for (const auto& node : node.children)
         {
@@ -590,8 +596,8 @@ public:
                     math::transpose(fastgltf::getAccessorElement<math::Matrix<4, 4>>(asset, accessor, jointId++)));
 
                 // === TEST ===
-                std::cout << "Joint " << jointId << std::endl;
-                std::cout << math::toString(skin.joints.back().inverseBindMatrix) << std::endl;
+                // std::cout << "Joint " << jointId << std::endl;
+                // std::cout << math::toString(skin.joints.back().inverseBindMatrix) << std::endl;
                 // === TEST ===
             }
         }

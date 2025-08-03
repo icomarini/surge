@@ -81,8 +81,8 @@ public:
             }
             case Channel::Path::rotation:
             {
-                const math::Quaternion x     = sampler.outputs.at(index);
-                const math::Quaternion y     = sampler.outputs.at(index);
+                const math::Quaternion x { sampler.outputs.at(index) };
+                const math::Quaternion y { sampler.outputs.at(index) };
                 channel.node->state.rotation = math::normalize(math::slerp(x, y, a));
                 break;
             }

@@ -131,22 +131,22 @@ public:
 private:
     constexpr Matrix<3, 3, T> createMatrix(const Quaternion<T>& rotation)
     {
-        const auto  q00 { get<0>(rotation) * get<0>(rotation) };
-        const auto  q11 { get<1>(rotation) * get<1>(rotation) };
-        const auto  q22 { get<2>(rotation) * get<2>(rotation) };
-        const auto  q02 { get<0>(rotation) * get<2>(rotation) };
-        const auto  q01 { get<0>(rotation) * get<1>(rotation) };
-        const auto  q12 { get<1>(rotation) * get<2>(rotation) };
-        const auto  q30 { get<3>(rotation) * get<0>(rotation) };
-        const auto  q31 { get<3>(rotation) * get<1>(rotation) };
-        const auto  q32 { get<3>(rotation) * get<2>(rotation) };
+        const auto  xx { get<0>(rotation) * get<0>(rotation) };
+        const auto  yy { get<1>(rotation) * get<1>(rotation) };
+        const auto  zz { get<2>(rotation) * get<2>(rotation) };
+        const auto  xz { get<0>(rotation) * get<2>(rotation) };
+        const auto  xy { get<0>(rotation) * get<1>(rotation) };
+        const auto  yz { get<1>(rotation) * get<2>(rotation) };
+        const auto  wx { get<3>(rotation) * get<0>(rotation) };
+        const auto  wy { get<3>(rotation) * get<1>(rotation) };
+        const auto  wz { get<3>(rotation) * get<2>(rotation) };
         constexpr T zero { 0 };
         constexpr T half { 0.5 };
         constexpr T two { 2 };
         return two * Matrix<3, 3, T> {
-            half - q11 - q22, zero + q01 + q32, zero + q02 - q31,  //
-            zero + q01 - q32, half - q00 - q22, zero + q12 + q30,  //
-            zero + q02 + q31, zero + q12 - q30, half - q00 - q11,  //
+            half - yy - zz, zero + xy + wz, zero + xz - wy,  //
+            zero + xy - wz, half - xx - zz, zero + yz + wx,  //
+            zero + xz + wy, zero + yz - wx, half - xx - yy,  //
         };
     }
 };

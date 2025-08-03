@@ -76,22 +76,6 @@ class Matrix : public std::array<T, r * c>
     //     static constexpr auto cols = c;
 };
 
-
-template<StaticMatrix M>
-Matrix<rows<M>, cols<M>, ValueType<M>> fullMatrix(const M& matrix)
-{
-    Matrix<rows<M>, cols<M>, ValueType<M>> full {};
-    forEach<0, rows<M>, 0, cols<M>>(
-        [&]<Size row, Size col>()
-        {
-            if constexpr (nonzero<row, col, M>)
-            {
-                get<col, row>(full) = get<row, col>(matrix);
-            }
-        });
-    return full;
-}
-
 template<Size r, Size c, typename T>
 constexpr Size rows<Matrix<r, c, T>> = r;
 
@@ -130,6 +114,21 @@ constexpr auto get(const glm::mat4& m)
 }
 
 // operations
+template<StaticMatrix M>
+Matrix<rows<M>, cols<M>, ValueType<M>> fullMatrix(const M& matrix)
+{
+    Matrix<rows<M>, cols<M>, ValueType<M>> full {};
+    forEach<0, rows<M>, 0, cols<M>>(
+        [&]<Size row, Size col>()
+        {
+            if constexpr (nonzero<row, col, M>)
+            {
+                get<col, row>(full) = get<row, col>(matrix);
+            }
+        });
+    return full;
+}
+
 template<StaticMatrix A, StaticMatrix B>
     requires SameSizes<A, B>
 constexpr bool operator==(const A& a, const B& b)
@@ -305,13 +304,11 @@ std::string toString(const float* const p, const int rows, const int cols);
 std::string toString(const float* const p, const int rows, const int cols)
 {
     std::stringstream stream;
-    // stream << std::fixed << std::setw(8) << std::setprecision(3);  // << std::setfill('0');
-    // stream << "[";
-    int index = 0;
+    int               index = 0;
     for (int row = 0; row < rows; ++row)
     {
         stream << "|";
-        for (int col = 1; col < cols; ++col)
+        for (int col = 0; col < cols; ++col)
         {
             stream << toString(p[index]);
             ++index;
@@ -327,48 +324,9 @@ std::string toString(const Matrix<r, c, T>& m)
     return toString(&get<0, 0>(m), r, c);
 }
 
-// template<typename M>
-//     requires StaticMatrix<M>
-// std::string toString(const M& m)
-// {
-//     return toString(fullMatrix(m));
-// static_assert(rows<M> != 0);
-// static_assert(cols<M> != 0);
+std::string toString(const StaticMatrix auto& m)
+{
+    return toString(fullMatrix(m));
+}
 
-// std::stringstream stream;
-// stream << std::fixed << std::setw(8) << std::setprecision(3);  // << std::setfill('0');
-// // stream << "[";
-// forEach<0, rows<M>>(
-//     [&]<int row>()
-//     {
-//         stream << "\t";
-//         if constexpr (nonzero<row, 0, M>)
-//         {
-//             const auto value = get<row, 0>(m);
-//             stream << "[" << (value < 0 ? "" : " ") << value;
-//         }
-//         else
-//         {
-//             stream << "[" << " o.o  ";
-//         }
-//         // const auto value = get<row, 0>(m);
-//         // stream << "[" << (value < 0 ? "" : " ") << value;
-//         forEach<1, cols<M>>(
-//             [&]<int col>()
-//             {
-//                 if constexpr (nonzero<row, col, M>)
-//                 {
-//                     const auto value = get<row, col>(m);
-//                     stream << ", " << (value < 0 ? "" : " ") << value;
-//                 }
-//                 else
-//                 {
-//                     stream << ", " << " o.o  ";
-//                 }
-//             });
-//         stream << "]" << (row == rows<M> - 1 ? "" : ",\n");
-//     });
-// stream << "]\n";
-// return stream.str();
-// }
 }  // namespace surge::math

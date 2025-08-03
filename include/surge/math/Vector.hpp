@@ -2,6 +2,7 @@
 
 #include "surge/utils.hpp"
 #include "surge/types.hpp"
+#include "surge/math/math.hpp"
 
 #include <array>
 #include <cassert>
@@ -146,19 +147,19 @@ constexpr surge::math::Vector<size, Type> operator/(const surge::math::Vector<si
     return b;
 }
 
-template<surge::Size size, typename Type = surge::Float32>
-std::ostream& operator<<(std::ostream& stream, const surge::math::Vector<size, Type>& vec)
-{
-    // stream << "[";
-    // if constexpr (size > 0)
-    // {
-    //     stream << vec[0];
-    //     surge::forEach<1, size>([&]<int i>() { stream << ", " << vec[i]; });
-    // }
-    // stream << "]";
-    stream << toString(vec);
-    return stream;
-}
+// template<surge::Size size, typename Type = surge::Float32>
+// std::ostream& operator<<(std::ostream& stream, const surge::math::Vector<size, Type>& vec)
+// {
+//     // stream << "[";
+//     // if constexpr (size > 0)
+//     // {
+//     //     stream << vec[0];
+//     //     surge::forEach<1, size>([&]<int i>() { stream << ", " << vec[i]; });
+//     // }
+//     // stream << "]";
+//     stream << surge::math::toString(vec);
+//     return stream;
+// }
 
 namespace surge::math
 {
@@ -180,19 +181,19 @@ constexpr V normalize(const V& v)
     return v / n;
 }
 
-// template<surge::Size size, typename Type = surge::Float32>
-// std::string toString(const surge::math::Vector<size, Type>& vec)
-// {
-//     std::stringstream stream;
-//     stream << "[";
-//     if constexpr (size > 0)
-//     {
-//         stream << vec[0];
-//         surge::forEach<1, size>([&]<int i>() { stream << ", " << vec[i]; });
-//     }
-//     stream << "]";
-//     return stream.str();
-// }
+template<surge::Size size, typename Type = surge::Float32>
+std::string toString(const surge::math::Vector<size, Type>& vec)
+{
+    std::stringstream stream;
+    stream << "[";
+    if constexpr (size > 0)
+    {
+        stream << vec[0];
+        surge::forEach<1, size>([&]<int i>() { stream << ", " << vec[i]; });
+    }
+    stream << "]";
+    return stream.str();
+}
 
 template<Size size, typename Type = Float32>
 constexpr bool equal(const Vector<size, Type>& a, const Vector<size, Type>& b, const float tolerance = 1.e-5)
