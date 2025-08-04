@@ -457,13 +457,55 @@ public:
                        SceneModelInfo {} };
     }
 
+    static auto decomposeMatrix(const fastgltf::math::fmat4x4& matrix)
+    {
+        fastgltf::math::fvec3 scale;
+        fastgltf::math::fquat rotation;
+        fastgltf::math::fvec3 translation;
+        fastgltf::math::decomposeTransformMatrix(matrix, scale, rotation, translation);
+        return std::make_tuple(
+            math::Vector<3> {
+                translation.x(),
+                translation.y(),
+                translation.z(),
+            },
+            math::Quaternion<> {
+                rotation.x(),
+                rotation.y(),
+                rotation.z(),
+                rotation.w(),
+            },
+            math::Vector<3> {
+                scale.x(),
+                scale.y(),
+                scale.z(),
+            },
+            glm::vec3 {
+                translation.x(),
+                translation.y(),
+                translation.z(),
+            },
+            glm::quat {
+                rotation.w(),
+                rotation.x(),
+                rotation.y(),
+                rotation.z(),
+            },
+            glm::vec3 {
+                scale.x(),
+                scale.y(),
+                scale.z(),
+            });
+    }
+
     void createNode(std::vector<Node>& nodes, Node* const parent, const std::vector<Mesh>& meshes, const Size nodeId,
                     std::vector<Node*>& nodesLut) const
     {
         assert(nodesLut.at(nodeId) == nullptr);
         const auto& gltfNode = asset.nodes.at(nodeId);
-        assert(std::holds_alternative<fastgltf::TRS>(gltfNode.transform));
-        const auto& trs = std::get<fastgltf::TRS>(gltfNode.transform);
+        // assert(std::holds_alternative<fastgltf::TRS>(gltfNode.transform));
+        // const auto& trs = std::get<fastgltf::TRS>(gltfNode.transform);
+
 
         auto& node = nodes.emplace_back(
             baptize<This::node>(gltfNode.name, nodeId),                             //
@@ -473,47 +515,130 @@ public:
             gltfNode.skinIndex ? std::optional<uint32_t> { static_cast<uint32_t>(gltfNode.skinIndex.value()) } :
                                  std::optional<uint32_t> {},
             Node::State {
-                .active            = true,
-                .polygonMode       = PolygonMode::fill,
-                .vertexStageFlag   = 0,
-                .fragmentStageFlag = 0,
-                .translation       = math::Vector<3> { trs.translation[0], trs.translation[1], trs.translation[2] },
-                .rotation = math::Quaternion<> { trs.rotation[0], trs.rotation[1], trs.rotation[2], trs.rotation[3] },
-                .scale    = math::Vector<3> { trs.scale[0], trs.scale[1], trs.scale[2] },
+                .active = true, .polygonMode = PolygonMode::fill, .vertexStageFlag = 0, .fragmentStageFlag = 0,
+                // .translation       = math::Vector<3> { trs.translation[0], trs.translation[1], trs.translation[2]
+                // }, .rotation = math::Quaternion<> { trs.rotation[1], trs.rotation[2], trs.rotation[3],
+                // trs.rotation[0] }, .scale    = math::Vector<3> { trs.scale[0], trs.scale[1], trs.scale[2] },
                 // .attitude          = math::toEulerAngles(
                 // math::Quaternion<> { trs.rotation[0], trs.rotation[1], trs.rotation[2], trs.rotation[3] }),
             });
         nodesLut[nodeId] = &node;
 
+        fastgltf::math::fmat4x4 m_f {};
+        math::Matrix<4, 4>      m_s {};  //= math::fullMatrix(math::identity<4>);
+        glm::mat4               m_t {};
+
+        std::visit(fastgltf::visitor { [&](const fastgltf::math::fmat4x4& m)
+                                       {
+                                           m_f = m;
+                                           memcpy(&m_s, m.data(), sizeof(math::Matrix<4, 4>));
+                                           m_s = math::transpose(m_s);
+                                           memcpy(&m_t, m.data(), sizeof(glm::mat4));
+                                       },
+                                       [&](const fastgltf::TRS& trs)
+                                       {
+                                           node.state.translation = math::Vector<3> {
+                                               trs.translation.x(),
+                                               trs.translation.y(),
+                                               trs.translation.z(),
+                                           };
+                                           node.state.rotation = math::Quaternion<> {
+                                               trs.rotation.x(),
+                                               trs.rotation.y(),
+                                               trs.rotation.z(),
+                                               trs.rotation.w(),
+                                           };
+                                           node.state.scale = math::Vector<3> {
+                                               trs.scale.x(),
+                                               trs.scale.y(),
+                                               trs.scale.z(),
+                                           };
+
+                                           m_s = math::fullMatrix(math::identity<4>);
+                                           m_t = glm::mat4(1.0);
+                                           //    tl = glm::vec3 {
+                                           //        trs.translation.x(),
+                                           //        trs.translation.y(),
+                                           //        trs.translation.z(),
+                                           //    };
+                                           //    rot = glm::quat {
+                                           //        trs.rotation.x(),
+                                           //        trs.rotation.y(),
+                                           //        trs.rotation.z(),
+                                           //        trs.rotation.w(),
+                                           //    };
+                                           //    sc = glm::vec3 {
+                                           //        trs.scale.x(),
+                                           //        trs.scale.y(),
+                                           //        trs.scale.z(),
+                                           //    };
+                                       } },
+                   gltfNode.transform);
+
         // === TEST ===
-        glm::vec3 tl(trs.translation[0], trs.translation[1], trs.translation[2]);
-        glm::quat rot(trs.rotation[3], trs.rotation[0], trs.rotation[1], trs.rotation[2]);
-        glm::vec3 sc(trs.scale[0], trs.scale[1], trs.scale[2]);
+        const auto [tv_s, rv_s, sv_s, tv_t, rv_t, sv_t] = decomposeMatrix(m_f);
 
-        glm::mat4 tm = glm::translate(glm::mat4(1.f), tl);
-        glm::mat4 rm = glm::toMat4(rot);
-        glm::mat4 sm = glm::scale(glm::mat4(1.f), sc);
-        static_assert(math::StaticMatrix<glm::mat4>);
-        static_assert(math::HasGetter<math::Matrix<4, 4>>);
-
-        auto x = math::get<3, 2>(tm);
-
-
-        const math::Vector<3> zeroes { 0, 0, 0 };
-        static_assert(math::HasGetter<math::Translation<>>);
-        static_assert(math::HasGetter<math::Scaling<>>);
-        static_assert(math::HasGetter<math::Rotation<>>);
-
-        // static_assert(math::HasGetter<glm::mat4>);
-
-        assert(math::transpose(math::Translation { node.state.translation }) == tm);
-        assert(math::Scaling { node.state.scale } == sm);
-        assert(math::Rotation { node.state.rotation } == rm);
-        // std::cout << math::toString(node.state.rotation) << std::endl;
+        // std::cout << "surge|translation: " << math::toString(tv_s) << std::endl;
+        // std::cout << "surge|rotation:    " << math::toString(rv_s) << std::endl;
+        // std::cout << "surge|scale:       " << math::toString(sv_s) << std::endl;
 
         std::cout << "node " << nodeId << std::endl;
-        std::cout << math::toString(math::Rotation { node.state.rotation }) << std::endl;
-        std::cout << math::toString(rm) << std::endl;
+
+        // ===
+        std::cout << "  surge|matrix" << std::endl;
+        std::cout << math::toString(m_s) << std::endl;
+
+        const math::Translation tm_s { tv_s };
+        std::cout << "  surge|translation" << std::endl;
+        std::cout << math::toString(tm_s) << std::endl;
+
+        const math::Rotation rm_s { rv_s };
+        std::cout << "  surge|rotation" << std::endl;
+        std::cout << math::toString(rm_s) << std::endl;
+
+        const math::Scaling sm_s { sv_s };
+        std::cout << "  surge|scale" << std::endl;
+        std::cout << math::toString(sm_s) << std::endl;
+
+        const auto mm_s = tm_s * math::transpose(rm_s) * sm_s;
+        std::cout << "  surge|matrix" << std::endl;
+        std::cout << math::toString(mm_s) << std::endl;
+        // assert(mm_s == m_s);  // FAIL
+
+        // ===
+        std::cout << "  glm|matrix" << std::endl;
+        std::cout << math::toString(m_t) << std::endl;
+
+        const glm::mat4 tm_t = glm::translate(glm::mat4(1.f), tv_t);
+        std::cout << "  glm|translation" << std::endl;
+        std::cout << math::toString(tm_t) << std::endl;
+
+        const glm::mat4 rm_t = glm::toMat4(rv_t);
+        std::cout << "  glm|rotation" << std::endl;
+        std::cout << math::toString(rm_t) << std::endl;
+
+        const glm::mat4 sm_t = glm::scale(glm::mat4(1.f), sv_t);
+        std::cout << "  glm|scale" << std::endl;
+        std::cout << math::toString(sm_t) << std::endl;
+
+        const auto mm_t = tm_t * rm_t * sm_t;
+        std::cout << "  glm|matrix" << std::endl;
+        std::cout << math::toString(mm_t) << std::endl;
+        assert(math::fullMatrix(mm_t) == m_t);
+
+        // assert(math::transpose(tm_s) == tm_t);
+        // assert(sm_s == sm_t);
+        // assert(math::transpose(sm_s) == sm_t);
+        // assert(math::transpose(rm_s) == rm_t);
+
+        // assert(tm * rm * sm == math::transpose(ts * math::transpose(rs) * ss));
+
+        // assert()
+        // std::cout << math::toString(node.state.rotation) << std::endl;
+
+        // std::cout << "node " << nodeId << std::endl;
+        // std::cout << math::toString(math::Rotation { node.state.rotation }) << std::endl;
+        // std::cout << math::toString(rm) << std::endl;
         // === TEST ===
 
         node.children.reserve(gltfNode.children.size());
@@ -725,10 +850,15 @@ private:
         parser.setExtrasParseCallback(extrasCallback);
         parser.setUserPointer(&nodeNames);
 
+        // constexpr auto options = fastgltf::Options::DontRequireValidAssetMember | fastgltf::Options::AllowDouble |
+        //                          fastgltf::Options::DecomposeNodeMatrices | fastgltf::Options::LoadExternalBuffers;
         constexpr auto options = fastgltf::Options::DontRequireValidAssetMember | fastgltf::Options::AllowDouble |
-                                 fastgltf::Options::DecomposeNodeMatrices | fastgltf::Options::LoadExternalBuffers;
+                                 fastgltf::Options::LoadExternalBuffers;
         auto load = parser.loadGltfJson(data.get(), path.parent_path(), options);
-        fastgltf::validate(load.get());
+        if (const auto error = fastgltf::validate(load.get()); error != fastgltf::Error::None)
+        {
+            throw std::runtime_error(errorMessage(error));
+        }
 
         // parser.loadGltfJson()
 

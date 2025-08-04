@@ -48,7 +48,7 @@ struct Node
         // };
         // return math::transpose(math::Translation { translation } * math::Rotation { state.rotation } *
         //                        math::Scaling { state.scale } * correction);
-        return math::Translation { state.translation } * math::Rotation { state.rotation } *
+        return math::Translation { state.translation } * math::transpose(math::Rotation { state.rotation }) *
                math::Scaling { state.scale };
         // return math::Scaling { state.scale } * math::Rotation { state.rotation } *
         //        math::Translation { state.translation };
@@ -60,7 +60,7 @@ struct Node
         auto* currentParent = parent;
         while (currentParent)
         {
-            nodeMatrix    = nodeMatrix * currentParent->localMatrix();
+            nodeMatrix    = currentParent->localMatrix() * nodeMatrix;
             currentParent = currentParent->parent;
         }
         return nodeMatrix;

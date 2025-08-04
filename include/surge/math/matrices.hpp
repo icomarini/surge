@@ -28,15 +28,15 @@ constexpr bool nonzero<r, c, Identity<s, T>> = r == c;
 
 template<Size row, Size col, Size size, typename T>
     requires ValidIndices<row, col, Identity<size, T>>
-constexpr auto& get(const Identity<size, T>& m)
+constexpr auto& get(const Identity<size, T>&)
 {
     if constexpr (row == col)
     {
-        return T { 1 };
+        return one<T>;
     }
     else
     {
-        return T { 0 };
+        return zero<T>;
     }
 }
 
@@ -56,8 +56,8 @@ constexpr Size rows<Translation<T>> = 4;
 template<typename T>
 constexpr Size cols<Translation<T>> = 4;
 
-template<Size r, Size c, typename T>
-constexpr bool nonzero<r, c, Translation<T>> = (r == c || c == 3);
+template<Size row, Size col, typename T>
+constexpr bool nonzero<row, col, Translation<T>> = (row == col || col == 3);
 
 template<Size row, Size col, typename T>
     requires ValidIndices<row, col, Translation<T>> && HasSingleSubscriptOperator<Translation<T>>

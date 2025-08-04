@@ -7,6 +7,7 @@
 
 #include <concepts>
 #include <format>
+#include <cstring>
 
 namespace surge::math
 {
@@ -110,7 +111,9 @@ template<Size row, Size col>
     requires ValidIndices<row, col, glm::mat4>
 constexpr auto get(const glm::mat4& m)
 {
-    return m[row][col];
+    const auto* const p = &m[0][0];
+    return p[index<row, col, glm::mat4>()];
+    // return m[row][col];
 }
 
 // operations
@@ -123,9 +126,16 @@ Matrix<rows<M>, cols<M>, ValueType<M>> fullMatrix(const M& matrix)
         {
             if constexpr (nonzero<row, col, M>)
             {
-                get<col, row>(full) = get<row, col>(matrix);
+                get<row, col>(full) = get<row, col>(matrix);
             }
         });
+    return full;
+}
+
+Matrix<4, 4> fullMatrix(const glm::mat4& matrix)
+{
+    Matrix<4, 4> full {};
+    memcpy(&full, &matrix, sizeof(glm::mat4));
     return full;
 }
 
@@ -133,7 +143,7 @@ template<StaticMatrix A, StaticMatrix B>
     requires SameSizes<A, B>
 constexpr bool operator==(const A& a, const B& b)
 {
-    constexpr auto tolerance { 1.e-5 };
+    constexpr auto tolerance { 1.e-6 };
     bool           result { true };
     forEach<0, rows<A>, 0, cols<A>>(
         [&]<Size row, Size col>()
