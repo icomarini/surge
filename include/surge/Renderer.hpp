@@ -82,7 +82,7 @@ public:
             // const NodePushBlock nodePushBlock { node.matrix() * globalMatrix, node.state.vertexStageFlag,
             //                                     node.state.fragmentStageFlag };
             NodePushBlock nodePushBlock {
-                .matrix            = globalMatrix * node.globalMatrix(),
+                .matrix            = globalMatrix * node.localMatrix(),
                 .baseColorFactor   = {},
                 .vertexStageFlag   = node.state.vertexStageFlag,
                 .fragmentStageFlag = node.state.fragmentStageFlag,
@@ -100,6 +100,7 @@ public:
                         vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
                     assert(setPolygonMode);
                     setPolygonMode(commandBuffer, translate(node.state.polygonMode));
+                    // setPolygonMode(commandBuffer, translate(PolygonMode::line));
 
                     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
@@ -147,7 +148,7 @@ public:
             }
             for (const auto& child : node.children)
             {
-                drawNode(commandBuffer, child, globalMatrix);
+                drawNode(commandBuffer, child, nodePushBlock.matrix);
             }
         }
 
@@ -205,8 +206,8 @@ public:
     {
         camera.update(ui);
         const std::array sceneMatrices {
-            math::fullMatrix(camera.mats.perspective),
-            math::fullMatrix(camera.mats.view),
+            math::transpose(math::fullMatrix(camera.mats.perspective)),
+            math::transpose(math::fullMatrix(camera.mats.view)),
         };
         memcpy(scene.mapped, sceneMatrices.data(), 2 * sizeof(math::Matrix<4, 4>));
 

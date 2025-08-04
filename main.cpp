@@ -151,9 +151,9 @@ private:
             assets.emplace_back(command, defaults, surge::asset::GltfAsset { name, resources.at(name) });
         }
 
-        // assets.emplace_back(command, defaults,
-        //                     surge::asset::ObjAsset { "viking room", resources.at("vikingRoomModel"),
-        //                                              resources.at("vikingRoomTexture") });
+        assets.emplace_back(command, defaults,
+                            surge::asset::ObjAsset { "viking room", resources.at("vikingRoomModel"),
+                                                     resources.at("vikingRoomTexture") });
 
         // activate oaktree
 

@@ -123,6 +123,7 @@ public:
         , vertexInputState { geometry::createVertexInputState<ObjAsset::Vertex>() }
         , model { obj.createModel(command, meshes.front()) }
         , scenes { obj.createScene(meshes.front()) }
+        , mainSceneIndex { 0 }
         , skins {}
         , animations {}
         , jointMatricesSSBO {}
