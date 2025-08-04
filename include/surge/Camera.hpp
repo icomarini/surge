@@ -29,6 +29,20 @@ public:
             .view        = { vecs.position, vecs.position + vecs.front, vecs.up },
         }
     {
+        auto pm_s = mats.perspective;
+        if constexpr (flipY)
+        {
+            pm_s.a11 *= -1;
+        }
+
+        std::cout << "  surge|perspective" << std::endl;
+        std::cout << math::toString(pm_s) << std::endl;
+
+        const auto pm_t = glm::perspective(math::deg2rad(45.0f), aspect, 0.1f, 1024.0f);
+        std::cout << "  glm|perspective" << std::endl;
+        std::cout << math::toString(pm_t) << std::endl;
+
+        // assert(pm_s == pm_t);
     }
 
     float sensitivity;

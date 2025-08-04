@@ -147,7 +147,7 @@ public:
             }
             for (const auto& child : node.children)
             {
-                drawNode(commandBuffer, child, nodePushBlock.matrix);
+                drawNode(commandBuffer, child, globalMatrix);
             }
         }
 

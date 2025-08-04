@@ -29,7 +29,8 @@ layout(location = 2) out vec3 fragNormal;
 
 void main()
 {
-    gl_Position  = vec4(inPosition, 1.0) * model * view * projection;
+    // gl_Position  = vec4(inPosition, 1.0) * model * view * projection;
+    gl_Position  = projection * view * transpose(model) * vec4(inPosition, 1.0);
     fragTexCoord = inTexCoord;
     fragColor    = baseColorFactor.rgb;
     fragNormal   = inNormal;

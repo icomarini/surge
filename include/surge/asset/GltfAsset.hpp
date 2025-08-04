@@ -577,6 +577,10 @@ public:
 
         // === TEST ===
         const auto [tv_s, rv_s, sv_s, tv_t, rv_t, sv_t] = decomposeMatrix(m_f);
+        node.state.translation                          = tv_s;
+        node.state.rotation                             = rv_s;
+        node.state.scale                                = sv_s;
+
 
         // std::cout << "surge|translation: " << math::toString(tv_s) << std::endl;
         // std::cout << "surge|rotation:    " << math::toString(rv_s) << std::endl;
@@ -600,10 +604,10 @@ public:
         std::cout << "  surge|scale" << std::endl;
         std::cout << math::toString(sm_s) << std::endl;
 
-        const auto mm_s = tm_s * math::transpose(rm_s) * sm_s;
+        const auto mm_s = tm_s * rm_s * sm_s;
         std::cout << "  surge|matrix" << std::endl;
         std::cout << math::toString(mm_s) << std::endl;
-        // assert(mm_s == m_s);  // FAIL
+        assert(mm_s == m_s);
 
         // ===
         std::cout << "  glm|matrix" << std::endl;
@@ -625,6 +629,8 @@ public:
         std::cout << "  glm|matrix" << std::endl;
         std::cout << math::toString(mm_t) << std::endl;
         assert(math::fullMatrix(mm_t) == m_t);
+
+        assert(math::transpose(mm_s) == mm_t);
 
         // assert(math::transpose(tm_s) == tm_t);
         // assert(sm_s == sm_t);

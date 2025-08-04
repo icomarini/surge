@@ -144,9 +144,9 @@ private:
         constexpr T half { 0.5 };
         constexpr T two { 2 };
         return two * Matrix<3, 3, T> {
-            half - yy - zz, zero + xy + wz, zero + xz - wy,  //
-            zero + xy - wz, half - xx - zz, zero + yz + wx,  //
-            zero + xz + wy, zero + yz - wx, half - xx - yy,  //
+            half - yy - zz, zero + xy - wz, zero + xz + wy,  //
+            zero + xy + wz, half - xx - zz, zero + yz - wx,  //
+            zero + xz - wy, zero + yz + wx, half - xx - yy,  //
         };
     }
 };
