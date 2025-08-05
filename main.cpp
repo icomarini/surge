@@ -140,9 +140,9 @@ private:
                                                   const std::map<std::string, std::filesystem::path>& resources)
     {
         // constexpr std::array names { "oaktree", "helmet", "dragon", "buggy" };
-        constexpr std::array names { "buggy" };
+        // constexpr std::array names { "buggy" };
         // constexpr std::array names { "simple" };
-        // constexpr std::array names { "man" };
+        constexpr std::array names { "man" };
 
         std::vector<surge::asset::Asset> assets;
         assets.reserve(names.size() + 1);
@@ -151,9 +151,9 @@ private:
             assets.emplace_back(command, defaults, surge::asset::GltfAsset { name, resources.at(name) });
         }
 
-        assets.emplace_back(command, defaults,
-                            surge::asset::ObjAsset { "viking room", resources.at("vikingRoomModel"),
-                                                     resources.at("vikingRoomTexture") });
+        // assets.emplace_back(command, defaults,
+        //                     surge::asset::ObjAsset { "viking room", resources.at("vikingRoomModel"),
+        //                                              resources.at("vikingRoomTexture") });
 
         // activate oaktree
 

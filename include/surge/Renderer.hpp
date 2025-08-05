@@ -304,8 +304,8 @@ public:
 
         for (const auto& renderable : renderables)
         {
-            constexpr math::Scaling<> scaling { 0.1f, 0.1f, 0.1f };
-            renderable.draw(commandBuffer, descriptor.set, math::fullMatrix(scaling));
+            // constexpr math::Scaling<> scaling { 0.1f, 0.1f, 0.1f };
+            renderable.draw(commandBuffer, descriptor.set, math::fullMatrix(math::identity<4>));
         }
     }
 
