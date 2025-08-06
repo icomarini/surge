@@ -132,6 +132,7 @@ Matrix<rows<M>, cols<M>, ValueType<M>> fullMatrix(const M& matrix)
     return full;
 }
 
+Matrix<4, 4> fullMatrix(const glm::mat4& matrix);
 Matrix<4, 4> fullMatrix(const glm::mat4& matrix)
 {
     Matrix<4, 4> full {};

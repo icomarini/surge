@@ -13,8 +13,6 @@
 #include "fastgltf/util.hpp"
 #include "fastgltf/glm_element_traits.hpp"
 
-#include "simdjson.h"
-
 #include <filesystem>
 
 namespace fastgltf
@@ -66,20 +64,13 @@ public:
     GltfAsset(const std::string& name, const std::filesystem::path& path)
         : name { name }
         , path { path }
-        , nodeNames {}
-        , asset { createAsset(path, nodeNames) }
+        , asset { createAsset(path) }
     {
     }
 
-    // const fastgltf::Node& node(const Size nodeId) const
-    // {
-    //     return asset.nodes.at(nodeId);
-    // }
-
-    std::string              name;
-    std::filesystem::path    path;
-    std::vector<std::string> nodeNames;
-    fastgltf::Asset          asset;
+    std::string           name;
+    std::filesystem::path path;
+    fastgltf::Asset       asset;
 
     std::string shader() const
     {
@@ -503,8 +494,8 @@ public:
     {
         assert(nodesLut.at(nodeId) == nullptr);
         const auto& gltfNode = asset.nodes.at(nodeId);
-        // assert(std::holds_alternative<fastgltf::TRS>(gltfNode.transform));
-        // const auto& trs = std::get<fastgltf::TRS>(gltfNode.transform);
+        assert(std::holds_alternative<fastgltf::TRS>(gltfNode.transform));
+        const auto& trs = std::get<fastgltf::TRS>(gltfNode.transform);
 
 
         auto& node = nodes.emplace_back(
@@ -515,165 +506,36 @@ public:
             gltfNode.skinIndex ? std::optional<uint32_t> { static_cast<uint32_t>(gltfNode.skinIndex.value()) } :
                                  std::optional<uint32_t> {},
             Node::State {
-                .active = true, .polygonMode = PolygonMode::fill, .vertexStageFlag = 0, .fragmentStageFlag = 0,
-                // .translation       = math::Vector<3> { trs.translation[0], trs.translation[1], trs.translation[2]
-                // }, .rotation = math::Quaternion<> { trs.rotation[1], trs.rotation[2], trs.rotation[3],
-                // trs.rotation[0] }, .scale    = math::Vector<3> { trs.scale[0], trs.scale[1], trs.scale[2] },
-                // .attitude          = math::toEulerAngles(
-                // math::Quaternion<> { trs.rotation[0], trs.rotation[1], trs.rotation[2], trs.rotation[3] }),
+                .active            = true,
+                .polygonMode       = PolygonMode::fill,
+                .vertexStageFlag   = 0,
+                .fragmentStageFlag = 0,
+                .translation =
+                    math::Vector<3> {
+                        trs.translation.x(),
+                        trs.translation.y(),
+                        trs.translation.z(),
+                    },
+                .rotation =
+                    math::Quaternion<> {
+                        trs.rotation.x(),
+                        trs.rotation.y(),
+                        trs.rotation.z(),
+                        trs.rotation.w(),
+                    },
+                .scale =
+                    math::Vector<3> {
+                        trs.scale.x(),
+                        trs.scale.y(),
+                        trs.scale.z(),
+                    },
             });
         nodesLut[nodeId] = &node;
-
-        fastgltf::math::fmat4x4 m_f {};
-        math::Matrix<4, 4>      m_s {};  //= math::fullMatrix(math::identity<4>);
-        glm::mat4               m_t {};
-
-        std::visit(fastgltf::visitor { [&](const fastgltf::math::fmat4x4& m)
-                                       {
-                                           m_f = m;
-                                           memcpy(&m_s, m.data(), sizeof(math::Matrix<4, 4>));
-                                           m_s = math::transpose(m_s);
-                                           memcpy(&m_t, m.data(), sizeof(glm::mat4));
-                                       },
-                                       [&](const fastgltf::TRS& trs)
-                                       {
-                                           node.state.translation = math::Vector<3> {
-                                               trs.translation.x(),
-                                               trs.translation.y(),
-                                               trs.translation.z(),
-                                           };
-                                           node.state.rotation = math::Quaternion<> {
-                                               trs.rotation.x(),
-                                               trs.rotation.y(),
-                                               trs.rotation.z(),
-                                               trs.rotation.w(),
-                                           };
-                                           node.state.scale = math::Vector<3> {
-                                               trs.scale.x(),
-                                               trs.scale.y(),
-                                               trs.scale.z(),
-                                           };
-
-                                           m_s = math::fullMatrix(math::identity<4>);
-                                           m_t = glm::mat4(1.0);
-                                           //    tl = glm::vec3 {
-                                           //        trs.translation.x(),
-                                           //        trs.translation.y(),
-                                           //        trs.translation.z(),
-                                           //    };
-                                           //    rot = glm::quat {
-                                           //        trs.rotation.x(),
-                                           //        trs.rotation.y(),
-                                           //        trs.rotation.z(),
-                                           //        trs.rotation.w(),
-                                           //    };
-                                           //    sc = glm::vec3 {
-                                           //        trs.scale.x(),
-                                           //        trs.scale.y(),
-                                           //        trs.scale.z(),
-                                           //    };
-                                       } },
-                   gltfNode.transform);
-
-        // === TEST ===
-        const auto [tv_s, rv_s, sv_s, tv_t, rv_t, sv_t] = decomposeMatrix(m_f);
-        node.state.translation                          = tv_s;
-        node.state.rotation                             = rv_s;
-        node.state.scale                                = sv_s;
-
-
-        // std::cout << "surge|translation: " << math::toString(tv_s) << std::endl;
-        // std::cout << "surge|rotation:    " << math::toString(rv_s) << std::endl;
-        // std::cout << "surge|scale:       " << math::toString(sv_s) << std::endl;
-
-        std::cout << "node " << nodeId << std::endl;
-
-        // ===
-        std::cout << "  surge|matrix" << std::endl;
-        std::cout << math::toString(m_s) << std::endl;
-
-        const math::Translation tm_s { tv_s };
-        std::cout << "  surge|translation" << std::endl;
-        std::cout << math::toString(tm_s) << std::endl;
-
-        const math::Rotation rm_s { rv_s };
-        std::cout << "  surge|rotation" << std::endl;
-        std::cout << math::toString(rm_s) << std::endl;
-
-        const math::Scaling sm_s { sv_s };
-        std::cout << "  surge|scale" << std::endl;
-        std::cout << math::toString(sm_s) << std::endl;
-
-        const auto mm_s = tm_s * rm_s * sm_s;
-        std::cout << "  surge|matrix" << std::endl;
-        std::cout << math::toString(mm_s) << std::endl;
-        assert(mm_s == m_s);
-
-        // ===
-        std::cout << "  glm|matrix" << std::endl;
-        std::cout << math::toString(m_t) << std::endl;
-
-        const glm::mat4 tm_t = glm::translate(glm::mat4(1.f), tv_t);
-        std::cout << "  glm|translation" << std::endl;
-        std::cout << math::toString(tm_t) << std::endl;
-
-        const glm::mat4 rm_t = glm::toMat4(rv_t);
-        std::cout << "  glm|rotation" << std::endl;
-        std::cout << math::toString(rm_t) << std::endl;
-
-        const glm::mat4 sm_t = glm::scale(glm::mat4(1.f), sv_t);
-        std::cout << "  glm|scale" << std::endl;
-        std::cout << math::toString(sm_t) << std::endl;
-
-        const auto mm_t = tm_t * rm_t * sm_t;
-        std::cout << "  glm|matrix" << std::endl;
-        std::cout << math::toString(mm_t) << std::endl;
-        assert(math::fullMatrix(mm_t) == m_t);
-
-        assert(math::transpose(mm_s) == mm_t);
-
-        // assert(math::transpose(tm_s) == tm_t);
-        // assert(sm_s == sm_t);
-        // assert(math::transpose(sm_s) == sm_t);
-        // assert(math::transpose(rm_s) == rm_t);
-
-        // assert(tm * rm * sm == math::transpose(ts * math::transpose(rs) * ss));
-
-        // assert()
-        // std::cout << math::toString(node.state.rotation) << std::endl;
-
-        // std::cout << "node " << nodeId << std::endl;
-        // std::cout << math::toString(math::Rotation { node.state.rotation }) << std::endl;
-        // std::cout << math::toString(rm) << std::endl;
-        // === TEST ===
 
         node.children.reserve(gltfNode.children.size());
         for (const auto& childId : gltfNode.children)
         {
             createNode(node.children, &node, meshes, childId, nodesLut);
-        }
-    }
-
-    static void printNode(const Node& node)
-    {
-        // auto toString = [](const math::Matrix<4, 4>& m)
-        // {
-        //     auto*             p = &math::get<0, 0>(m);
-        //     std::stringstream s;
-        //     s << std::fixed << std::setw(8) << std::setprecision(3);
-        //     s << p[0] << "  " << p[1] << "  " << p[2] << "  " << p[3] << std::endl;
-        //     s << p[4] << "  " << p[5] << "  " << p[6] << "  " << p[7] << std::endl;
-        //     s << p[8] << "  " << p[9] << "  " << p[10] << "  " << p[11] << std::endl;
-        //     s << p[12] << "  " << p[13] << "  " << p[14] << "  " << p[15] << std::endl;
-        //     return s.str();
-        // };
-
-        // std::cout << "node " << node.name << ":" << std::endl;
-        // std::cout << math::toString(node.localMatrix()) << std::endl;
-        // std::cout << math::toString(node.globalMatrix()) << std::endl;
-        for (const auto& node : node.children)
-        {
-            printNode(node);
         }
     }
 
@@ -691,11 +553,6 @@ public:
             {
                 createNode(scene.nodes, nullptr, meshes, nodeId, scene.nodesLut);
             }
-        }
-
-        for (const auto& node : scenes.front().nodes)
-        {
-            printNode(node);
         }
 
         return scenes;
@@ -725,11 +582,6 @@ public:
                 skin.joints.emplace_back(
                     *nodesLut.at(joint),
                     math::transpose(fastgltf::getAccessorElement<math::Matrix<4, 4>>(asset, accessor, jointId++)));
-
-                // === TEST ===
-                // std::cout << "Joint " << jointId << std::endl;
-                // std::cout << math::toString(skin.joints.back().inverseBindMatrix) << std::endl;
-                // === TEST ===
             }
         }
 
@@ -819,29 +671,13 @@ public:
     }
 
 private:
-    static fastgltf::Asset createAsset(const std::filesystem::path& path, std::vector<std::string>& nodeNames)
+    static fastgltf::Asset createAsset(const std::filesystem::path& path)
     {
         const auto errorMessage = [&](const fastgltf::Error error)
         {
             return "failed to load asset at path '" + path.string() +
                    "': " + std::string { fastgltf::getErrorName(error) };
         };
-
-        const auto extrasCallback =
-            [](simdjson::dom::object* extras, std::size_t objectIndex, fastgltf::Category category, void* userPointer)
-        {
-            if (category != fastgltf::Category::Nodes)
-                return;
-            auto* nodeNames = static_cast<std::vector<std::string>*>(userPointer);
-            nodeNames->resize(fastgltf::max(nodeNames->size(), objectIndex + 1));
-
-            std::string_view nodeName;
-            if ((*extras)["name"].get_string().get(nodeName) == simdjson::SUCCESS)
-            {
-                (*nodeNames)[objectIndex] = std::string(nodeName);
-            }
-        };
-
 
         auto data = fastgltf::GltfDataBuffer::FromPath(path);
         if (!data)
@@ -852,23 +688,9 @@ private:
         [[maybe_unused]] const auto type = fastgltf::determineGltfFileType(data.get());
         assert(type == fastgltf::GltfType::glTF);
 
-        fastgltf::Parser parser;
-        parser.setExtrasParseCallback(extrasCallback);
-        parser.setUserPointer(&nodeNames);
-
-        // constexpr auto options = fastgltf::Options::DontRequireValidAssetMember | fastgltf::Options::AllowDouble |
-        //                          fastgltf::Options::DecomposeNodeMatrices | fastgltf::Options::LoadExternalBuffers;
         constexpr auto options = fastgltf::Options::DontRequireValidAssetMember | fastgltf::Options::AllowDouble |
-                                 fastgltf::Options::LoadExternalBuffers;
-        auto load = parser.loadGltfJson(data.get(), path.parent_path(), options);
-        if (const auto error = fastgltf::validate(load.get()); error != fastgltf::Error::None)
-        {
-            throw std::runtime_error(errorMessage(error));
-        }
-
-        // parser.loadGltfJson()
-
-        // auto load = parser.loadGltf(data.get(), path.parent_path(), options);
+                                 fastgltf::Options::DecomposeNodeMatrices | fastgltf::Options::LoadExternalBuffers;
+        auto load = fastgltf::Parser().loadGltfJson(data.get(), path.parent_path(), options);
         if (!load)
         {
             throw std::runtime_error(errorMessage(load.error()));

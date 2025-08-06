@@ -110,7 +110,7 @@ public:
                                             materialIndex, 1, &primitive.material.descriptorSet, 0, nullptr);
 
                     nodePushBlock.baseColorFactor   = primitive.material.baseColorFactor;
-                    nodePushBlock.fragmentStageFlag = 1;
+                    nodePushBlock.fragmentStageFlag = 0;
                     vkCmdPushConstants(commandBuffer, pipelineLayout,
                                        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                                        sizeof(NodePushBlock), &nodePushBlock);

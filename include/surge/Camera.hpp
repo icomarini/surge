@@ -29,35 +29,6 @@ public:
             .view        = { vecs.position, vecs.position + vecs.front, vecs.up },
         }
     {
-        auto pm_s = mats.perspective;
-        if constexpr (flipY)
-        {
-            pm_s.a11 *= -1;
-        }
-
-        std::cout << "  surge|view" << std::endl;
-        std::cout << math::toString(mats.view) << std::endl;
-
-        const glm::vec3 eye {
-            math::get<0>(position),
-            math::get<1>(position),
-            math::get<2>(position),
-        };
-        const glm::vec3 center {
-            math::get<0>(front),
-            math::get<1>(front),
-            math::get<2>(front),
-        };
-        const glm::vec3 upp {
-            math::get<0>(front),
-            math::get<1>(front),
-            math::get<2>(front),
-        };
-        const auto vm_t = glm::lookAt(eye, center, upp);
-        std::cout << "  glm|view" << std::endl;
-        std::cout << math::toString(vm_t) << std::endl;
-
-        // assert(pm_s == pm_t);
     }
 
     float sensitivity;

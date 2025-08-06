@@ -1,38 +1,3 @@
-// #if 1
-
-// #include <iostream>
-// #include <format>
-
-// int main()
-// {
-//     std::cout << "ciao mamma!" << std::endl;
-
-//     // std::cout << std::format("{:>12e}", 0.001) << std::endl;
-//     // std::cout << std::format("{:03.3f}", -0.0000001) << std::endl;
-//     // std::cout << std::format("{:3.3e}", 10000000.0) << std::endl;
-//     // std::cout << std::format("{:3.3e}", 1.0) << std::endl;
-
-//     std::cout << "|" << toString(0) << "|" << std::endl;
-
-//     std::cout << "|" << toString(1.23456) << "|" << std::endl;
-//     std::cout << "|" << toString(-1.23456) << "|" << std::endl;
-
-//     std::cout << "|" << toString(12.3456) << "|" << std::endl;
-//     std::cout << "|" << toString(-12.3456) << "|" << std::endl;
-
-//     std::cout << "|" << toString(123.456) << "|" << std::endl;
-//     std::cout << "|" << toString(-123.456) << "|" << std::endl;
-
-//     std::cout << "|" << toString(1234.56) << "|" << std::endl;
-//     std::cout << "|" << toString(-1234.56) << "|" << std::endl;
-
-//     std::cout << "|" << toString(0.000123456) << "|" << std::endl;
-//     std::cout << "|" << toString(-0.000123456) << "|" << std::endl;
-// }
-
-// #else
-
-
 #include "surge/Audio.hpp"
 #include "surge/Camera.hpp"
 #include "surge/Command.hpp"
@@ -206,13 +171,13 @@ int main(int argc, char* argv[])
             { "simple", "/home/ico/projects/surge/models/skinning_example.gltf" }
         };
 
-        // std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge begun" << std::endl;
+        std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge begun" << std::endl;
 
         HelloTriangleApplication app(resources);
         app.run();
-        // std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge "
-        //              "terminated"
-        //           << std::endl;
+        std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge "
+                     "terminated"
+                  << std::endl;
     }
     catch (const std::exception& e)
     {

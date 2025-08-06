@@ -202,19 +202,19 @@ constexpr bool nonzero<row, col, Scaling<T>> = (row == col);
 
 template<Size row, Size col, typename T>
     requires ValidIndices<row, col, Scaling<T>>
-constexpr auto get(const Scaling<T>& t)
+constexpr auto& get(const Scaling<T>& t)
 {
     if constexpr (row == col)
     {
         if constexpr (row == 3)
         {
-            return T { 1 };
+            return one<T>;
         }
         return t[row];
     }
     else
     {
-        return T { 0 };
+        return zero<T>;
     }
 }
 
@@ -349,25 +349,5 @@ constexpr auto& get(const View<T>& t)
         return zero<T>;
     }
 }
-
-// // glm
-// template<>
-// constexpr Size rows<glm::mat4> = 4;
-
-// template<>
-// constexpr Size cols<glm::mat4> = 4;
-
-// template<Size row, Size col>
-// constexpr bool nonzero<row, col, glm::mat4> = true;
-
-// template<Size row, Size col>
-//     requires ValidIndices<row, col, glm::mat4>
-// constexpr auto get(const glm::mat4& m)
-// {
-//     return m[row][col];
-// }
-
-// static_assert(HasGetter<glm::mat4>);
-
 
 }  // namespace surge::math
