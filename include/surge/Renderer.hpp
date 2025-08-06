@@ -207,7 +207,7 @@ public:
         camera.update(ui);
         const std::array sceneMatrices {
             math::fullMatrix(camera.mats.perspective),
-            math::transpose(math::fullMatrix(camera.mats.view)),
+            math::fullMatrix(camera.mats.view),
         };
         memcpy(scene.mapped, sceneMatrices.data(), 2 * sizeof(math::Matrix<4, 4>));
 

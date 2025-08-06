@@ -317,30 +317,30 @@ template<typename T>
 constexpr Size cols<View<T>> = 4;
 
 template<Size row, Size col, typename T>
-constexpr bool nonzero<row, col, View<T>> = ((row < 3 && col == 0) || (row < 3 && col == 1) || (row < 3 && col == 2) ||
-                                             (row == 3 && col < 3) || (row == 3 && col == 3));
+constexpr bool nonzero<row, col, View<T>> = ((col < 3 && row == 0) || (col < 3 && row == 1) || (col < 3 && row == 2) ||
+                                             (col == 3 && row < 3) || (col == 3 && row == 3));
 
 template<Size row, Size col, typename T>
     requires ValidIndices<row, col, View<T>>
 constexpr auto& get(const View<T>& t)
 {
-    if constexpr (row < 3 && col == 0)
+    if constexpr (col < 3 && row == 0)
     {
-        return t.s.at(row);
+        return t.s.at(col);
     }
-    else if constexpr (row < 3 && col == 1)
+    else if constexpr (col < 3 && row == 1)
     {
-        return t.u.at(row);
+        return t.u.at(col);
     }
-    else if constexpr (row < 3 && col == 2)
+    else if constexpr (col < 3 && row == 2)
     {
-        return t.f.at(row);
+        return t.f.at(col);
     }
-    else if constexpr (row == 3 && col < 3)
+    else if constexpr (col == 3 && row < 3)
     {
-        return t.e.at(col);
+        return t.e.at(row);
     }
-    else if constexpr (row == 3 && col == 3)
+    else if constexpr (col == 3 && row == 3)
     {
         return one<T>;
     }

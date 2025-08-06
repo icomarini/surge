@@ -67,7 +67,7 @@ public:
     void update(const VkExtent2D, const UserInteraction& ui) const
     {
         camera.update(ui);
-        const auto viewProjection = camera.mats.view * math::transpose(camera.mats.perspective);
+        const auto viewProjection = camera.mats.perspective * camera.mats.view;
         memcpy(uniformBuffer.mapped, &viewProjection, sizeof(math::Matrix<4, 4>));
     }
 
