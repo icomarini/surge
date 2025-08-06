@@ -11,6 +11,7 @@ layout(location = 5) in vec4 inJointWeights;
 layout(push_constant) uniform PushConstants
 {
     mat4 model;
+    vec4 baseColorFactor;
     uint vertexStageFlag;
     uint fragmentStageFlag;
 };
@@ -27,20 +28,29 @@ layout(set = 2, binding = 0) readonly buffer JointMatrices
 };
 
 // output =======================================
-layout(location = 0) out vec2 fragTexCoord;
-layout(location = 1) out vec3 fragColor;
-layout(location = 2) out vec3 fragNormal;
+layout(location = 0) out vec2 outTexCoord;
+layout(location = 1) out vec3 outColor;
+layout(location = 2) out vec3 outNormal;
+layout(location = 3) out vec3 outViewVec;
+layout(location = 4) out vec3 outLightVec;
 
 void main()
 {
-    mat4 skinMat = inJointWeights.x * jointMatrices[int(inJointIndices.x)] +
-                   inJointWeights.y * jointMatrices[int(inJointIndices.y)] +
-                   inJointWeights.z * jointMatrices[int(inJointIndices.z)] +
-                   inJointWeights.w * jointMatrices[int(inJointIndices.w)];
+    // pass on
+    outTexCoord = inTexCoord;
+    outColor    = vec3(1.0f, 1.0f, 1.0f);
 
-    // gl_Position = vec4(inPosition, 1.0) * model * view * projection;
-    gl_Position  = vec4(inPosition, 1.0) * skinMat * model * view * projection;
-    fragTexCoord = inTexCoord;
-    fragColor    = inColor;
-    fragNormal   = inNormal;
+    // skinning
+    mat4 skin = inJointWeights.x * jointMatrices[int(inJointIndices.x)] +
+                inJointWeights.y * jointMatrices[int(inJointIndices.y)] +
+                inJointWeights.z * jointMatrices[int(inJointIndices.z)] +
+                inJointWeights.w * jointMatrices[int(inJointIndices.w)];
+    gl_Position = vec4(inPosition, 1.0) * skin * model * view * projection;
+
+    // light
+    vec4 lightPosition = vec4(5.0f, 5.0f, 5.0f, 1.0f);
+    outNormal          = inverse(mat3(skin * model * view)) * inNormal;
+    vec4 pos           = vec4(inPosition, 1.0) * view;
+    outLightVec        = lightPosition.xyz * mat3(view) - pos.xyz;
+    outViewVec         = -pos.xyz;
 }

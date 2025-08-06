@@ -187,7 +187,7 @@ public:
 
     Renderer(const std::filesystem::path& shaders, std::vector<asset::Asset>& assets)
         : assets { assets }
-        , camera { 16.0 / 9.0, { 10.0f, 1.0f, 10.0f }, { 0.0f, 0.0f, -1.0f } }
+        , camera { 16.0 / 9.0, { 0.0f, 1.0f, 3.0f }, { 0.0f, 0.0f, -1.0f } }
         , scene { 2 * sizeof(math::Matrix<4, 4>), UniformBufferInfo {} }
         , descriptor { 1, UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT> { scene } }
         , renderables { createRenderables(shaders, descriptor, assets) }

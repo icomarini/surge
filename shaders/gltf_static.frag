@@ -11,8 +11,7 @@ layout(push_constant) uniform PushConstants
     vec4 baseColorFactor;
     uint vertexStageFlag;
     uint fragmentStageFlag;
-}
-pushConstants;
+};
 
 layout(set = 1, binding = 0) uniform sampler2D texSampler;
 
@@ -21,15 +20,15 @@ layout(location = 0) out vec4 outColor;
 
 void main()
 {
-    if (pushConstants.fragmentStageFlag == 0)
+    if (fragmentStageFlag == 0)
     {
         outColor = texture(texSampler, fragTexCoord);
     }
-    else if (pushConstants.fragmentStageFlag == 1)
+    else if (fragmentStageFlag == 1)
     {
         outColor = vec4(fragColor, 1.0);
     }
-    else if (pushConstants.fragmentStageFlag == 2)
+    else if (fragmentStageFlag == 2)
     {
         outColor = vec4(fragNormal, 1.0);
     }
