@@ -233,7 +233,7 @@ public:
         : a11 { 1 / std::tan(fovy / 2) }
         , a00 { a11 / aspect }
         , a22 { zFar / (zNear - zFar) }
-        , a32 { -(zFar * zNear) / (zFar - zNear) }
+        , a23 { -(zFar * zNear) / (zFar - zNear) }
     {
         if constexpr (flipY)
         {
@@ -244,7 +244,7 @@ public:
     T a11;
     T a00;
     T a22;
-    T a32;
+    T a23;
 };
 
 template<bool flipY, typename T>
@@ -274,11 +274,11 @@ constexpr auto& get(const Perspective<flipY, T>& t)
     {
         return t.a22;
     }
-    else if constexpr (row == 3 && col == 2)
-    {
-        return t.a32;
-    }
     else if constexpr (row == 2 && col == 3)
+    {
+        return t.a23;
+    }
+    else if constexpr (row == 3 && col == 2)
     {
         return negativeOne<T>;
     }
