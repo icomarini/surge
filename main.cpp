@@ -107,20 +107,32 @@ private:
         // constexpr std::array names { "oaktree", "helmet", "dragon", "buggy" };
         // constexpr std::array names { "buggy" };
         // constexpr std::array names { "simple" };
-        constexpr std::array names { "man" };
+        // constexpr std::array names { "man" };
+        // constexpr std::array names { "gun" };
 
         std::vector<surge::asset::Asset> assets;
-        assets.reserve(names.size() + 1);
-        for (const auto& name : names)
-        {
-            assets.emplace_back(command, defaults, surge::asset::GltfAsset { name, resources.at(name) });
-        }
+        assets.reserve(/*names.size()*/ +2);
+        // for (const auto& name : names)
+        // {
+        //     assets.emplace_back(command, defaults, surge::asset::GltfAsset { name, resources.at(name) });
+        // }
 
         // assets.emplace_back(command, defaults,
         //                     surge::asset::ObjAsset { "viking room", resources.at("vikingRoomModel"),
         //                                              resources.at("vikingRoomTexture") });
 
-        // activate oaktree
+        using Type                       = surge::asset::GltfAsset::TextureType;
+        const std::filesystem::path base = "/home/ico/projects/extern/Vulkan/assets/models/cerberus";
+        assets.emplace_back(command, defaults,
+                            surge::asset::GltfAsset { "gun",
+                                                      base / "cerberus.gltf",
+                                                      {
+                                                          { Type::baseColorTexture, base / "roughness.ktx" },
+                                                          { Type::metallicRoughnessTexture, base / "metallic.ktx" },
+                                                          { Type::emissiveTexture, base / "albedo.ktx" },
+                                                          { Type::normalTexture, base / "normal.ktx" },
+                                                          { Type::occlusionTexture, base / "ao.ktx" },
+                                                      } });
 
         for (auto& asset : assets)
         {
@@ -168,7 +180,8 @@ int main(int argc, char* argv[])
             { "buggy", "/home/ico/projects/extern/Vulkan/assets/models/gltf/"
                        "glTF-Embedded/Buggy.gltf" },
             { "man", "/home/ico/projects/extern/Vulkan/assets/models/CesiumMan/glTF/CesiumMan.gltf" },
-            { "simple", "/home/ico/projects/surge/models/skinning_example.gltf" }
+            { "simple", "/home/ico/projects/surge/models/skinning_example.gltf" },
+            { "gun", "/home/ico/projects/extern/Vulkan/assets/models/cerberus/cerberus.gltf" }
         };
 
         std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge begun" << std::endl;

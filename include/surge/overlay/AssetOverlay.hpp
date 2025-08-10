@@ -53,7 +53,7 @@ std::pair<math::Vector<2>, math::Vector<2>> overlay(const asset::Asset&    asset
             {
                 ImGui::Text("double sided:       %s", to_string(material.doubleSided));
                 ImGui::Text("unlit:              %s", to_string(material.unlit));
-                ImGui::Text("alpha mode:         %s", asset::Material::to_string(material.alphaMode).c_str());
+                ImGui::Text("alpha mode:         %s", asset::Material::toString(material.alphaMode).c_str());
                 ImGui::Text("alpha cutoff:       %f", material.alphaCutoff);
                 ImGui::Text("base color texture: %s", textureName(material.baseColorTexture).c_str());
                 ImGui::Text("base color factor:  [%f, %f, %f, %f]", material.baseColorFactor.at(0),
@@ -73,8 +73,8 @@ std::pair<math::Vector<2>, math::Vector<2>> overlay(const asset::Asset&    asset
                 ImGui::Text("normal texture:     %s", textureName(material.normalTexture).c_str());
                 ImGui::Text("normal scale:       %f", material.normalScale);
 
-                ImGui::Text("occlusion texture:  %s", textureName(material.normalTexture).c_str());
-                ImGui::Text("occlusion strength: %f", material.emissiveStrength);
+                ImGui::Text("occlusion texture:  %s", textureName(material.occlusionTexture).c_str());
+                ImGui::Text("occlusion strength: %f", material.occlusionStrength);
 
                 ImGui::TreePop();
             }

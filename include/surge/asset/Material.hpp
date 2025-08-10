@@ -14,7 +14,7 @@ struct Material
         opaque,
     };
 
-    static std::string to_string(const AlphaMode alphaMode)
+    static std::string toString(const AlphaMode alphaMode)
     {
         switch (alphaMode)
         {
@@ -76,6 +76,6 @@ struct Material
         bool specularGlossiness = false;
     } /*pbrWorkflows*/;
 
-    int index = 0;
+    // int index = 0;
 };
 }  // namespace surge::asset

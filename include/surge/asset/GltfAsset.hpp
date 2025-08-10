@@ -51,6 +51,15 @@ namespace surge::asset
 class GltfAsset
 {
 public:
+    enum class TextureType
+    {
+        baseColorTexture,
+        metallicRoughnessTexture,
+        emissiveTexture,
+        normalTexture,
+        occlusionTexture,
+    };
+
     using TextureDescr = TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT>;
     using Index        = geometry::Index;
     using Vertex       = geometry::Vertex<
@@ -65,17 +74,29 @@ public:
         : name { name }
         , path { path }
         , asset { createAsset(path) }
+        , externalTextures {}
     {
     }
 
-    std::string           name;
-    std::filesystem::path path;
-    fastgltf::Asset       asset;
+    GltfAsset(const std::string& name, const std::filesystem::path& path,
+              const std::map<TextureType, std::filesystem::path>& externalTextures)
+        : name { name }
+        , path { path }
+        , asset { createAsset(path) }
+        , externalTextures { externalTextures }
+    {
+    }
+
+    std::string                                  name;
+    std::filesystem::path                        path;
+    fastgltf::Asset                              asset;
+    std::map<TextureType, std::filesystem::path> externalTextures;
 
     std::string shader() const
     {
         return asset.skins.empty() ? "gltf_static" : "gltf_animated";
     }
+
 
     Sampler createSampler(const uint32_t samplerIndex) const
     {
@@ -144,8 +165,10 @@ public:
     std::vector<Texture> createTextures(const Command& command, const Defaults& defaults) const
     {
         std::vector<Texture> textures;
-        textures.reserve(asset.images.size());
-        uint32_t textureId = 0;
+        textures.reserve(asset.images.size() + externalTextures.size());
+        Index textureId = 0;
+
+        // internal textures
         for (const fastgltf::Texture& texture : asset.textures)
         {
             assert(texture.imageIndex && texture.imageIndex.value() < asset.images.size());
@@ -196,6 +219,13 @@ public:
 
             textures.emplace_back(command, std::visit(visitor, image.data), sampler, SceneTextureInfo {});
         }
+
+        // external textures
+        for (const auto& [textureType, path] : externalTextures)
+        {
+            textures.emplace_back(command, LoadedTexture(path.stem(), path), defaults.sampler, SceneTextureInfo {});
+        }
+
         return textures;
     }
 
@@ -218,47 +248,21 @@ public:
                                                      >(1);
     }
 
-    static Material::TextureData extractTexture(const std::vector<Texture>& textures, const Defaults& defaults,
-                                                const auto& textureInfo)
+    std::map<TextureType, const Texture*> createExternalTexturesMap(const std::vector<Texture>& textures) const
     {
-        if (textureInfo)
+        std::map<TextureType, const Texture*> map;
+        Size                                  textureId { asset.images.size() };
+        for (const auto& [textureType, _] : externalTextures)
         {
-            const auto textureIndex  = textureInfo.value().textureIndex;
-            const auto texCoordIndex = textureInfo.value().texCoordIndex;
-            assert(0 <= textureIndex && textureIndex < textures.size());
-            return Material::TextureData {
-                .texture  = &textures.at(textureIndex),
-                .texCoord = static_cast<uint8_t>(texCoordIndex),
-            };
+            map[textureType] = &textures.at(textureId++);
         }
-        return Material::TextureData {
-            .texture  = &defaults.texture,  // default
-            .texCoord = 0,
-        };
+        return map;
     }
 
     std::vector<Material> createMaterials(const Defaults& defaults, const VkDescriptorPool descriptorPool,
                                           const VkDescriptorSetLayout materialDescriptorSetLayout,
                                           const std::vector<Texture>& textures) const
     {
-        const auto extractTexture = [&textures, &defaults](const auto& textureInfo)
-        {
-            if (textureInfo)
-            {
-                const auto textureIndex  = textureInfo.value().textureIndex;
-                const auto texCoordIndex = textureInfo.value().texCoordIndex;
-                assert(0 <= textureIndex && textureIndex < textures.size());
-                return Material::TextureData {
-                    .texture  = &textures.at(textureIndex),
-                    .texCoord = static_cast<uint8_t>(texCoordIndex),
-                };
-            }
-            return Material::TextureData {
-                .texture  = &defaults.texture,
-                .texCoord = 0,
-            };
-        };
-
         constexpr auto extractAlphaMode = [](const fastgltf::AlphaMode alphaMode)
         {
             switch (alphaMode)
@@ -273,27 +277,59 @@ public:
             throw;
         };
 
+        const auto externalTexturesMap = createExternalTexturesMap(textures);
+        const auto extractTexture =
+            [&textures, &externalTexturesMap, &defaults](const TextureType textureType, const auto& textureInfo)
+        {
+            if (textureInfo)
+            {
+                const auto textureIndex  = textureInfo.value().textureIndex;
+                const auto texCoordIndex = textureInfo.value().texCoordIndex;
+                assert(0 <= textureIndex && textureIndex < textures.size());
+                return Material::TextureData {
+                    .texture  = &textures.at(textureIndex),
+                    .texCoord = static_cast<uint8_t>(texCoordIndex),
+                };
+            }
+
+            if (externalTexturesMap.contains(textureType))
+            {
+                return Material::TextureData {
+                    .texture  = externalTexturesMap.at(textureType),
+                    .texCoord = 0,
+                };
+            }
+
+            return Material::TextureData {
+                .texture  = &defaults.texture,
+                .texCoord = 0,
+            };
+        };
+
         std::vector<Material> materials;
         materials.reserve(asset.materials.size());
         uint32_t materialId = 0;
         for (const fastgltf::Material& material : asset.materials)
         {
-            const auto            baseColorTexture = extractTexture(material.pbrData.baseColorTexture);
+            using Type = TextureType;
+
+            const auto baseColorTexture = extractTexture(Type::baseColorTexture, material.pbrData.baseColorTexture);
             const math::Vector<4> baseColorFactor { material.pbrData.baseColorFactor[0],
                                                     material.pbrData.baseColorFactor[1],
                                                     material.pbrData.baseColorFactor[2],
                                                     material.pbrData.baseColorFactor[3] };
 
-            const auto metallicRoughnessTexture = extractTexture(material.pbrData.metallicRoughnessTexture);
+            const auto metallicRoughnessTexture =
+                extractTexture(Type::metallicRoughnessTexture, material.pbrData.metallicRoughnessTexture);
 
-            const auto            emissiveTexture = extractTexture(material.emissiveTexture);
+            const auto            emissiveTexture = extractTexture(Type::emissiveTexture, material.emissiveTexture);
             const math::Vector<4> emissiveFactor { material.emissiveFactor[0], material.emissiveFactor[1],
                                                    material.emissiveFactor[2], 1 };
 
-            const auto normalTexture = extractTexture(material.normalTexture);
+            const auto normalTexture = extractTexture(Type::normalTexture, material.normalTexture);
             const auto normalScale   = material.normalTexture ? material.normalTexture.value().scale : 1.0f;
 
-            const auto occlusionTexture = extractTexture(material.occlusionTexture);
+            const auto occlusionTexture = extractTexture(Type::occlusionTexture, material.occlusionTexture);
             const auto occlusionStrength =
                 material.occlusionTexture ? material.occlusionTexture.value().strength : 1.0f;
 
@@ -671,6 +707,19 @@ public:
     }
 
 private:
+    static std::map<TextureType, Index>
+    createExternalTextures(const Size                                          internalTexturesCount,
+                           const std::map<TextureType, std::filesystem::path>& externalTexturePaths)
+    {
+        std::map<TextureType, Index> map;
+        Index                        textureId { 0 };
+        for (const auto& [textureType, _] : externalTexturePaths)
+        {
+            map[textureType] = internalTexturesCount + (textureId++);
+        }
+        return map;
+    }
+
     static fastgltf::Asset createAsset(const std::filesystem::path& path)
     {
         const auto errorMessage = [&](const fastgltf::Error error)

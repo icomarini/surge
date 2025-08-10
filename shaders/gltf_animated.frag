@@ -24,7 +24,6 @@ void main()
 {
     if (fragmentStageFlag == 0)
     {
-        // outColor = texture(texSampler, fragTexCoord);
         vec4 color    = texture(texSampler, inTexCoord) * vec4(inColor, 1.0);
         vec3 N        = normalize(inNormal);
         vec3 L        = normalize(inLightVec);
@@ -33,7 +32,6 @@ void main()
         vec3 diffuse  = max(dot(N, L), 0.5) * inColor;
         vec3 specular = pow(max(dot(R, V), 0.0), 16.0) * vec3(0.75);
         outColor      = vec4(diffuse * color.rgb + specular, 1.0);
-        // outColor      = texture(texSampler, inTexCoord);
     }
     else if (fragmentStageFlag == 1)
     {
