@@ -192,7 +192,6 @@ public:
         , descriptor { 1, UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT> { scene } }
         , renderables { createRenderables(shaders, descriptor, assets) }
     {
-        assets.front().mainScene().nodes.front().state.polygonMode = PolygonMode::line;
     }
 
     std::vector<asset::Asset>&  assets;
@@ -304,8 +303,7 @@ public:
 
         for (const auto& renderable : renderables)
         {
-            // constexpr math::Scaling<> scaling { 0.1f, 0.1f, 0.1f };
-            renderable.draw(commandBuffer, descriptor.set, math::fullMatrix(math::identity<4>));
+            renderable.draw(commandBuffer, descriptor.set, renderable.asset.state.modelMatrix);
         }
     }
 

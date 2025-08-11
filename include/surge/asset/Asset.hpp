@@ -37,6 +37,15 @@ public:
     {
     }
 
+    ShaderStorageBufferObject(ShaderStorageBufferObject&& other)
+        : buffer { std::move(other.buffer) }
+        , descriptorSetLayout { other.descriptorSetLayout }
+        , descriptorSet { other.descriptorSet }
+    {
+        other.descriptorSetLayout = VK_NULL_HANDLE;
+        other.descriptorSet       = VK_NULL_HANDLE;
+    }
+
     Buffer                buffer;
     VkDescriptorSetLayout descriptorSetLayout;
     VkDescriptorSet       descriptorSet;
@@ -82,6 +91,7 @@ public:
     struct State
     {
         bool                            active;
+        math::Matrix<4, 4>              modelMatrix;
         std::vector<math::Matrix<4, 4>> jointMatrices;
     };
     mutable State state;
@@ -89,7 +99,10 @@ public:
     // using UniformBufferDescr = UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT>;
     using SSBODescr = Description<VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, Buffer>;
 
-    Asset(const Command& command, const Defaults& defaults, const GltfAsset& gltf)
+    Asset(Asset&&) = default;
+
+    Asset(const Command& command, const Defaults& defaults, const GltfAsset& gltf,
+          const math::Matrix<4, 4>& modelMatrix = math::fullMatrix(math::identity<4>))
         : name { gltf.name }
         , path { gltf.path }
         , shader { gltf.shader() }
@@ -106,12 +119,13 @@ public:
         , animations { gltf.createAnimations(scenes.front().nodesLut) }
         // , jointMatricesSSBO { std::in_place, computeJointMatricesSize(skins), descriptorPool }
         , jointMatricesSSBO { createJointMatricesSSBO(descriptorPool, skins) }
-        , state { false, std::vector<math::Matrix<4, 4>> {} }
+        , state { false, modelMatrix, std::vector<math::Matrix<4, 4>> {} }
     {
         assert(scenes.size() > 0);
     }
 
-    Asset(const Command& command, const Defaults& defaults, const ObjAsset& obj)
+    Asset(const Command& command, const Defaults& defaults, const ObjAsset& obj,
+          const math::Matrix<4, 4>& modelMatrix = math::fullMatrix(math::identity<4>))
         : name { obj.name }
         , path { obj.path }
         , shader { "shader" }
@@ -127,7 +141,7 @@ public:
         , skins {}
         , animations {}
         , jointMatricesSSBO {}
-        , state { false, std::vector<math::Matrix<4, 4>> {} }
+        , state { false, modelMatrix, std::vector<math::Matrix<4, 4>> {} }
     {
         assert(scenes.size() > 0);
     }

@@ -68,12 +68,14 @@ public:
             assert(sampler.inputs.at(index) <= state.progress && state.progress < sampler.inputs.at(index + 1));
             const auto a =
                 (state.progress - sampler.inputs.at(index)) / (sampler.inputs.at(index + 1) - sampler.inputs.at(index));
+
+            const auto& x4 { sampler.outputs.at(index) };
+            const auto& y4 { sampler.outputs.at(index + 1) };
+
             switch (channel.path)
             {
             case Channel::Path::translation:
             {
-                const auto&           x4 { sampler.outputs.at(index) };
-                const auto&           y4 { sampler.outputs.at(index + 1) };
                 const math::Vector<3> x { x4.at(0), x4.at(1), x4.at(2) };
                 const math::Vector<3> y { y4.at(0), y4.at(1), y4.at(2) };
                 channel.node->state.translation = math::lerp(x, y, a);
@@ -81,15 +83,13 @@ public:
             }
             case Channel::Path::rotation:
             {
-                const math::Quaternion x { sampler.outputs.at(index) };
-                const math::Quaternion y { sampler.outputs.at(index) };
+                const math::Quaternion x { x4 };
+                const math::Quaternion y { y4 };
                 channel.node->state.rotation = math::normalize(math::slerp(x, y, a));
                 break;
             }
             case Channel::Path::scale:
             {
-                const auto&           x4 { sampler.outputs.at(index) };
-                const auto&           y4 { sampler.outputs.at(index + 1) };
                 const math::Vector<3> x { x4.at(0), x4.at(1), x4.at(2) };
                 const math::Vector<3> y { y4.at(0), y4.at(1), y4.at(2) };
                 channel.node->state.scale = math::lerp(x, y, a);

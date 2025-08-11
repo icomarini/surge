@@ -107,32 +107,41 @@ private:
         // constexpr std::array names { "oaktree", "helmet", "dragon", "buggy" };
         // constexpr std::array names { "buggy" };
         // constexpr std::array names { "simple" };
-        // constexpr std::array names { "man" };
+        constexpr std::array names { "man" };
         // constexpr std::array names { "gun" };
 
         std::vector<surge::asset::Asset> assets;
-        assets.reserve(/*names.size()*/ +2);
-        // for (const auto& name : names)
-        // {
-        //     assets.emplace_back(command, defaults, surge::asset::GltfAsset { name, resources.at(name) });
-        // }
+        assets.reserve(names.size() + 2);
+        for (const auto& name : names)
+        {
+            assets.emplace_back(command, defaults, surge::asset::GltfAsset { name, resources.at(name) });
+        }
 
         // assets.emplace_back(command, defaults,
         //                     surge::asset::ObjAsset { "viking room", resources.at("vikingRoomModel"),
         //                                              resources.at("vikingRoomTexture") });
 
-        using Type                       = surge::asset::GltfAsset::TextureType;
-        const std::filesystem::path base = "/home/ico/projects/extern/Vulkan/assets/models/cerberus";
+        const surge::math::Vector<3> translation { -1.0f, 1.0f, 0.0f };
+        const surge::math::Vector<3> scaling { 0.01f, 0.01f, 0.01f };
+
         assets.emplace_back(command, defaults,
-                            surge::asset::GltfAsset { "gun",
-                                                      base / "cerberus.gltf",
-                                                      {
-                                                          { Type::baseColorTexture, base / "roughness.ktx" },
-                                                          { Type::metallicRoughnessTexture, base / "metallic.ktx" },
-                                                          { Type::emissiveTexture, base / "albedo.ktx" },
-                                                          { Type::normalTexture, base / "normal.ktx" },
-                                                          { Type::occlusionTexture, base / "ao.ktx" },
-                                                      } });
+                            surge::asset::ObjAsset { "container",
+                                                     "/home/ico/projects/Container_v1_L1/12279_Container_v1_l1.obj",
+                                                     "/home/ico/projects/Container_v1_L1/Container_diffuse.jpg" },
+                            surge::math::Translation { translation } * surge::math::Scaling { scaling });
+
+        // using Type                       = surge::asset::GltfAsset::TextureType;
+        // const std::filesystem::path base = "/home/ico/projects/extern/Vulkan/assets/models/cerberus";
+        // assets.emplace_back(command, defaults,
+        //                     surge::asset::GltfAsset { "gun",
+        //                                               base / "cerberus.gltf",
+        //                                               {
+        //                                                   { Type::baseColorTexture, base / "albedo.ktx" },
+        //                                                   { Type::metallicRoughnessTexture, base / "roughness.ktx" },
+        //                                                   { Type::emissiveTexture, base / "metallic.ktx" },
+        //                                                   { Type::normalTexture, base / "normal.ktx" },
+        //                                                   { Type::occlusionTexture, base / "ao.ktx" },
+        //                                               } });
 
         for (auto& asset : assets)
         {
@@ -156,6 +165,25 @@ private:
 
         return assets;
     }
+
+    // std::vector<surge::asset::Asset> createAssets2(const surge::Command&                               command,
+    //                                                const std::map<std::string, std::filesystem::path>& resources)
+
+    // {
+    //     return std::vector<surge::asset::Asset> {
+    //         surge::asset::Asset { command, defaults, surge::asset::GltfAsset { "man", resources.at("man") } },
+    //         surge::asset::Asset { command, defaults,
+    //                               surge::asset::ObjAsset { "viking room", resources.at("vikingRoomModel"),
+    //                                                        resources.at("vikingRoomTexture") } },
+    //         surge::asset::Asset {
+    //             command, defaults,
+    //             surge::asset::ObjAsset { "container", "/home/ico/projects/Container_v1_L1/12279_Container_v1_l1.obj",
+    //                                      "/home/ico/projects/Container_v1_L1/Container_diffuse.jpg" },
+    //             surge::math::Translation { surge::math::Vector<3> { -1.0f, 1.0f, 0.0f } } *
+    //                 surge::math::Scaling { surge::math::Vector<3> { 0.01f, 0.01f, 0.01f } } },
+
+    //     };
+    // }
 };
 
 int main(int argc, char* argv[])

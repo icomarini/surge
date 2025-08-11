@@ -51,11 +51,11 @@ public:
     }
 
 public:
-    const VkDeviceSize           size;
-    const VkBuffer               buffer;
-    const VkDeviceMemory         memory;
-    void*                        mapped;
-    const VkDescriptorBufferInfo info;
+    VkDeviceSize           size;
+    VkBuffer               buffer;
+    VkDeviceMemory         memory;
+    void*                  mapped;
+    VkDescriptorBufferInfo info;
 
 private:
     template<VkBufferUsageFlags bufferUsageFlags>

@@ -108,7 +108,7 @@ constexpr EulerAngles<Angle::radians, Type> toEulerAngles(const Quaternion<Type>
 }
 
 template<typename Type>
-constexpr Quaternion<Type> slerp(const Quaternion<Type>& x, const Quaternion<Type>& y, Type a)
+constexpr Quaternion<Type> slerp(const Quaternion<Type>& x, const Quaternion<Type>& y, const Type a)
 {
     constexpr Type zero { 0 };
     constexpr Type one { 1 };
