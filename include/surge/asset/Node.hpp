@@ -3,7 +3,6 @@
 #include "surge/Defaults.hpp"
 #include "surge/asset/Mesh.hpp"
 #include "surge/math/angles.hpp"
-// #include "glm/gtx/quaternion.hpp"
 
 namespace surge::asset
 {
@@ -19,6 +18,8 @@ struct Node
         math::Vector<3>    translation { 0, 0, 0 };
         math::Quaternion<> rotation { 0, 0, 0, 0 };
         math::Vector<3>    scale { 1, 1, 1 };
+        math::Matrix<4, 4> localMatrix {};
+        math::Matrix<4, 4> globalMatrix {};
     };
 
     std::string             name;
@@ -28,50 +29,15 @@ struct Node
     std::optional<uint32_t> skinIndex;
     mutable State           state;
 
-
-    math::Matrix<4, 4> localMatrix() const
+    void updateMatrices(const math::StaticMatrix auto& parentMatrix) const
     {
-        // const auto               sintheta { std::sin(math::deg2rad(180.0f)) };
-        // const auto               costheta { std::cos(math::deg2rad(180.0f)) };
-        // const math::Matrix<4, 4> correction {
-        //     costheta,  0, sintheta, 0,  //
-        //     0,         1, 0,        0,  //
-        //     -sintheta, 0, costheta, 0,  //
-        //     0,         0, 0,        1,  //
-        // };
-
-        // return translation * rotation * scaling;
-        // const math::Vector<3> translation {
-        //     -math::get<0>(state.translation),
-        //     math::get<1>(state.translation),
-        //     math::get<2>(state.translation),
-        // };
-        // return math::transpose(math::Translation { translation } * math::Rotation { state.rotation } *
-        //                        math::Scaling { state.scale } * correction);
-        return math::Translation { state.translation } * math::Rotation { state.rotation } *
-               math::Scaling { state.scale };
-        // return math::Scaling { state.scale } * math::Rotation { state.rotation } *
-        //        math::Translation { state.translation };
-    }
-
-    math::Matrix<4, 4> globalMatrix() const
-    {
-        auto  nodeMatrix    = localMatrix();
-        auto* currentParent = parent;
-        while (currentParent)
+        state.localMatrix =
+            math::Translation { state.translation } * math::Rotation { state.rotation } * math::Scaling { state.scale };
+        state.globalMatrix = parentMatrix * state.localMatrix;
+        for (const auto& child : children)
         {
-            nodeMatrix    = currentParent->localMatrix() * nodeMatrix;
-            currentParent = currentParent->parent;
+            child.updateMatrices(state.globalMatrix);
         }
-        return nodeMatrix;
     }
-
-
-    // template<typename Camera>
-    // void update(const Camera& camera, const UserInteraction& ui) const
-    // {
-    // }
-
-private:
 };
 }  // namespace surge::asset

@@ -158,6 +158,15 @@ public:
         {
             animation.update(elapsedTime);
         }
+
+        for (const auto& scene : scenes)
+        {
+            for (const auto& node : scene.nodes)
+            {
+                node.updateMatrices(math::identity<4>);
+            }
+        }
+
         for (const auto& scene : scenes)
         {
             for (const auto& node : scene.nodes)
@@ -167,63 +176,16 @@ public:
         }
     }
 
-    // void updateJoints(const Node& node)
+
+    // void updateNodeMatrices(const Node& node, const math::StaticMatrix auto& parentMatrix) const
     // {
-    //     if (node.skinIndex)
-    //     {
-    //         const auto& skin = skins.at(node.skinIndex.value());
-    //         state.jointMatrices.clear();
-    //         state.jointMatrices.reserve(skin.joints.size());
-
-    //         std::cout << " === Update joints" << std::endl;
-
-    //         auto nodeMatrix = node.nodeMatrix();
-
-    //         std::cout << "node matrix:" << std::endl;
-    //         std::cout << math::toString(nodeMatrix) << std::endl;
-
-    //         const auto inverse = math::inverse(node.nodeMatrix());
-
-    //         std::cout << "inverse node matrix:" << std::endl;
-    //         std::cout << math::toString(inverse) << std::endl;
-
-    //         int jointId { 0 };
-    //         for (const auto& [node, inverseBindMatrix] : skin.joints)
-    //         {
-    //             std::cout << "joint " << jointId++ << "|" << node.name << "========================" << std::endl;
-    //             // const auto matrix = node.nodeMatrix() * inverseBindMatrix;
-    //             std::cout << "node matrix" << std::endl;
-    //             std::cout << math::toString(node.nodeMatrix()) << std::endl;
-
-    //             std::cout << "inverse bind matrix" << std::endl;
-    //             std::cout << math::toString(inverseBindMatrix) << std::endl;
-
-    //             constexpr math::Matrix<4, 4> id {
-    //                 1, 0, 0, 0,  //
-    //                 0, 1, 0, 0,  //
-    //                 0, 0, 1, 0,  //
-    //                 0, 0, 0, 1,  //
-    //             };
-
-    //             // const auto& jointMatrix = state.jointMatrices.emplace_back(id);
-    //             const auto& jointMatrix =
-    //                 state.jointMatrices.emplace_back(math::transpose(inverseBindMatrix * nodeMatrix * inverse));
-
-    //             std::cout << "joint matrix" << std::endl;
-    //             std::cout << math::toString(jointMatrix) << std::endl;
-    //         }
-
-    //         assert(jointMatrices);
-    //         // std::copy(state.jointMatrices.begin(), state.jointMatrices.end(), jointMatrices->buffer.mapped);
-    //         memcpy(jointMatrices->buffer.mapped, state.jointMatrices.data(),
-    //                state.jointMatrices.size() * sizeof(math::Matrix<4, 4>));
-
-    //         // std::exit(0);
-    //     }
-
+    //     node.state.localMatrix = math::Translation { node.state.translation } * math::Rotation { node.state.rotation
+    //     } *
+    //                              math::Scaling { node.state.scale };
+    //     node.state.globalMatrix = localMatrix * parentMatrix;
     //     for (const auto& child : node.children)
     //     {
-    //         updateJoints(child);
+    //         updateNodeMatrices(child, state.globalMatrix);
     //     }
     // }
 
@@ -235,11 +197,15 @@ public:
             state.jointMatrices.clear();
             state.jointMatrices.reserve(skin.joints.size());
 
-            const auto inverse = math::inverse(node.globalMatrix());
+            // const auto globalMatrix = node.globalMatrix();
+            const auto inverse = math::inverse(node.state.globalMatrix);
+            // assert(globalMatrix == node.state.globalMatrix);
 
             for (const auto& [jointNode, inverseBindMatrix] : skin.joints)
             {
-                state.jointMatrices.emplace_back(inverse * jointNode.globalMatrix() * inverseBindMatrix);
+                // assert(jointNode.globalMatrix() == jointNode.state.globalMatrix);
+
+                state.jointMatrices.emplace_back(inverse * jointNode.state.globalMatrix * inverseBindMatrix);
             }
 
             assert(jointMatricesSSBO);

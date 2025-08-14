@@ -79,10 +79,8 @@ public:
                 return;
             }
 
-            // const NodePushBlock nodePushBlock { node.matrix() * globalMatrix, node.state.vertexStageFlag,
-            //                                     node.state.fragmentStageFlag };
             NodePushBlock nodePushBlock {
-                .matrix            = globalMatrix * node.localMatrix(),
+                .matrix            = globalMatrix * node.state.localMatrix,
                 .baseColorFactor   = {},
                 .vertexStageFlag   = node.state.vertexStageFlag,
                 .fragmentStageFlag = node.state.fragmentStageFlag,
