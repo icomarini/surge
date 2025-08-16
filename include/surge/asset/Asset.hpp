@@ -176,19 +176,6 @@ public:
         }
     }
 
-
-    // void updateNodeMatrices(const Node& node, const math::StaticMatrix auto& parentMatrix) const
-    // {
-    //     node.state.localMatrix = math::Translation { node.state.translation } * math::Rotation { node.state.rotation
-    //     } *
-    //                              math::Scaling { node.state.scale };
-    //     node.state.globalMatrix = localMatrix * parentMatrix;
-    //     for (const auto& child : node.children)
-    //     {
-    //         updateNodeMatrices(child, state.globalMatrix);
-    //     }
-    // }
-
     void updateJoints(const Node& node)
     {
         if (node.skinIndex)
@@ -197,14 +184,10 @@ public:
             state.jointMatrices.clear();
             state.jointMatrices.reserve(skin.joints.size());
 
-            // const auto globalMatrix = node.globalMatrix();
             const auto inverse = math::inverse(node.state.globalMatrix);
-            // assert(globalMatrix == node.state.globalMatrix);
 
             for (const auto& [jointNode, inverseBindMatrix] : skin.joints)
             {
-                // assert(jointNode.globalMatrix() == jointNode.state.globalMatrix);
-
                 state.jointMatrices.emplace_back(inverse * jointNode.state.globalMatrix * inverseBindMatrix);
             }
 
@@ -229,13 +212,6 @@ public:
     }
 
 private:
-    Size computeJointMatricesSize(const std::vector<Skin>& skins)
-    {
-        return sizeof(math::Matrix<4, 4>) * std::accumulate(skins.begin(), skins.end(), 0,
-                                                            [](Size total, const Skin& skin)
-                                                            { return total + skin.joints.size(); });
-    }
-
     static std::optional<ShaderStorageBufferObject> createJointMatricesSSBO(const VkDescriptorPool   descriptorPool,
                                                                             const std::vector<Skin>& skins)
     {

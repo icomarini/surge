@@ -36,7 +36,39 @@ concept StaticVector = HasLength<V> && HasValue<V>;
 
 // implementation: Vector
 template<Size size, typename T = float>
-using Vector = std::array<T, size>;
+class Vector : public std::array<T, size>
+{
+public:
+    void operator+=(const Vector<size, T>& v)
+    {
+        forEach<0, size>([&]<Size i> { get<i>(*this) += get<i>(v); });
+    }
+
+    void operator-=(const Vector<size, T>& v)
+    {
+        forEach<0, size>([&]<Size i> { get<i>(*this) -= get<i>(v); });
+    }
+
+    void operator*=(const Vector<size, T>& v)
+    {
+        forEach<0, size>([&]<Size i> { get<i>(*this) *= get<i>(v); });
+    }
+
+    void operator*=(const T& a)
+    {
+        forEach<0, size>([&]<Size i> { get<i>(*this) *= a; });
+    }
+
+    void operator/=(const Vector<size, T>& v)
+    {
+        forEach<0, size>([&]<Size i> { get<i>(*this) /= get<i>(v); });
+    }
+
+    void operator/=(const T& a)
+    {
+        forEach<0, size>([&]<Size i> { get<i>(*this) /= a; });
+    }
+};
 
 template<Size size, typename T>
 constexpr Size length<Vector<size, T>> = size;

@@ -31,6 +31,7 @@ public:
         VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
         VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME,
         VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME,
+        VK_KHR_SURFACE_EXTENSION_NAME,
     };
 
 #ifndef NDEBUG
@@ -49,6 +50,7 @@ public:
         VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
         VK_KHR_MULTIVIEW_EXTENSION_NAME,
         VK_KHR_MAINTENANCE_2_EXTENSION_NAME,
+        VK_KHR_MAINTENANCE_5_EXTENSION_NAME,
         VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,
         VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
     };
@@ -413,7 +415,7 @@ private:
             .applicationVersion = VK_MAKE_VERSION(1, 3, 250),
             .pEngineName        = engineName.c_str(),
             .engineVersion      = VK_MAKE_VERSION(1, 0, 0),
-            .apiVersion         = VK_API_VERSION_1_0,
+            .apiVersion         = VK_API_VERSION_1_4,
         };
         const VkInstanceCreateInfo instanceCreateInfo {
             .sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
@@ -616,8 +618,8 @@ private:
             .depthBiasClamp                          = nope,
             .fillModeNonSolid                        = VK_TRUE,
             .depthBounds                             = nope,
-            .wideLines                               = nope,
-            .largePoints                             = nope,
+            .wideLines                               = VK_TRUE,
+            .largePoints                             = VK_TRUE,
             .alphaToOne                              = nope,
             .multiViewport                           = nope,
             .samplerAnisotropy                       = VK_TRUE,
@@ -657,6 +659,7 @@ private:
             .variableMultisampleRate                 = nope,
             .inheritedQueries                        = nope,
         };
+
 
         VkPhysicalDeviceExtendedDynamicState3FeaturesEXT dynamicStateFeatures {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT,

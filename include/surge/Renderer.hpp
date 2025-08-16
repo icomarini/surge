@@ -7,6 +7,7 @@
 #include "surge/Pipeline.hpp"
 
 #include "surge/geometry/shapes.hpp"
+#include "surge/asset/Line.hpp"
 
 namespace surge
 {
@@ -30,30 +31,6 @@ VkPolygonMode translate(const PolygonMode polygonMode)
 class Renderer
 {
 public:
-    // enum class Topology
-    // {
-    //     vertexList,
-    //     lineList,
-    // };
-
-    // struct PipelineID
-    // {
-    //     PolygonMode polygonMode;
-    //     Topology    topology;
-    // };
-
-
-    // struct compare
-    // {
-    //     bool operator()(PipelineID lhs, PipelineID rhs) const
-    //     {
-    //         return lhs.polygonMode == rhs.polygonMode ? lhs.topology < rhs.topology : lhs.polygonMode <
-    //         rhs.polygonMode;
-    //     }
-    // };
-
-    // using Pipelines = std::map<PipelineID, VkPipeline, compare>;
-
     struct NodePushBlock
     {
         math::Matrix<4, 4> matrix;
@@ -61,15 +38,12 @@ public:
         uint32_t           vertexStageFlag;
         uint32_t           fragmentStageFlag;
     };
-    // static_assert(sizeof(PushBlock) < 128);
-
 
     struct Renderable
     {
         const asset::Asset& asset;
         VkPipelineLayout    pipelineLayout;
         VkPipeline          pipeline;
-        // Pipelines           pipelines;
 
         void drawNode(const VkCommandBuffer commandBuffer, const asset::Node& node,
                       const math::Matrix<4, 4>& globalMatrix) const
@@ -98,7 +72,6 @@ public:
                         vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
                     assert(setPolygonMode);
                     setPolygonMode(commandBuffer, translate(node.state.polygonMode));
-                    // setPolygonMode(commandBuffer, translate(PolygonMode::line));
 
                     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
@@ -150,8 +123,7 @@ public:
             }
         }
 
-        void draw(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor,
-                  const math::Matrix<4, 4>& globalMatrix) const
+        void draw(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const
         {
             if (!asset.state.active)
             {
@@ -166,13 +138,13 @@ public:
             if (asset.jointMatricesSSBO)
             {
                 // bind joint matrices ssbo
-                constexpr uint32_t jointMatricesIndex = 2;
+                constexpr uint32_t jointMatricesSSBOIndex = 2;
                 vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
-                                        jointMatricesIndex, 1, &asset.jointMatricesSSBO->descriptorSet, 0, nullptr);
+                                        jointMatricesSSBOIndex, 1, &asset.jointMatricesSSBO->descriptorSet, 0, nullptr);
             }
             for (const auto& node : asset.mainScene().nodes)
             {
-                drawNode(commandBuffer, node, globalMatrix);
+                drawNode(commandBuffer, node, asset.state.modelMatrix);
             }
         }
 
@@ -183,13 +155,182 @@ public:
         }
     };
 
-    Renderer(const std::filesystem::path& shaders, std::vector<asset::Asset>& assets)
+    // struct RenderableLine
+    // {
+    //     const asset::Line& line;
+    //     VkPipelineLayout   pipelineLayout;
+    //     VkPipeline         pipeline;
+
+    //     void draw(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const
+    //     {
+    //         // bind scene uniform
+    //         constexpr uint32_t sceneUniformIndex = 0;
+    //         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
+    //         sceneUniformIndex,
+    //                                 1, &sceneDescriptor, 0, nullptr);
+
+    //         auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
+    //             vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
+    //         assert(setPolygonMode);
+    //         setPolygonMode(commandBuffer, translate(PolygonMode::line));
+
+    //         // auto setPrimitiveTopology = reinterpret_cast<PFN_vkCmdSetPrimitiveTopology>(
+    //         // //     vkGetInstanceProcAddr(context().instance, "vkCmdSetPrimitiveTopology"));
+    //         // // assert(setPrimitiveTopology);
+    //         // // setPrimitiveTopology(commandBuffer, VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
+
+    //         vkCmdSetLineWidth(commandBuffer, 1.0);
+
+    //         vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(asset::Line),
+    //                            &line);
+
+    //         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+    //         vkCmdDraw(commandBuffer, 2, 1, 0, 0);
+    //     }
+
+    //     ~RenderableLine()
+    //     {
+    //         context().destroy(pipeline);
+    //         context().destroy(pipelineLayout);
+    //     }
+    // };
+
+    struct RenderablePoint
+    {
+        const asset::Point& point;
+        VkPipelineLayout    pipelineLayout;
+        VkPipeline          pipeline;
+
+        void draw(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const
+        {
+            // bind scene uniform
+            constexpr uint32_t sceneUniformIndex = 0;
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, sceneUniformIndex,
+                                    1, &sceneDescriptor, 0, nullptr);
+
+            auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
+                vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
+            assert(setPolygonMode);
+            setPolygonMode(commandBuffer, translate(PolygonMode::point));
+
+            vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(asset::Point),
+                               &point);
+
+            vkCmdSetLineWidth(commandBuffer, 1.0);
+
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+            vkCmdDraw(commandBuffer, 1, 1, 0, 0);
+        }
+
+        ~RenderablePoint()
+        {
+            context().destroy(pipeline);
+            context().destroy(pipelineLayout);
+        }
+    };
+
+    Renderer(const std::filesystem::path& shaders, std::vector<asset::Asset>& assets, std::vector<asset::Line>& lines,
+             std::vector<asset::Point>& points)
         : assets { assets }
         , camera { 16.0 / 9.0, { 0.0f, 1.0f, 3.0f }, { 0.0f, 0.0f, -1.0f } }
         , scene { 2 * sizeof(math::Matrix<4, 4>), UniformBufferInfo {} }
         , descriptor { 1, UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT> { scene } }
         , renderables { createRenderables(shaders, descriptor, assets) }
+        , linePipelineLayout { createPipelineLayout(createPushConstantRange<asset::Line>(VK_SHADER_STAGE_VERTEX_BIT),
+                                                    descriptor.setLayout) }
+        , linePipeline { createGraphicPipeline(
+              geometry::createVertexInputState(), VK_NULL_HANDLE, linePipelineLayout,
+              Shader {
+                  ShaderInfo<VK_SHADER_STAGE_VERTEX_BIT> { shaders / "line.vert.spv", nullptr },
+                  ShaderInfo<VK_SHADER_STAGE_FRAGMENT_BIT> { shaders / "line.frag.spv", nullptr },
+              },
+              VkPipelineInputAssemblyStateCreateInfo {
+                  .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+                  .pNext                  = nullptr,
+                  .flags                  = {},
+                  .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
+                  .primitiveRestartEnable = VK_FALSE,
+              }) }
+        , lines { lines }
+        , pointPipelineLayout { createPipelineLayout(createPushConstantRange<asset::Point>(VK_SHADER_STAGE_VERTEX_BIT),
+                                                     descriptor.setLayout) }
+        , pointPipeline { createGraphicPipeline(
+              geometry::createVertexInputState(), VK_NULL_HANDLE, pointPipelineLayout,
+              Shader {
+                  ShaderInfo<VK_SHADER_STAGE_VERTEX_BIT> { shaders / "point.vert.spv", nullptr },
+                  ShaderInfo<VK_SHADER_STAGE_FRAGMENT_BIT> { shaders / "point.frag.spv", nullptr },
+              },
+              VkPipelineInputAssemblyStateCreateInfo {
+                  .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+                  .pNext                  = nullptr,
+                  .flags                  = {},
+                  .topology               = VK_PRIMITIVE_TOPOLOGY_POINT_LIST,
+                  .primitiveRestartEnable = VK_FALSE,
+              }) }
+        , points { points }
+    // , renderableLine { createRenderableLine(shaders, descriptor, lines.at(0)) }
+    // , renderablePoint { createRenderablePoint(shaders, descriptor, points.at(0)) }
     {
+    }
+
+    ~Renderer()
+    {
+        context().destroy(pointPipeline);
+        context().destroy(pointPipelineLayout);
+        context().destroy(linePipeline);
+        context().destroy(linePipelineLayout);
+    }
+
+    void drawLines(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const
+    {
+        for (const auto& line : lines)
+        {
+            // bind scene uniform
+            constexpr uint32_t sceneUniformIndex = 0;
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, linePipelineLayout,
+                                    sceneUniformIndex, 1, &sceneDescriptor, 0, nullptr);
+
+            auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
+                vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
+            assert(setPolygonMode);
+            setPolygonMode(commandBuffer, translate(PolygonMode::line));
+
+            vkCmdSetLineWidth(commandBuffer, 1.0);
+
+            vkCmdPushConstants(commandBuffer, linePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(asset::Line),
+                               &line);
+
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, linePipeline);
+
+            vkCmdDraw(commandBuffer, 2, 1, 0, 0);
+        }
+    }
+
+    void drawPoints(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const
+    {
+        for (const auto& point : points)
+        {
+            // bind scene uniform
+            constexpr uint32_t sceneUniformIndex = 0;
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pointPipelineLayout,
+                                    sceneUniformIndex, 1, &sceneDescriptor, 0, nullptr);
+
+            auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
+                vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
+            assert(setPolygonMode);
+            setPolygonMode(commandBuffer, translate(PolygonMode::point));
+
+            vkCmdPushConstants(commandBuffer, pointPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(asset::Point),
+                               &point);
+
+            vkCmdSetLineWidth(commandBuffer, 1.0);
+
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pointPipeline);
+
+            vkCmdDraw(commandBuffer, 1, 1, 0, 0);
+        }
     }
 
     std::vector<asset::Asset>&  assets;
@@ -197,6 +338,17 @@ public:
     Buffer                      scene;
     Descriptor                  descriptor;
     std::vector<Renderable>     renderables;
+
+    VkPipelineLayout          linePipelineLayout;
+    VkPipeline                linePipeline;
+    std::vector<asset::Line>& lines;
+
+    VkPipelineLayout           pointPipelineLayout;
+    VkPipeline                 pointPipeline;
+    std::vector<asset::Point>& points;
+
+    // RenderableLine  renderableLine;
+    // RenderablePoint renderablePoint;
 
 
     void update(const VkExtent2D, const UserInteraction& ui)
@@ -213,73 +365,6 @@ public:
             asset.update(ui.elapsedTime);
         }
     }
-
-    // void draw(const VkCommandBuffer commandBuffer, const Model& model, const asset::Node& node,
-    //           const math::Matrix<4, 4>& globalMatrix) const
-    // {
-    //     if (!node.state.active)
-    //     {
-    //         return;
-    //     }
-
-    //     const NodePushBlock nodePushBlock { node.matrix() * globalMatrix, node.state.vertexStageFlag,
-    //                                         node.state.fragmentStageFlag };
-
-    //     if (node.mesh)
-    //     {
-    //         for (const auto& primitive : node.mesh->primitives)
-    //         {
-    //             constexpr VkDeviceSize offset { 0 };
-    //             vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model.vertexBuffer.buffer, &offset);
-    //             vkCmdBindIndexBuffer(commandBuffer, model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-
-    //             const PipelineID pipelineId { node.state.polygonMode, Topology::vertexList };
-    //             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.at(pipelineId));
-
-    //             const std::array descriptorSets { primitive.material.descriptorSet, node.mesh->descriptorSet };
-    //             vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, assetPipelineLayout, 0,
-    //                                     static_cast<uint32_t>(descriptorSets.size()), descriptorSets.data(), 0,
-    //                                     nullptr);
-
-    //             vkCmdPushConstants(commandBuffer, assetPipelineLayout,
-    //                                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
-    //                                sizeof(NodePushBlock), &nodePushBlock);
-
-    //             vkCmdDrawIndexed(commandBuffer, primitive.indexCount, 1, primitive.firstIndex, 0, 0);
-
-    //             if (primitive.state.boundingBox)
-    //             {
-    //                 [[maybe_unused]] const auto scale = 0.5f * node.state.scale * (primitive.bb.max -
-    //                 primitive.bb.min);
-    //                 // const math::Vector<3> scale       = { 1, 1, 1 };
-    //                 [[maybe_unused]] const auto translation =
-    //                     node.state.translation + 0.5f * (primitive.bb.max + primitive.bb.min);
-    //                 const NodePushBlock bboxPushBlock { nodePushBlock.matrix, nodePushBlock.vertexStageFlag,
-    //                                                     nodePushBlock.fragmentStageFlag };
-    //                 vkCmdPushConstants(commandBuffer, descriptorlessPipelineLayout,
-    //                                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
-    //                                    sizeof(NodePushBlock), &bboxPushBlock);
-
-    //                 constexpr VkDeviceSize offset { 0 };
-    //                 // vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cube.vertexBuffer.buffer, &offset);
-    //                 // vkCmdBindIndexBuffer(commandBuffer, cube.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-    //                 // vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-    //                 //                   pipelines.at(PipelineID { PolygonMode::line, Topology::lineList }));
-    //                 // vkCmdDrawIndexed(commandBuffer, cube.indexCount, 1, 0, 0, 0);
-
-    //                 vkCmdBindVertexBuffers(commandBuffer, 0, 1, &coordinateSystem.vertexBuffer.buffer, &offset);
-    //                 vkCmdBindIndexBuffer(commandBuffer, coordinateSystem.indexBuffer.buffer, 0,
-    //                 VK_INDEX_TYPE_UINT32); vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-    //                                   pipelines.at(PipelineID { PolygonMode::line, Topology::lineList }));
-    //                 vkCmdDrawIndexed(commandBuffer, coordinateSystem.indexCount, 1, 0, 0, 0);
-    //             }
-    //         }
-    //     }
-    //     for (const auto& child : node.children)
-    //     {
-    //         draw(commandBuffer, model, child, nodePushBlock.matrix);
-    //     }
-    // }
 
     void draw(const VkCommandBuffer commandBuffer, const VkExtent2D extent) const
     {
@@ -301,8 +386,13 @@ public:
 
         for (const auto& renderable : renderables)
         {
-            renderable.draw(commandBuffer, descriptor.set, renderable.asset.state.modelMatrix);
+            renderable.draw(commandBuffer, descriptor.set);
         }
+
+        // renderableLine.draw(commandBuffer, descriptor.set);
+        // renderablePoint.draw(commandBuffer, descriptor.set);
+        drawLines(commandBuffer, descriptor.set);
+        drawPoints(commandBuffer, descriptor.set);
     }
 
 
@@ -336,6 +426,54 @@ private:
         }
         return renderables;
     }
+
+    // static RenderableLine createRenderableLine(const std::filesystem::path& shaders, const Descriptor& descriptor,
+    //                                            const asset::Line& line)
+    // {
+    //     constexpr auto pushConstantRange = createPushConstantRange<asset::Line>(VK_SHADER_STAGE_VERTEX_BIT);
+    //     const auto     pipelineLayout    = createPipelineLayout(pushConstantRange, descriptor.setLayout);
+    //     return RenderableLine {
+    //         .line           = line,
+    //         .pipelineLayout = pipelineLayout,
+    //         .pipeline       = createGraphicPipeline(
+    //             geometry::createVertexInputState(), VK_NULL_HANDLE, pipelineLayout,
+    //             Shader {
+    //                 ShaderInfo<VK_SHADER_STAGE_VERTEX_BIT> { shaders / "line.vert.spv", nullptr },
+    //                 ShaderInfo<VK_SHADER_STAGE_FRAGMENT_BIT> { shaders / "line.frag.spv", nullptr },
+    //             },
+    //             VkPipelineInputAssemblyStateCreateInfo {
+    //                       .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+    //                       .pNext                  = nullptr,
+    //                       .flags                  = {},
+    //                       .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
+    //                       .primitiveRestartEnable = VK_FALSE,
+    //             }),
+    //     };
+    // }
+
+    // static RenderablePoint createRenderablePoint(const std::filesystem::path& shaders, const Descriptor& descriptor,
+    //                                              const asset::Point& point)
+    // {
+    //     constexpr auto pushConstantRange = createPushConstantRange<asset::Point>(VK_SHADER_STAGE_VERTEX_BIT);
+    //     const auto     pipelineLayout    = createPipelineLayout(pushConstantRange, descriptor.setLayout);
+    //     return RenderablePoint {
+    //         .point          = point,
+    //         .pipelineLayout = pipelineLayout,
+    //         .pipeline       = createGraphicPipeline(
+    //             geometry::createVertexInputState(), VK_NULL_HANDLE, pipelineLayout,
+    //             Shader {
+    //                 ShaderInfo<VK_SHADER_STAGE_VERTEX_BIT> { shaders / "point.vert.spv", nullptr },
+    //                 ShaderInfo<VK_SHADER_STAGE_FRAGMENT_BIT> { shaders / "point.frag.spv", nullptr },
+    //             },
+    //             VkPipelineInputAssemblyStateCreateInfo {
+    //                       .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+    //                       .pNext                  = nullptr,
+    //                       .flags                  = {},
+    //                       .topology               = VK_PRIMITIVE_TOPOLOGY_POINT_LIST,
+    //                       .primitiveRestartEnable = VK_FALSE,
+    //             }),
+    //     };
+    // }
 };
 
 }  // namespace surge

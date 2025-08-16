@@ -141,6 +141,10 @@ set(SHADERS
     gltf_static.vert
     bbox.frag
     bbox.vert
+    line.frag
+    line.vert
+    point.frag
+    point.vert
     shader.frag
     shader.vert
     skybox.frag

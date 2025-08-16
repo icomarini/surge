@@ -6,6 +6,11 @@
 #include "surge/Presenter.hpp"
 #include "surge/UserInteraction.hpp"
 
+#include "surge/asset/Line.hpp"
+
+#include "surge/physics/Particle.hpp"
+#include "surge/physics/ParticleForceGenerator.hpp"
+#include "surge/physics/ParticleForceRegistry.hpp"
 
 #include "Skybox.hpp"
 #include "surge/overlay/Overlay.hpp"
@@ -41,15 +46,79 @@ public:
         , presenter { command }
         , defaults { command, resources }
         , skybox { command, resources.at("shaders"), resources.at("skyboxTexture") }
+        , lines {}
+        , points {}
         , assets { createAssets(command, resources) }
-        , renderer { resources.at("shaders"), assets }
+        , renderer { resources.at("shaders"), assets, lines, points }
         , overlay { command, resources.at("shaders"), userInteraction, assets }
+        , forceRegistry {}
     {
     }
 
     void run()
     {
         double elapsedTime = {};
+
+        // particle
+        constexpr surge::physics::Particle particleInitialState {
+            .mass     = 0.1f,
+            .position = { -1.0f, 1.0f, 0.0f },
+            .velocity = { 2.0f, 4.0f, 5.0f },
+            // .velocity         = {},
+            .acceleration     = {},  // gravity,
+            .damping          = 0.995,
+            .accumulatedForce = {},
+        };
+        bool                     particleActive = false;
+        surge::physics::Particle particle       = particleInitialState;
+
+        // gravity
+        constexpr surge::math::Vector<3> earthGravity { 0, -9.81, 0 };
+        surge::physics::ParticleGravity  gravity { earthGravity };
+        forceRegistry.add(particle, gravity);
+
+        // spring 1
+        surge::physics::ParticleAnchoredSpring anchoredSpring1 { surge::math::Vector<3> { 0.0f, 1.1f, 0.0f }, 1, 0,
+                                                                 0.05 };
+        forceRegistry.add(particle, anchoredSpring1);
+        points.push_back(surge::asset::Point {
+            .p     = anchoredSpring1.anchor,
+            .color = surge::math::Vector<4> { 0, 1, 0, 1 },
+        });
+        lines.push_back(surge::asset::Line {
+            .a     = anchoredSpring1.anchor,
+            .b     = particle.position,
+            .color = surge::math::Vector<4> { 1, 1, 1, 1 },
+        });
+
+        // spring 2
+        surge::physics::ParticleAnchoredSpring anchoredSpring2 { surge::math::Vector<3> { 1.0f, 1.1f, 0.0f }, 1, 0,
+                                                                 0.05 };
+        forceRegistry.add(particle, anchoredSpring2);
+        points.push_back(surge::asset::Point {
+            .p     = anchoredSpring2.anchor,
+            .color = surge::math::Vector<4> { 0, 1, 0, 1 },
+        });
+        lines.push_back(surge::asset::Line {
+            .a     = anchoredSpring2.anchor,
+            .b     = particle.position,
+            .color = surge::math::Vector<4> { 1, 1, 1, 1 },
+        });
+
+        // spring 3
+        surge::physics::ParticleAnchoredSpring anchoredSpring3 { surge::math::Vector<3> { 1.0f, 2.0f, -2.0f }, 1, 0,
+                                                                 0.05 };
+        forceRegistry.add(particle, anchoredSpring3);
+        points.push_back(surge::asset::Point {
+            .p     = anchoredSpring3.anchor,
+            .color = surge::math::Vector<4> { 0, 1, 0, 1 },
+        });
+        lines.push_back(surge::asset::Line {
+            .a     = anchoredSpring3.anchor,
+            .b     = particle.position,
+            .color = surge::math::Vector<4> { 1, 1, 1, 1 },
+        });
+
 
         auto     start = std::chrono::high_resolution_clock::now();
         uint32_t ticCount {};
@@ -60,8 +129,43 @@ public:
                 userInteraction.reset();
                 surge::context().pollEvents();
 
-                render(presenter, userInteraction, skybox, renderer, /*shadowMap, scene,*/
-                       overlay);
+                // === physics playground ===
+                using KeyState = surge::UserInteraction::KeyState;
+                if (!particleActive && userInteraction.mouse.left == KeyState::press)
+                {
+                    particleActive = true;
+                }
+
+                if (particleActive)
+                {
+                    const auto duration = userInteraction.elapsedTime;
+                    forceRegistry.updateForces(duration);
+                    particle.integrate(duration);
+                    for (auto& line : lines)
+                    {
+                        line.b = particle.position;
+                    }
+
+
+                    constexpr surge::math::Scaling scaling { surge::math::Vector<3> { 0.01f, 0.01f, 0.01f } };
+                    assets.at(0).state.modelMatrix = surge::math::Translation { particle.position } * scaling;
+
+                    if (surge::math::get<1>(particle.position) < -10.0f ||
+                        userInteraction.mouse.right == KeyState::press)
+                    {
+                        particle = particleInitialState;
+                        for (auto& line : lines)
+                        {
+                            line.b = particle.position;
+                        }
+                        assets.at(0).state.modelMatrix = surge::math::Translation { particle.position } * scaling;
+                        particleActive                 = false;
+                    }
+                }
+                // === physics playground ===
+
+                render(presenter, userInteraction, skybox, renderer, overlay);
+
                 start = std::chrono::high_resolution_clock::now();
             }
 
@@ -85,18 +189,18 @@ private:
     }
 
 private:
-    mutable surge::UserInteraction userInteraction;
-    const surge::Context&          ctx;
-    const surge::Command           command;
-    surge::Presenter               presenter;
-    const surge::Defaults          defaults;
-
-    surge::Skybox skybox;
-
-    std::vector<surge::asset::Asset> assets;
-    surge::Renderer                  renderer;
-
-    surge::overlay::Overlay overlay;
+    mutable surge::UserInteraction        userInteraction;
+    const surge::Context&                 ctx;
+    const surge::Command                  command;
+    surge::Presenter                      presenter;
+    const surge::Defaults                 defaults;
+    surge::Skybox                         skybox;
+    std::vector<surge::asset::Line>       lines;
+    std::vector<surge::asset::Point>      points;
+    std::vector<surge::asset::Asset>      assets;
+    surge::Renderer                       renderer;
+    surge::overlay::Overlay               overlay;
+    surge::physics::ParticleForceRegistry forceRegistry;
 
     // const ShadowMap  shadowMap;
     // const Scene      scene;
@@ -107,13 +211,19 @@ private:
         // constexpr std::array names { "oaktree", "helmet", "dragon", "buggy" };
         // constexpr std::array names { "buggy" };
         // constexpr std::array names { "simple" };
-        constexpr std::array names { "man" };
+
+        constexpr std::array names { "nope" };
+        // constexpr std::array names { "man" };
         // constexpr std::array names { "gun" };
 
         std::vector<surge::asset::Asset> assets;
         assets.reserve(names.size() + 2);
         for (const auto& name : names)
         {
+            if (name == std::string { "nope" })
+            {
+                continue;
+            }
             assets.emplace_back(command, defaults, surge::asset::GltfAsset { name, resources.at(name) });
         }
 

@@ -23,15 +23,14 @@ layout(set = 0, binding = 0) uniform Scene
 };
 
 // output =======================================
-layout(location = 0) out vec2 fragTexCoord;
-layout(location = 1) out vec3 fragColor;
-layout(location = 2) out vec3 fragNormal;
+layout(location = 0) out vec2 outTexCoord;
+layout(location = 1) out vec3 outColor;
+layout(location = 2) out vec3 outNormal;
 
 void main()
 {
     gl_Position = vec4(inPosition, 1.0) * model * view * projection;
-    // gl_Position  = projection * view * transpose(model) * vec4(inPosition, 1.0);
-    fragTexCoord = inTexCoord;
-    fragColor    = baseColorFactor.rgb;
-    fragNormal   = inNormal;
+    outTexCoord = inTexCoord;
+    outColor    = baseColorFactor.rgb;
+    outNormal   = inNormal;
 }

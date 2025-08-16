@@ -13,6 +13,7 @@ namespace surge
 template<typename Type>
 constexpr VkPushConstantRange createPushConstantRange(const VkShaderStageFlags stageFlags)
 {
+    static_assert(sizeof(Type) <= 128);
     return VkPushConstantRange {
         .stageFlags = stageFlags,
         .offset     = 0,
@@ -205,8 +206,13 @@ VkPipeline createGraphicPipeline(const VkPipelineVertexInputStateCreateInfo vert
         .blendConstants  = { 0.0f, 0.0f, 0.0f, 0.0f },
     });
 
-    const auto dynamicStates = getOr(std::array { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR,
-                                                  VK_DYNAMIC_STATE_DEPTH_BIAS, VK_DYNAMIC_STATE_POLYGON_MODE_EXT });
+    const auto                             dynamicStates = getOr(std::array {
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_SCISSOR,
+        VK_DYNAMIC_STATE_DEPTH_BIAS,
+        VK_DYNAMIC_STATE_POLYGON_MODE_EXT,
+        VK_DYNAMIC_STATE_LINE_WIDTH,
+    });
     const VkPipelineDynamicStateCreateInfo dynamicState {
         .sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
         .pNext             = nullptr,
