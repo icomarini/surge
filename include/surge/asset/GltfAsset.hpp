@@ -484,46 +484,46 @@ public:
                        SceneModelInfo {} };
     }
 
-    static auto decomposeMatrix(const fastgltf::math::fmat4x4& matrix)
-    {
-        fastgltf::math::fvec3 scale;
-        fastgltf::math::fquat rotation;
-        fastgltf::math::fvec3 translation;
-        fastgltf::math::decomposeTransformMatrix(matrix, scale, rotation, translation);
-        return std::make_tuple(
-            math::Vector<3> {
-                translation.x(),
-                translation.y(),
-                translation.z(),
-            },
-            math::Quaternion<> {
-                rotation.x(),
-                rotation.y(),
-                rotation.z(),
-                rotation.w(),
-            },
-            math::Vector<3> {
-                scale.x(),
-                scale.y(),
-                scale.z(),
-            },
-            glm::vec3 {
-                translation.x(),
-                translation.y(),
-                translation.z(),
-            },
-            glm::quat {
-                rotation.w(),
-                rotation.x(),
-                rotation.y(),
-                rotation.z(),
-            },
-            glm::vec3 {
-                scale.x(),
-                scale.y(),
-                scale.z(),
-            });
-    }
+    // static auto decomposeMatrix(const fastgltf::math::fmat4x4& matrix)
+    // {
+    //     fastgltf::math::fvec3 scale;
+    //     fastgltf::math::fquat rotation;
+    //     fastgltf::math::fvec3 translation;
+    //     fastgltf::math::decomposeTransformMatrix(matrix, scale, rotation, translation);
+    //     return std::make_tuple(
+    //         math::Vector<3> {
+    //             translation.x(),
+    //             translation.y(),
+    //             translation.z(),
+    //         },
+    //         math::Quaternion<> {
+    //             rotation.x(),
+    //             rotation.y(),
+    //             rotation.z(),
+    //             rotation.w(),
+    //         },
+    //         math::Vector<3> {
+    //             scale.x(),
+    //             scale.y(),
+    //             scale.z(),
+    //         },
+    //         glm::vec3 {
+    //             translation.x(),
+    //             translation.y(),
+    //             translation.z(),
+    //         },
+    //         glm::quat {
+    //             rotation.w(),
+    //             rotation.x(),
+    //             rotation.y(),
+    //             rotation.z(),
+    //         },
+    //         glm::vec3 {
+    //             scale.x(),
+    //             scale.y(),
+    //             scale.z(),
+    //         });
+    // }
 
     void createNode(std::vector<Node>& nodes, Node* const parent, const std::vector<Mesh>& meshes, const Size nodeId,
                     std::vector<Node*>& nodesLut) const

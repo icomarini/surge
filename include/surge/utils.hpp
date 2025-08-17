@@ -3,6 +3,7 @@
 #include "surge/types.hpp"
 
 #include <cassert>
+#include <filesystem>
 #include <tuple>
 
 namespace surge

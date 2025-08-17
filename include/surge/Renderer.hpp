@@ -155,81 +155,6 @@ public:
         }
     };
 
-    // struct RenderableLine
-    // {
-    //     const asset::Line& line;
-    //     VkPipelineLayout   pipelineLayout;
-    //     VkPipeline         pipeline;
-
-    //     void draw(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const
-    //     {
-    //         // bind scene uniform
-    //         constexpr uint32_t sceneUniformIndex = 0;
-    //         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
-    //         sceneUniformIndex,
-    //                                 1, &sceneDescriptor, 0, nullptr);
-
-    //         auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
-    //             vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
-    //         assert(setPolygonMode);
-    //         setPolygonMode(commandBuffer, translate(PolygonMode::line));
-
-    //         // auto setPrimitiveTopology = reinterpret_cast<PFN_vkCmdSetPrimitiveTopology>(
-    //         // //     vkGetInstanceProcAddr(context().instance, "vkCmdSetPrimitiveTopology"));
-    //         // // assert(setPrimitiveTopology);
-    //         // // setPrimitiveTopology(commandBuffer, VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
-
-    //         vkCmdSetLineWidth(commandBuffer, 1.0);
-
-    //         vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(asset::Line),
-    //                            &line);
-
-    //         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-    //         vkCmdDraw(commandBuffer, 2, 1, 0, 0);
-    //     }
-
-    //     ~RenderableLine()
-    //     {
-    //         context().destroy(pipeline);
-    //         context().destroy(pipelineLayout);
-    //     }
-    // };
-
-    struct RenderablePoint
-    {
-        const asset::Point& point;
-        VkPipelineLayout    pipelineLayout;
-        VkPipeline          pipeline;
-
-        void draw(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const
-        {
-            // bind scene uniform
-            constexpr uint32_t sceneUniformIndex = 0;
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, sceneUniformIndex,
-                                    1, &sceneDescriptor, 0, nullptr);
-
-            auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
-                vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
-            assert(setPolygonMode);
-            setPolygonMode(commandBuffer, translate(PolygonMode::point));
-
-            vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(asset::Point),
-                               &point);
-
-            vkCmdSetLineWidth(commandBuffer, 1.0);
-
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-            vkCmdDraw(commandBuffer, 1, 1, 0, 0);
-        }
-
-        ~RenderablePoint()
-        {
-            context().destroy(pipeline);
-            context().destroy(pipelineLayout);
-        }
-    };
 
     Renderer(const std::filesystem::path& shaders, std::vector<asset::Asset>& assets, std::vector<asset::Line>& lines,
              std::vector<asset::Point>& points)
@@ -270,8 +195,6 @@ public:
                   .primitiveRestartEnable = VK_FALSE,
               }) }
         , points { points }
-    // , renderableLine { createRenderableLine(shaders, descriptor, lines.at(0)) }
-    // , renderablePoint { createRenderablePoint(shaders, descriptor, points.at(0)) }
     {
     }
 
@@ -389,8 +312,6 @@ public:
             renderable.draw(commandBuffer, descriptor.set);
         }
 
-        // renderableLine.draw(commandBuffer, descriptor.set);
-        // renderablePoint.draw(commandBuffer, descriptor.set);
         drawLines(commandBuffer, descriptor.set);
         drawPoints(commandBuffer, descriptor.set);
     }
@@ -426,54 +347,6 @@ private:
         }
         return renderables;
     }
-
-    // static RenderableLine createRenderableLine(const std::filesystem::path& shaders, const Descriptor& descriptor,
-    //                                            const asset::Line& line)
-    // {
-    //     constexpr auto pushConstantRange = createPushConstantRange<asset::Line>(VK_SHADER_STAGE_VERTEX_BIT);
-    //     const auto     pipelineLayout    = createPipelineLayout(pushConstantRange, descriptor.setLayout);
-    //     return RenderableLine {
-    //         .line           = line,
-    //         .pipelineLayout = pipelineLayout,
-    //         .pipeline       = createGraphicPipeline(
-    //             geometry::createVertexInputState(), VK_NULL_HANDLE, pipelineLayout,
-    //             Shader {
-    //                 ShaderInfo<VK_SHADER_STAGE_VERTEX_BIT> { shaders / "line.vert.spv", nullptr },
-    //                 ShaderInfo<VK_SHADER_STAGE_FRAGMENT_BIT> { shaders / "line.frag.spv", nullptr },
-    //             },
-    //             VkPipelineInputAssemblyStateCreateInfo {
-    //                       .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-    //                       .pNext                  = nullptr,
-    //                       .flags                  = {},
-    //                       .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
-    //                       .primitiveRestartEnable = VK_FALSE,
-    //             }),
-    //     };
-    // }
-
-    // static RenderablePoint createRenderablePoint(const std::filesystem::path& shaders, const Descriptor& descriptor,
-    //                                              const asset::Point& point)
-    // {
-    //     constexpr auto pushConstantRange = createPushConstantRange<asset::Point>(VK_SHADER_STAGE_VERTEX_BIT);
-    //     const auto     pipelineLayout    = createPipelineLayout(pushConstantRange, descriptor.setLayout);
-    //     return RenderablePoint {
-    //         .point          = point,
-    //         .pipelineLayout = pipelineLayout,
-    //         .pipeline       = createGraphicPipeline(
-    //             geometry::createVertexInputState(), VK_NULL_HANDLE, pipelineLayout,
-    //             Shader {
-    //                 ShaderInfo<VK_SHADER_STAGE_VERTEX_BIT> { shaders / "point.vert.spv", nullptr },
-    //                 ShaderInfo<VK_SHADER_STAGE_FRAGMENT_BIT> { shaders / "point.frag.spv", nullptr },
-    //             },
-    //             VkPipelineInputAssemblyStateCreateInfo {
-    //                       .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-    //                       .pNext                  = nullptr,
-    //                       .flags                  = {},
-    //                       .topology               = VK_PRIMITIVE_TOPOLOGY_POINT_LIST,
-    //                       .primitiveRestartEnable = VK_FALSE,
-    //             }),
-    //     };
-    // }
 };
 
 }  // namespace surge
