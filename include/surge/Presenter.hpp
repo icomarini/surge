@@ -285,11 +285,12 @@ private:
         Cycle<Frame> frames { frameCount };
         for (uint32_t i = 0; i < frameCount; ++i)
         {
-            frames.set(
-                i, Frame { .fence = context().create(VkFenceCreateInfo { .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-                                                                         .pNext = nullptr,
-                                                                         .flags = VK_FENCE_CREATE_SIGNALED_BIT }),
-                           .commandBuffer = command.createCommandBuffer() });
+            frames.set(i, Frame { .fence         = context().create(VkFenceCreateInfo {
+                                              .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+                                              .pNext = nullptr,
+                                              .flags = VK_FENCE_CREATE_SIGNALED_BIT,
+                                  }),
+                                  .commandBuffer = command.createCommandBuffer() });
         }
         return frames;
     }

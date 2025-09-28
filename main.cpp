@@ -28,13 +28,8 @@ int main(int argc, char* argv[])
             { "gun", "/home/ico/projects/extern/Vulkan/assets/models/cerberus/cerberus.gltf" }
         };
 
-        std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge begun" << std::endl;
-
         surge::Application app(resources);
         app.run();
-        std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge "
-                     "terminated"
-                  << std::endl;
     }
     catch (const std::exception& e)
     {

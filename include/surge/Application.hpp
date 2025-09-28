@@ -43,6 +43,22 @@ public:
         // preallocation
         lines.reserve(256);
         points.reserve(256);
+
+        std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge begun" << std::endl;
+    }
+
+    ~Application()
+    {
+        std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge "
+                     "terminated"
+                  << std::endl;
+    }
+
+    void addAnchoredSpring(physics::Particle& particle, physics::ParticleAnchoredSpring& anchoredSpring)
+    {
+        forceRegistry.add(particle, anchoredSpring);
+        points.emplace_back(anchoredSpring.anchor, colors::red);
+        lines.emplace_back(anchoredSpring.anchor, particle.position, colors::white);
     }
 
     void run()
@@ -52,8 +68,8 @@ public:
         // particle
         constexpr physics::Particle particleInitialState {
             .mass             = 0.1f,
-            .position         = { -1.0f, 1.0f, 0.0f },
-            .velocity         = { 2.0f, 4.0f, 5.0f },
+            .position         = { 0.5, 1.0, 0.5 },
+            .velocity         = { 0, 0, 0 },
             .acceleration     = {},
             .damping          = 0.995,
             .accumulatedForce = {},
@@ -68,23 +84,20 @@ public:
         forceRegistry.add(particle, gravity);
 
         // spring 1
-        physics::ParticleAnchoredSpring anchoredSpring1 { math::Vector<3> { 0.0f, 1.1f, 0.0f }, 1, 1, 0.05 };
-        forceRegistry.add(particle, anchoredSpring1);
-        points.emplace_back(anchoredSpring1.anchor, colors::red);
-        lines.emplace_back(anchoredSpring1.anchor, particle.position, colors::white);
+        physics::ParticleAnchoredSpring anchoredSpring1 { math::Vector<3> { 0, 1, 0 }, 4, 1, 0.05 };
+        addAnchoredSpring(particle, anchoredSpring1);
 
         // spring 2
-        physics::ParticleAnchoredSpring anchoredSpring2 { math::Vector<3> { 1.0f, 1.1f, 0.0f }, 1, 1, 0.05 };
-        forceRegistry.add(particle, anchoredSpring2);
-        points.emplace_back(anchoredSpring2.anchor, colors::red);
-        lines.emplace_back(anchoredSpring2.anchor, particle.position, colors::white);
+        physics::ParticleAnchoredSpring anchoredSpring2 { math::Vector<3> { 0, 1, 1 }, 4, 1, 0.05 };
+        addAnchoredSpring(particle, anchoredSpring2);
 
         // spring 3
-        physics::ParticleAnchoredSpring anchoredSpring3 { math::Vector<3> { 1.0f, 2.0f, -2.0f }, 1, 1, 0.05 };
-        forceRegistry.add(particle, anchoredSpring3);
-        points.emplace_back(anchoredSpring3.anchor, colors::red);
-        lines.emplace_back(anchoredSpring3.anchor, particle.position, colors::white);
+        physics::ParticleAnchoredSpring anchoredSpring3 { math::Vector<3> { 1, 1, 0 }, 4, 1, 0.05 };
+        addAnchoredSpring(particle, anchoredSpring3);
 
+        // spring 4
+        physics::ParticleAnchoredSpring anchoredSpring4 { math::Vector<3> { 1, 1, 1 }, 4, 1, 0.05 };
+        addAnchoredSpring(particle, anchoredSpring4);
 
         auto     start = std::chrono::high_resolution_clock::now();
         uint32_t ticCount {};
@@ -180,8 +193,8 @@ private:
         // constexpr std::array names { "buggy" };
         // constexpr std::array names { "simple" };
 
-        constexpr std::array names { "nope" };
-        // constexpr std::array names { "man" };
+        // constexpr std::array names { "nope" };
+        constexpr std::array names { "man" };
         // constexpr std::array names { "gun" };
 
         std::vector<asset::Asset> assets;
@@ -221,25 +234,25 @@ private:
         //                                                   { Type::occlusionTexture, base / "ao.ktx" },
         //                                               } });
 
-        // for (auto& asset : assets)
-        // {
-        //     asset.state.active = true;
-        //     for (auto& mesh : asset.meshes)
-        //     {
-        //         for (auto& primitive : mesh.primitives)
-        //         {
-        //             primitive.state.boundingBox = true;
-        //         }
-        //     }
-        //     for (auto& node : asset.mainScene().nodes)
-        //     {
-        //         node.state.active = true;
-        //         for (auto& child : node.children)
-        //         {
-        //             child.state.active = true;
-        //         }
-        //     }
-        // }
+        for (auto& asset : assets)
+        {
+            asset.state.active = true;
+            for (auto& mesh : asset.meshes)
+            {
+                for (auto& primitive : mesh.primitives)
+                {
+                    primitive.state.boundingBox = true;
+                }
+            }
+            for (auto& node : asset.mainScene().nodes)
+            {
+                node.state.active = true;
+                for (auto& child : node.children)
+                {
+                    child.state.active = true;
+                }
+            }
+        }
 
         return assets;
     }

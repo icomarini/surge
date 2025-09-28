@@ -55,10 +55,12 @@ private:
         const auto extent              = context().extent();
         return surfaceCapabilities.currentExtent.width != std::numeric_limits<uint32_t>::max() ?
                    surfaceCapabilities.currentExtent :
-                   VkExtent2D { std::clamp(extent.width, surfaceCapabilities.minImageExtent.width,
-                                           surfaceCapabilities.maxImageExtent.width),
-                                std::clamp(extent.height, surfaceCapabilities.minImageExtent.height,
-                                           surfaceCapabilities.maxImageExtent.height) };
+                   VkExtent2D {
+                       .width  = std::clamp(extent.width, surfaceCapabilities.minImageExtent.width,
+                                            surfaceCapabilities.maxImageExtent.width),
+                       .height = std::clamp(extent.height, surfaceCapabilities.minImageExtent.height,
+                                            surfaceCapabilities.maxImageExtent.height),
+                   };
     }
 
     static VkSwapchainKHR createSwapChain(const VkExtent2D extent)

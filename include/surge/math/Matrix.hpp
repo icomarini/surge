@@ -308,7 +308,7 @@ Matrix<rows<M>, cols<M>, ValueType<M>> inverse(const M& m)
     const auto det = get<0, 0>(m) * get<0, 0>(inv) + get<0, 1>(m) * get<1, 0>(inv) + get<0, 2>(m) * get<2, 0>(inv) +
                      get<0, 3>(m) * get<3, 0>(inv);
 
-    return det != ValueType<M> { 0 } ? inv / det : throw std::runtime_error("Singular matrix");
+    return det != zero<ValueType<M>> ? inv / det : throw std::runtime_error("Singular matrix");
 }
 
 std::string toString(const float* const p, const int rows, const int cols);

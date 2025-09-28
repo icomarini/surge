@@ -533,7 +533,6 @@ public:
         assert(std::holds_alternative<fastgltf::TRS>(gltfNode.transform));
         const auto& trs = std::get<fastgltf::TRS>(gltfNode.transform);
 
-
         auto& node = nodes.emplace_back(
             baptize<This::node>(gltfNode.name, nodeId),                             //
             parent,                                                                 //

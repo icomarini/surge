@@ -52,7 +52,7 @@ public:
     }
 
     /** Applies the spring force to the given particle. */
-    virtual void updateForce(Particle& particle, float duration)
+    virtual void updateForce(Particle& particle, float)
     {
         // Calculate the vector of the spring
         // Vector3 force;

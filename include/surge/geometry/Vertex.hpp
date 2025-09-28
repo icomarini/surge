@@ -208,7 +208,7 @@ VkPipelineVertexInputStateCreateInfo createVertexInputState()
     return vertexInputState;
 }
 
-// template<>
+VkPipelineVertexInputStateCreateInfo createVertexInputState();
 VkPipelineVertexInputStateCreateInfo createVertexInputState()
 {
     static constexpr VkPipelineVertexInputStateCreateInfo vertexInputState {
