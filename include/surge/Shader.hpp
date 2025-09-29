@@ -1,11 +1,12 @@
 #pragma once
 
 #include "surge/Context.hpp"
+#include "surge/shader_library.hpp"
 
 #include <filesystem>
 #include <fstream>
 
-namespace surge
+namespace surge::shader
 {
 
 template<VkShaderStageFlagBits _stages, typename _Entry = void*>
@@ -13,6 +14,16 @@ struct ShaderInfo
 {
     static constexpr auto        stages = _stages;
     const std::filesystem::path& path;
+
+    using Entry = _Entry;
+    const Entry entry;
+};
+
+template<Type _type, Stage _stage, typename _Entry = void*>
+struct ShaderInfo2
+{
+    static constexpr auto type  = _type;
+    static constexpr auto stage = _stage;
 
     using Entry = _Entry;
     const Entry entry;
@@ -77,12 +88,6 @@ template<typename... ShaderInfos>
 class Shader
 {
 public:
-    // enum class Stage
-    // {
-    //     vertex,
-    //     fragment,
-    // };
-
     Shader(const ShaderInfos&... shaderInfos)
         : specializationEntries { shaderInfos.entry... }
         , shaders { createShaderStages(specializationEntries, shaderInfos...) }
@@ -92,8 +97,6 @@ public:
     std::tuple<SpecializationEntry<typename ShaderInfos::Entry>...>     specializationEntries;
     std::array<VkPipelineShaderStageCreateInfo, sizeof...(ShaderInfos)> shaders;
 
-    // // using ShaderID = std::pair<VkShaderStageFlagBits, std::filesystem::path>;
-
     ~Shader()
     {
         for (const auto& shader : shaders)
@@ -102,51 +105,36 @@ public:
         }
     }
 
-    // VkPipelineShaderStageCreateInfo shaderStage;
-
-    static std::vector<char> readFile(const std::filesystem::path& filename)
+    template<Type type, Stage stage>
+    static VkShaderModule createShaderModule()
     {
-        if (std::ifstream file(filename, std::ios::ate | std::ios::binary); file.is_open())
-        {
-            const size_t      fileSize = static_cast<size_t>(file.tellg());
-            std::vector<char> buffer(fileSize);
-            file.seekg(0);
-            file.read(buffer.data(), fileSize);
-            file.close();
-
-            return buffer;
-        }
-        throw std::runtime_error("failed to open file " + filename.string());
-    }
-
-    static VkShaderModule createShaderModule(const std::vector<char>& code)
-    {
+        constexpr auto shader = get(type, stage);
+        static_assert(shader.data != nullptr);
         return context().create(VkShaderModuleCreateInfo {
             .sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
             .pNext    = nullptr,
             .flags    = {},
-            .codeSize = code.size(),
-            .pCode    = reinterpret_cast<const uint32_t*>(code.data()),
+            .codeSize = shader.size,
+            .pCode    = reinterpret_cast<const uint32_t*>(shader.data),
         });
     }
 
-    template<VkShaderStageFlagBits stage, typename SpecializationEntry>
-    static VkPipelineShaderStageCreateInfo createShaderStage(const std::filesystem::path& path,
-                                                             const SpecializationEntry&   specializationEntry)
+    template<Type type, Stage stage, typename SpecializationEntry>
+    static VkPipelineShaderStageCreateInfo createShaderStage(const SpecializationEntry& specializationEntry)
     {
         return VkPipelineShaderStageCreateInfo {
             .sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
             .pNext               = nullptr,
             .flags               = {},
-            .stage               = stage,
-            .module              = createShaderModule(readFile(path)),
+            .stage               = translate(stage),
+            .module              = createShaderModule<type, stage>(),
             .pName               = "main",
             .pSpecializationInfo = specializationEntry.getInfo(),
         };
     }
 
     template<typename SpecializationEntries, typename... SI>
-    static auto createShaderStages(const SpecializationEntries& specializationEntries, const SI... shaderInfos)
+    static auto createShaderStages(const SpecializationEntries& specializationEntries, const SI...)
     {
         constexpr auto                                    size = sizeof...(SI);
         std::array<VkPipelineShaderStageCreateInfo, size> stages;
@@ -155,11 +143,10 @@ public:
             {
                 using ShaderInfo                = std::tuple_element_t<index, std::tuple<SI...>>;
                 const auto& specializationEntry = std::get<index>(specializationEntries);
-                const auto& shaderInfo          = std::get<index>(std::forward_as_tuple(shaderInfos...));
-                stages[index] = createShaderStage<ShaderInfo::stages>(shaderInfo.path, specializationEntry);
+                stages[index] = createShaderStage<ShaderInfo::type, ShaderInfo::stage>(specializationEntry);
             });
         return stages;
     }
 };
 
-}  // namespace surge
+}  // namespace surge::shader

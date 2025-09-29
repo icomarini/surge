@@ -2,17 +2,14 @@
 #include "surge/Application.hpp"
 #include "surge/utils.hpp"
 
-int main(int argc, char* argv[])
+int main()
 {
     try
     {
         const std::filesystem::path rootPath { "/home/ico/projects/surge" };
 
-        const auto root = surge::executablePath(argc, argv);
-
         [[maybe_unused]] const std::map<std::string, std::filesystem::path> resources {
             { "root", rootPath / "textures" },
-            { "shaders", root / "shaders" },
             { "vikingRoomTexture", rootPath / "textures/viking_room.png" },
             { "vikingRoomModel", rootPath / "models/viking_room.obj" },
             { "skyboxTexture", rootPath / "textures/skybox.ktx" },

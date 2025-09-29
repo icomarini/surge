@@ -30,8 +30,7 @@ public:
     };
 
 
-    Overlay(const Command& command, const std::filesystem::path& shaders, UserInteraction&,
-            const std::vector<asset::Asset>& assets)
+    Overlay(const Command& command, UserInteraction&, const std::vector<asset::Asset>& assets)
         : imGuiContext { 1 }
         , fontTexture { command, Font {}, SceneTextureInfo {} }
         , model {}
@@ -41,8 +40,8 @@ public:
                                                 descriptor.setLayout) }
         , pipeline { createGraphicPipeline(
               geometry::createVertexInputState<LoadedOverlay::Vertex>(), VK_NULL_HANDLE, pipelineLayout,
-              Shader { ShaderInfo<VK_SHADER_STAGE_VERTEX_BIT> { shaders / "ui.vert.spv", nullptr },
-                       ShaderInfo<VK_SHADER_STAGE_FRAGMENT_BIT> { shaders / "ui.frag.spv", nullptr } },
+              shader::Shader { shader::ShaderInfo2<shader::Type::ui, shader::Stage::vertex> { nullptr },
+                               shader::ShaderInfo2<shader::Type::ui, shader::Stage::fragment> { nullptr } },
               VkPipelineRasterizationStateCreateInfo {
                   .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
                   .pNext                   = nullptr,

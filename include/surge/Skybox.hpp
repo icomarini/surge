@@ -19,7 +19,7 @@ class Skybox
     using CubeTextureInfo = TextureInfo<CubeImageInfo, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>;
 
 public:
-    Skybox(const Command& command, const std::filesystem::path& shaders, const std::filesystem::path& loadedTexture)
+    Skybox(const Command& command, const std::filesystem::path& loadedTexture)
         : camera { 16.0 / 9.0, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } }
         , uniformBuffer { sizeof(math::Matrix<4, 4>), UniformBufferInfo {} }
         , texture { command, LoadedTexture { loadedTexture }, CubeTextureInfo {} }
@@ -30,8 +30,8 @@ public:
         , pipelineLayout { createPipelineLayout(descriptor.setLayout) }
         , pipeline { createGraphicPipeline(
               geometry::createVertexInputState<geometry::Position>(), VK_NULL_HANDLE, pipelineLayout,
-              Shader { ShaderInfo<VK_SHADER_STAGE_VERTEX_BIT> { shaders / "skybox.vert.spv", nullptr },
-                       ShaderInfo<VK_SHADER_STAGE_FRAGMENT_BIT> { shaders / "skybox.frag.spv", nullptr } },
+              shader::Shader { shader::ShaderInfo2<shader::Type::skybox, shader::Stage::vertex> { nullptr },
+                               shader::ShaderInfo2<shader::Type::skybox, shader::Stage::fragment> { nullptr } },
               VkPipelineRasterizationStateCreateInfo {
                   .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
                   .pNext                   = nullptr,

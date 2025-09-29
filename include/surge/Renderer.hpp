@@ -156,20 +156,19 @@ public:
     };
 
 
-    Renderer(const std::filesystem::path& shaders, std::vector<asset::Asset>& assets, std::vector<asset::Line>& lines,
-             std::vector<asset::Point>& points)
+    Renderer(std::vector<asset::Asset>& assets, std::vector<asset::Line>& lines, std::vector<asset::Point>& points)
         : assets { assets }
         , camera { 16.0 / 9.0, { 0.0f, 1.0f, 3.0f }, { 0.0f, 0.0f, -1.0f } }
         , scene { 2 * sizeof(math::Matrix<4, 4>), UniformBufferInfo {} }
         , descriptor { 1, UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT> { scene } }
-        , renderables { createRenderables(shaders, descriptor, assets) }
+        , renderables { createRenderables(descriptor, assets) }
         , linePipelineLayout { createPipelineLayout(createPushConstantRange<asset::Line>(VK_SHADER_STAGE_VERTEX_BIT),
                                                     descriptor.setLayout) }
         , linePipeline { createGraphicPipeline(
               geometry::createVertexInputState(), VK_NULL_HANDLE, linePipelineLayout,
-              Shader {
-                  ShaderInfo<VK_SHADER_STAGE_VERTEX_BIT> { shaders / "line.vert.spv", nullptr },
-                  ShaderInfo<VK_SHADER_STAGE_FRAGMENT_BIT> { shaders / "line.frag.spv", nullptr },
+              shader::Shader {
+                  shader::ShaderInfo2<shader::Type::line, shader::Stage::vertex> { nullptr },
+                  shader::ShaderInfo2<shader::Type::line, shader::Stage::fragment> { nullptr },
               },
               VkPipelineInputAssemblyStateCreateInfo {
                   .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
@@ -183,9 +182,9 @@ public:
                                                      descriptor.setLayout) }
         , pointPipeline { createGraphicPipeline(
               geometry::createVertexInputState(), VK_NULL_HANDLE, pointPipelineLayout,
-              Shader {
-                  ShaderInfo<VK_SHADER_STAGE_VERTEX_BIT> { shaders / "point.vert.spv", nullptr },
-                  ShaderInfo<VK_SHADER_STAGE_FRAGMENT_BIT> { shaders / "point.frag.spv", nullptr },
+              shader::Shader {
+                  shader::ShaderInfo2<shader::Type::point, shader::Stage::vertex> { nullptr },
+                  shader::ShaderInfo2<shader::Type::point, shader::Stage::fragment> { nullptr },
               },
               VkPipelineInputAssemblyStateCreateInfo {
                   .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
@@ -318,7 +317,7 @@ public:
 
 
 private:
-    static std::vector<Renderable> createRenderables(const std::filesystem::path& shaders, const Descriptor& descriptor,
+    static std::vector<Renderable> createRenderables(const Descriptor&                descriptor,
                                                      const std::vector<asset::Asset>& assets)
     {
         std::vector<Renderable> renderables;
@@ -335,15 +334,14 @@ private:
                     createPipelineLayout(pushConstantRange, descriptor.setLayout, asset.materialDescriptorSetLayout)
             };
 
-            const auto   verticesShader  = shaders / (asset.shader + ".vert.spv");
-            const auto   fragmentsShader = shaders / (asset.shader + ".frag.spv");
-            const Shader shader {
-                ShaderInfo<VK_SHADER_STAGE_VERTEX_BIT> { verticesShader, nullptr },
-                ShaderInfo<VK_SHADER_STAGE_FRAGMENT_BIT> { fragmentsShader, nullptr },
-            };
-            renderables.emplace_back(
-                asset, pipelineLayout,
-                createGraphicPipeline(asset.vertexInputState, VK_NULL_HANDLE, pipelineLayout, shader));
+            // const auto           verticesShader  = shaders / (asset.shader + ".vert.spv");
+            // const auto           fragmentsShader = shaders / (asset.shader + ".frag.spv");
+            // const shader::Shader shader {
+            //     shader::ShaderInfo2<shader::Type::gltfAnimated, shader::Stage::vertex> { nullptr },
+            //     shader::ShaderInfo2<shader::Type::gltfAnimated, shader::Stage::fragment> { nullptr },
+
+            renderables.emplace_back(asset, pipelineLayout,
+                                     createGraphicPipeline(asset.vertexInputState, pipelineLayout, asset.shader));
         }
         return renderables;
     }

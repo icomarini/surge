@@ -1,5 +1,6 @@
 #pragma once
 
+#include "surge/shader_library.hpp"
 #include "surge/asset/Node.hpp"
 #include "surge/asset/Scene.hpp"
 #include "surge/asset/Skin.hpp"
@@ -92,9 +93,9 @@ public:
     fastgltf::Asset                              asset;
     std::map<TextureType, std::filesystem::path> externalTextures;
 
-    std::string shader() const
+    shader::Type shader() const
     {
-        return asset.skins.empty() ? "gltf_static" : "gltf_animated";
+        return asset.skins.empty() ? shader::Type::gltfStatic : shader::Type::gltfAnimated;
     }
 
 

@@ -86,12 +86,4 @@ inline constexpr bool is_specialization_of_v = is_specialization_of<T, Primary>:
 //     auto operator
 //     using Ts::operator()...;
 // };
-
-std::filesystem::path executablePath(int argc, char* argv[]);
-std::filesystem::path executablePath(int argc, char* argv[])
-{
-    assert(argc > 0);
-    return std::filesystem::path(argv[0]).parent_path();
-}
-
 }  // namespace surge

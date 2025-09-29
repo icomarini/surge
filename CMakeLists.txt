@@ -64,7 +64,7 @@ set_property(TARGET fastgltf PROPERTY IMPORTED_LOCATION ${LIB_FASTGLTF_LIB}/libf
 target_include_directories(fastgltf INTERFACE ${LIB_FASTGLTF_INCLUDE})
 
 
-# fastgltf ====================================================================
+# simdjeson ===================================================================
 if (NOT DEFINED LIB_SIMDJSON_INCLUDE)
     message(FATAL_ERROR "Missing path to simdjson include folder" )
 endif()

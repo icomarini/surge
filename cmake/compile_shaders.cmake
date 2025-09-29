@@ -8,7 +8,7 @@ function (target_shaders target shaders)
         add_custom_command(
           COMMENT "Building ${SHADER_FILENAME}"
           OUTPUT "${SHADER_SPIRV_PATH}"
-          COMMAND ${GLSLC} "${SHADER_PATH}" -o "${SHADER_SPIRV_PATH}" -MD -MF ${DEPFILE} -g
+          COMMAND ${EXE_GLSLC} "${SHADER_PATH}" -o "${SHADER_SPIRV_PATH}" -MD -MF ${DEPFILE} -g
           DEPENDS "${SHADER_PATH}"
           DEPFILE "${DEPFILE}"
         )

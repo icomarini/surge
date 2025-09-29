@@ -32,19 +32,19 @@ public:
         , command {}
         , presenter { command }
         , defaults { command, resources }
-        , skybox { command, resources.at("shaders"), resources.at("skyboxTexture") }
+        , skybox { command, resources.at("skyboxTexture") }
         , lines {}
         , points {}
         , assets { createAssets(command, resources) }
-        , renderer { resources.at("shaders"), assets, lines, points }
-        , overlay { command, resources.at("shaders"), userInteraction, assets }
+        , renderer { assets, lines, points }
+        , overlay { command, userInteraction, assets }
         , forceRegistry {}
     {
         // preallocation
         lines.reserve(256);
         points.reserve(256);
 
-        std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge begun" << std::endl;
+        std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge started" << std::endl;
     }
 
     ~Application()

@@ -5,6 +5,7 @@
 #include "surge/Buffer.hpp"
 #include "surge/Defaults.hpp"
 #include "surge/Model.hpp"
+#include "surge/shader_library.hpp"
 #include "surge/asset/Animation.hpp"
 #include "surge/asset/GltfAsset.hpp"
 #include "surge/asset/ObjAsset.hpp"
@@ -61,7 +62,7 @@ class Asset
 public:
     std::string           name;
     std::filesystem::path path;
-    std::string           shader;
+    shader::Type          shader;
 
     std::vector<Texture> textures;
 
@@ -128,7 +129,7 @@ public:
           const math::Matrix<4, 4>& modelMatrix = math::fullMatrix(math::identity<4>))
         : name { obj.name }
         , path { obj.path }
-        , shader { "shader" }
+        , shader { shader::Type::shader }
         , textures { obj.createTextures(command, defaults) }
         , descriptorPool { obj.createDescriptorPool() }
         , materialDescriptorSetLayout { obj.createMaterialDescriptorSetLayout() }
