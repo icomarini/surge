@@ -40,8 +40,8 @@ public:
                                                 descriptor.setLayout) }
         , pipeline { createGraphicPipeline(
               geometry::createVertexInputState<LoadedOverlay::Vertex>(), VK_NULL_HANDLE, pipelineLayout,
-              shader::Shader { shader::ShaderInfo2<shader::Type::ui, shader::Stage::vertex> { nullptr },
-                               shader::ShaderInfo2<shader::Type::ui, shader::Stage::fragment> { nullptr } },
+              shader::Shader { shader::ShaderInfo<shader::Type::ui, shader::Stage::vertex> { nullptr },
+                               shader::ShaderInfo<shader::Type::ui, shader::Stage::fragment> { nullptr } },
               VkPipelineRasterizationStateCreateInfo {
                   .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
                   .pNext                   = nullptr,

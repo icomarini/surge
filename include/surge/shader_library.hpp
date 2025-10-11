@@ -37,19 +37,6 @@ constexpr VkShaderStageFlagBits translate(const Stage stage)
     }
 }
 
-constexpr Stage translate(const VkShaderStageFlagBits stage)
-{
-    switch (stage)
-    {
-    case VkShaderStageFlagBits::VK_SHADER_STAGE_VERTEX_BIT:
-        return Stage::vertex;
-    case VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT:
-        return Stage::fragment;
-    default:
-        throw;
-    }
-}
-
 struct Entry
 {
     Type                 type;

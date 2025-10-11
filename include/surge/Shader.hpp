@@ -8,19 +8,8 @@
 
 namespace surge::shader
 {
-
-template<VkShaderStageFlagBits _stages, typename _Entry = void*>
-struct ShaderInfo
-{
-    static constexpr auto        stages = _stages;
-    const std::filesystem::path& path;
-
-    using Entry = _Entry;
-    const Entry entry;
-};
-
 template<Type _type, Stage _stage, typename _Entry = void*>
-struct ShaderInfo2
+struct ShaderInfo
 {
     static constexpr auto type  = _type;
     static constexpr auto stage = _stage;

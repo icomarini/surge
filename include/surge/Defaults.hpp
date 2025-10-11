@@ -114,8 +114,8 @@ public:
         , descriptorlessPipeline { createGraphicPipeline(
               geometry::createVertexInputState<geometry::PositionAndColor>(), VK_NULL_HANDLE,
               descriptorlessPipelineLayout,
-              shader::Shader { shader::ShaderInfo2<shader::Type::bbox, shader::Stage::vertex> { nullptr },
-                               shader::ShaderInfo2<shader::Type::bbox, shader::Stage::fragment> { nullptr } },
+              shader::Shader { shader::ShaderInfo<shader::Type::bbox, shader::Stage::vertex> { nullptr },
+                               shader::ShaderInfo<shader::Type::bbox, shader::Stage::fragment> { nullptr } },
               createRasterizationStateInfo(VK_POLYGON_MODE_LINE),
               VkPipelineInputAssemblyStateCreateInfo {
                   .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,

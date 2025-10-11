@@ -4,8 +4,8 @@
 #include "surge/Command.hpp"
 #include "surge/Camera.hpp"
 #include "surge/asset/Asset.hpp"
+#include "surge/physics/Physics.hpp"
 #include "surge/Pipeline.hpp"
-
 #include "surge/geometry/shapes.hpp"
 #include "surge/asset/Line.hpp"
 
@@ -156,8 +156,10 @@ public:
     };
 
 
-    Renderer(std::vector<asset::Asset>& assets, std::vector<asset::Line>& lines, std::vector<asset::Point>& points)
+    Renderer(std::vector<asset::Asset>& assets, const physics::Physics& physics /*, std::vector<asset::Line>& lines,
+             std::vector<asset::Point>& points*/)
         : assets { assets }
+        , physics { physics }
         , camera { 16.0 / 9.0, { 0.0f, 1.0f, 3.0f }, { 0.0f, 0.0f, -1.0f } }
         , scene { 2 * sizeof(math::Matrix<4, 4>), UniformBufferInfo {} }
         , descriptor { 1, UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT> { scene } }
@@ -167,8 +169,8 @@ public:
         , linePipeline { createGraphicPipeline(
               geometry::createVertexInputState(), VK_NULL_HANDLE, linePipelineLayout,
               shader::Shader {
-                  shader::ShaderInfo2<shader::Type::line, shader::Stage::vertex> { nullptr },
-                  shader::ShaderInfo2<shader::Type::line, shader::Stage::fragment> { nullptr },
+                  shader::ShaderInfo<shader::Type::line, shader::Stage::vertex> { nullptr },
+                  shader::ShaderInfo<shader::Type::line, shader::Stage::fragment> { nullptr },
               },
               VkPipelineInputAssemblyStateCreateInfo {
                   .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
@@ -177,14 +179,13 @@ public:
                   .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
                   .primitiveRestartEnable = VK_FALSE,
               }) }
-        , lines { lines }
         , pointPipelineLayout { createPipelineLayout(createPushConstantRange<asset::Point>(VK_SHADER_STAGE_VERTEX_BIT),
                                                      descriptor.setLayout) }
         , pointPipeline { createGraphicPipeline(
               geometry::createVertexInputState(), VK_NULL_HANDLE, pointPipelineLayout,
               shader::Shader {
-                  shader::ShaderInfo2<shader::Type::point, shader::Stage::vertex> { nullptr },
-                  shader::ShaderInfo2<shader::Type::point, shader::Stage::fragment> { nullptr },
+                  shader::ShaderInfo<shader::Type::point, shader::Stage::vertex> { nullptr },
+                  shader::ShaderInfo<shader::Type::point, shader::Stage::fragment> { nullptr },
               },
               VkPipelineInputAssemblyStateCreateInfo {
                   .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
@@ -193,7 +194,6 @@ public:
                   .topology               = VK_PRIMITIVE_TOPOLOGY_POINT_LIST,
                   .primitiveRestartEnable = VK_FALSE,
               }) }
-        , points { points }
     {
     }
 
@@ -205,69 +205,171 @@ public:
         context().destroy(linePipelineLayout);
     }
 
-    void drawLines(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const
+    void drawLine(const asset::Line& line, const VkCommandBuffer commandBuffer,
+                  const VkDescriptorSet sceneDescriptor) const
     {
-        for (const auto& line : lines)
+        constexpr uint32_t sceneUniformIndex = 0;
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, linePipelineLayout, sceneUniformIndex,
+                                1, &sceneDescriptor, 0, nullptr);
+
+        auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
+            vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
+        assert(setPolygonMode);
+        setPolygonMode(commandBuffer, translate(PolygonMode::line));
+
+        vkCmdSetLineWidth(commandBuffer, 1.0);
+
+        vkCmdPushConstants(commandBuffer, linePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(asset::Line),
+                           &line);
+
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, linePipeline);
+
+        vkCmdDraw(commandBuffer, 2, 1, 0, 0);
+    }
+
+    // void drawLines(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const
+    // {
+    //     for (const auto& line : lines)
+    //     {
+    //         drawLine(line, commandBuffer, sceneDescriptor);
+    // // bind scene uniform
+    // constexpr uint32_t sceneUniformIndex = 0;
+    // vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, linePipelineLayout,
+    //                         sceneUniformIndex, 1, &sceneDescriptor, 0, nullptr);
+
+    // auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
+    //     vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
+    // assert(setPolygonMode);
+    // setPolygonMode(commandBuffer, translate(PolygonMode::line));
+
+    // vkCmdSetLineWidth(commandBuffer, 1.0);
+
+    // vkCmdPushConstants(commandBuffer, linePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(asset::Line),
+    //                    &line);
+
+    // vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, linePipeline);
+
+    // vkCmdDraw(commandBuffer, 2, 1, 0, 0);
+    //     }
+    // }
+
+    void drawAnchors(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const
+    {
+        for (const auto& anchor : physics.anchors)
         {
-            // bind scene uniform
-            constexpr uint32_t sceneUniformIndex = 0;
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, linePipelineLayout,
-                                    sceneUniformIndex, 1, &sceneDescriptor, 0, nullptr);
-
-            auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
-                vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
-            assert(setPolygonMode);
-            setPolygonMode(commandBuffer, translate(PolygonMode::line));
-
-            vkCmdSetLineWidth(commandBuffer, 1.0);
-
-            vkCmdPushConstants(commandBuffer, linePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(asset::Line),
-                               &line);
-
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, linePipeline);
-
-            vkCmdDraw(commandBuffer, 2, 1, 0, 0);
+            drawPoint(
+                asset::Point {
+                    .p     = anchor.position,
+                    .color = colors::red,
+                },
+                commandBuffer, sceneDescriptor);
         }
     }
 
-    void drawPoints(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const
+    void drawParticles(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const
     {
-        for (const auto& point : points)
+        for (const auto& particle : physics.particles)
         {
-            // bind scene uniform
-            constexpr uint32_t sceneUniformIndex = 0;
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pointPipelineLayout,
-                                    sceneUniformIndex, 1, &sceneDescriptor, 0, nullptr);
-
-            auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
-                vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
-            assert(setPolygonMode);
-            setPolygonMode(commandBuffer, translate(PolygonMode::point));
-
-            vkCmdPushConstants(commandBuffer, pointPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(asset::Point),
-                               &point);
-
-            vkCmdSetLineWidth(commandBuffer, 1.0);
-
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pointPipeline);
-
-            vkCmdDraw(commandBuffer, 1, 1, 0, 0);
+            drawPoint(
+                asset::Point {
+                    .p     = particle.position,
+                    .color = colors::green,
+                },
+                commandBuffer, sceneDescriptor);
         }
     }
+
+    void drawAnchoredSprings(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const
+    {
+        for (const auto& anchoredSpring : physics.anchoredSprings)
+        {
+            drawLine(
+                asset::Line {
+                    .a     = anchoredSpring.anchor.position,
+                    .b     = anchoredSpring.particle.position,
+                    .color = colors::white,
+                },
+                commandBuffer, sceneDescriptor);
+        }
+    }
+
+    void drawSprings(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const
+    {
+        for (const auto& spring : physics.springs)
+        {
+            drawLine(
+                asset::Line {
+                    .a     = spring.first.position,
+                    .b     = spring.second.position,
+                    .color = colors::white,
+                },
+                commandBuffer, sceneDescriptor);
+        }
+    }
+
+    void drawPoint(const asset::Point& point, const VkCommandBuffer commandBuffer,
+                   const VkDescriptorSet sceneDescriptor) const
+    {
+        constexpr uint32_t sceneUniformIndex = 0;
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pointPipelineLayout, sceneUniformIndex,
+                                1, &sceneDescriptor, 0, nullptr);
+
+        auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
+            vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
+        assert(setPolygonMode);
+        setPolygonMode(commandBuffer, translate(PolygonMode::point));
+
+        vkCmdPushConstants(commandBuffer, pointPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(asset::Point),
+                           &point);
+
+        vkCmdSetLineWidth(commandBuffer, 1.0);
+
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pointPipeline);
+
+        vkCmdDraw(commandBuffer, 1, 1, 0, 0);
+    }
+
+    // void drawPoints(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const
+    // {
+    //     for (const auto& point : points)
+    //     {
+    //         drawPoint(point, commandBuffer, sceneDescriptor);
+    // // bind scene uniform
+    // constexpr uint32_t sceneUniformIndex = 0;
+    // vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pointPipelineLayout,
+    //                         sceneUniformIndex, 1, &sceneDescriptor, 0, nullptr);
+
+    // auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
+    //     vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
+    // assert(setPolygonMode);
+    // setPolygonMode(commandBuffer, translate(PolygonMode::point));
+
+    // vkCmdPushConstants(commandBuffer, pointPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+    // sizeof(asset::Point),
+    //                    &point);
+
+    // vkCmdSetLineWidth(commandBuffer, 1.0);
+
+    // vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pointPipeline);
+
+    // vkCmdDraw(commandBuffer, 1, 1, 0, 0);
+    //     }
+    // }
 
     std::vector<asset::Asset>&  assets;
+    const physics::Physics&     physics;
     mutable Camera<true, false> camera;
     Buffer                      scene;
     Descriptor                  descriptor;
     std::vector<Renderable>     renderables;
 
-    VkPipelineLayout          linePipelineLayout;
-    VkPipeline                linePipeline;
-    std::vector<asset::Line>& lines;
+    VkPipelineLayout linePipelineLayout;
+    VkPipeline       linePipeline;
+    // std::vector<asset::Line>& lines;
 
-    VkPipelineLayout           pointPipelineLayout;
-    VkPipeline                 pointPipeline;
-    std::vector<asset::Point>& points;
+    VkPipelineLayout pointPipelineLayout;
+    VkPipeline       pointPipeline;
+    // std::vector<asset::Point>& points;
 
     // RenderableLine  renderableLine;
     // RenderablePoint renderablePoint;
@@ -311,8 +413,16 @@ public:
             renderable.draw(commandBuffer, descriptor.set);
         }
 
-        drawLines(commandBuffer, descriptor.set);
-        drawPoints(commandBuffer, descriptor.set);
+        if (!physics.particles.empty())
+        {
+            drawParticles(commandBuffer, descriptor.set);
+        }
+        drawAnchors(commandBuffer, descriptor.set);
+        drawAnchoredSprings(commandBuffer, descriptor.set);
+        drawSprings(commandBuffer, descriptor.set);
+
+        // drawLines(commandBuffer, descriptor.set);
+        // drawPoints(commandBuffer, descriptor.set);
     }
 
 

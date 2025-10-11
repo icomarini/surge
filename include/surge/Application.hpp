@@ -12,11 +12,41 @@
 #include "surge/asset/Asset.hpp"
 #include "surge/asset/Line.hpp"
 
-#include "surge/physics/ParticleForceRegistry.hpp"
+#include "surge/physics/Physics.hpp"
 
 
 namespace surge
 {
+
+void createRope(physics::Physics& physics, const physics::Position& first, const physics::Position& second,
+                const int size)
+{
+    auto& firstAnchor  = physics.addAnchor(first);
+    auto& secondAnchor = physics.addAnchor(second);
+
+    const auto trajectory = second - first;
+    const auto distance   = math::norm(trajectory);
+    const auto direction  = math::normalize(trajectory);
+
+    std::vector<physics::Particle*> particles;
+    particles.reserve(size - 2);
+    for (int index = 1; index < size - 1; ++index)
+    {
+        const auto step     = index * distance / size;
+        const auto position = first + step * direction;
+        particles.emplace_back(&physics.addParticle(physics::Mass { 0.01 }, position));
+    };
+    constexpr physics::Scalar springConstant = 0.1;
+    constexpr physics::Scalar restLength     = 0.0;
+    // const physics::Scalar     restLength     = distance / size;
+    physics.addAnchoredSpring(firstAnchor, *particles.front(), springConstant, restLength);
+    physics.addAnchoredSpring(secondAnchor, *particles.back(), springConstant, restLength);
+    for (int index = 0; index < size - 3; ++index)
+    {
+        physics.addSpring(*particles.at(index), *particles.at(index + 1), springConstant, restLength);
+    };
+}
+
 
 class Application
 {
@@ -32,19 +62,48 @@ public:
         , command {}
         , presenter { command }
         , defaults { command, resources }
-        , skybox { command, resources.at("skyboxTexture") }
-        , lines {}
-        , points {}
+        , skybox { command, resources.at("skyboxTexture") }  // , lines {}
+                                                             // , points {}
+        , physics { physics::earthGravity }
         , assets { createAssets(command, resources) }
-        , renderer { assets, lines, points }
+        , renderer { assets, physics /*, lines, points*/ }
         , overlay { command, userInteraction, assets }
         , forceRegistry {}
     {
         // preallocation
-        lines.reserve(256);
-        points.reserve(256);
+        // lines.reserve(256);
+        // points.reserve(256);
+        resetPhysics();
 
         std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge started" << std::endl;
+    }
+
+    void resetPhysics()
+    {
+        using namespace physics;
+        physics.clear();
+        {
+            auto& anchor1   = physics.addAnchor(Position { 0, 0.5, 0 });
+            auto& anchor2   = physics.addAnchor(Position { 0, 0.5, 1 });
+            auto& anchor3   = physics.addAnchor(Position { 1, 0.5, 0 });
+            auto& anchor4   = physics.addAnchor(Position { 1, 0.5, 1 });
+            auto& particle1 = physics.addParticle(Mass { 1 }, Position { 0.4, 1.0, 0.5 });
+
+            constexpr Scalar springConstant = 0.5;
+            constexpr Scalar restLength     = 1;
+            physics.addAnchoredSpring(anchor1, particle1, springConstant, restLength);
+            physics.addAnchoredSpring(anchor2, particle1, springConstant, restLength);
+            physics.addAnchoredSpring(anchor3, particle1, springConstant, restLength);
+            physics.addAnchoredSpring(anchor4, particle1, springConstant, restLength);
+
+            auto& particle2 = physics.addParticle(Mass { 0.1 }, Position { -1.4, 1.0, 0.5 });
+            physics.addSpring(particle1, particle2, springConstant, restLength);
+        }
+
+        {
+            createRope(physics, Position { -10, 0, 0 }, Position { 0, 0, -10 }, 64);
+            createRope(physics, Position { -9, 0, 0 }, Position { 0, 0, -9 }, 64);
+        }
     }
 
     ~Application()
@@ -54,50 +113,10 @@ public:
                   << std::endl;
     }
 
-    void addAnchoredSpring(physics::Particle& particle, physics::ParticleAnchoredSpring& anchoredSpring)
-    {
-        forceRegistry.add(particle, anchoredSpring);
-        points.emplace_back(anchoredSpring.anchor, colors::red);
-        lines.emplace_back(anchoredSpring.anchor, particle.position, colors::white);
-    }
-
     void run()
     {
-        double elapsedTime = {};
-
-        // particle
-        constexpr physics::Particle particleInitialState {
-            .mass             = 0.1f,
-            .position         = { 0.5, 1.0, 0.5 },
-            .velocity         = { 0, 0, 0 },
-            .acceleration     = {},
-            .damping          = 0.995,
-            .accumulatedForce = {},
-        };
-        bool              particleActive = false;
-        physics::Particle particle       = particleInitialState;
-        auto&             point          = points.emplace_back(particle.position, colors::green);
-
-        // gravity
-        constexpr math::Vector<3> earthGravity { 0, -9.81, 0 };
-        physics::ParticleGravity  gravity { earthGravity };
-        forceRegistry.add(particle, gravity);
-
-        // spring 1
-        physics::ParticleAnchoredSpring anchoredSpring1 { math::Vector<3> { 0, 1, 0 }, 4, 1, 0.05 };
-        addAnchoredSpring(particle, anchoredSpring1);
-
-        // spring 2
-        physics::ParticleAnchoredSpring anchoredSpring2 { math::Vector<3> { 0, 1, 1 }, 4, 1, 0.05 };
-        addAnchoredSpring(particle, anchoredSpring2);
-
-        // spring 3
-        physics::ParticleAnchoredSpring anchoredSpring3 { math::Vector<3> { 1, 1, 0 }, 4, 1, 0.05 };
-        addAnchoredSpring(particle, anchoredSpring3);
-
-        // spring 4
-        physics::ParticleAnchoredSpring anchoredSpring4 { math::Vector<3> { 1, 1, 1 }, 4, 1, 0.05 };
-        addAnchoredSpring(particle, anchoredSpring4);
+        double elapsedTime   = {};
+        bool   physicsActive = false;
 
         auto     start = std::chrono::high_resolution_clock::now();
         uint32_t ticCount {};
@@ -110,37 +129,21 @@ public:
 
                 // === physics playground ===
                 using KeyState = UserInteraction::KeyState;
-                if (!particleActive && userInteraction.mouse.left == KeyState::press)
+                if (!physicsActive && userInteraction.mouse.left == KeyState::press)
                 {
-                    particleActive = true;
+                    physicsActive = true;
                 }
 
-                if (particleActive)
+                if (physicsActive)
                 {
                     const auto duration = userInteraction.elapsedTime;
-                    forceRegistry.updateForces(duration);
-                    particle.integrate(duration);
 
-                    for (auto& line : lines)
+                    physics.update(duration);
+
+                    if (userInteraction.mouse.right == KeyState::press)
                     {
-                        line.b = particle.position;
-                    }
-                    point.p = particle.position;
-
-
-                    constexpr math::Scaling scaling { math::Vector<3> { 0.01f, 0.01f, 0.01f } };
-                    assets.at(0).state.modelMatrix = math::Translation { particle.position } * scaling;
-
-                    if (math::get<1>(particle.position) < -10.0f || userInteraction.mouse.right == KeyState::press)
-                    {
-                        particle = particleInitialState;
-                        for (auto& line : lines)
-                        {
-                            line.b = particle.position;
-                        }
-                        point.p                        = particle.position;
-                        assets.at(0).state.modelMatrix = math::Translation { particle.position } * scaling;
-                        particleActive                 = false;
+                        resetPhysics();
+                        physicsActive = false;
                     }
                 }
                 // === physics playground ===
@@ -170,18 +173,19 @@ private:
     }
 
 private:
-    mutable UserInteraction        userInteraction;
-    const Context&                 ctx;
-    const Command                  command;
-    Presenter                      presenter;
-    const Defaults                 defaults;
-    Skybox                         skybox;
-    std::vector<asset::Line>       lines;
-    std::vector<asset::Point>      points;
-    std::vector<asset::Asset>      assets;
-    Renderer                       renderer;
-    overlay::Overlay               overlay;
-    physics::ParticleForceRegistry forceRegistry;
+    mutable UserInteraction userInteraction;
+    const Context&          ctx;
+    const Command           command;
+    Presenter               presenter;
+    const Defaults          defaults;
+    Skybox                  skybox;
+    // std::vector<asset::Line>  lines;
+    // std::vector<asset::Point> points;
+    physics::Physics          physics;
+    std::vector<asset::Asset> assets;
+    Renderer                  renderer;
+    overlay::Overlay          overlay;
+    physics::ForceRegistry    forceRegistry;
 
     // const ShadowMap  shadowMap;
     // const Scene      scene;
@@ -212,14 +216,14 @@ private:
         //                     asset::ObjAsset { "viking room", resources.at("vikingRoomModel"),
         //                                              resources.at("vikingRoomTexture") });
 
-        const math::Vector<3> translation { -1.0f, 1.0f, 0.0f };
-        const math::Vector<3> scaling { 0.01f, 0.01f, 0.01f };
+        // const math::Vector<3> translation { -1.0f, 1.0f, 0.0f };
+        // const math::Vector<3> scaling { 0.01f, 0.01f, 0.01f };
 
-        assets.emplace_back(command, defaults,
-                            asset::ObjAsset { "container",
-                                              "/home/ico/projects/Container_v1_L1/12279_Container_v1_l1.obj",
-                                              "/home/ico/projects/Container_v1_L1/Container_diffuse.jpg" },
-                            math::Translation { translation } * math::Scaling { scaling });
+        // assets.emplace_back(command, defaults,
+        //                     asset::ObjAsset { "container",
+        //                                       "/home/ico/projects/Container_v1_L1/12279_Container_v1_l1.obj",
+        //                                       "/home/ico/projects/Container_v1_L1/Container_diffuse.jpg" },
+        //                     math::Translation { translation } * math::Scaling { scaling });
 
         // using Type                       = asset::GltfAsset::TextureType;
         // const std::filesystem::path base = "/home/ico/projects/extern/Vulkan/assets/models/cerberus";
@@ -253,7 +257,7 @@ private:
                 }
             }
         }
-
+        // std::vector<asset::Asset> assets;
         return assets;
     }
 };

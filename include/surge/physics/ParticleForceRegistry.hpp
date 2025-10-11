@@ -6,14 +6,14 @@
 
 namespace surge::physics
 {
-class ParticleForceRegistry
+class ForceRegistry
 {
 protected:
     /**
      * Keeps track of one force generator and the particle it
      * applies to.
      */
-    struct ParticleForceRegistration
+    struct Entry
     {
         Particle&               particle;
         ParticleForceGenerator& fg;
@@ -22,7 +22,7 @@ protected:
     /**
      * Holds the list of registrations.
      */
-    using Registry = std::vector<ParticleForceRegistration>;
+    using Registry = std::vector<Entry>;
     Registry registrations;
 
 public:
@@ -32,7 +32,12 @@ public:
      */
     void add(Particle& particle, ParticleForceGenerator& forceGenerator)
     {
-        registrations.push_back(ParticleForceRegistration { particle, forceGenerator });
+        registrations.push_back(Entry { particle, forceGenerator });
+    }
+
+    void clear()
+    {
+        registrations.clear();
     }
 
     /**
@@ -53,11 +58,13 @@ public:
      * Calls all the force generators to update the forces of
      * their corresponding particles.
      */
-    void updateForces(const float duration) const
+    void updateForces(const Time duration) const
     {
+        int i = 0;
         for (auto& [particle, forceGenerator] : registrations)
         {
             forceGenerator.updateForce(particle, duration);
+            ++i;
         }
     }
 };

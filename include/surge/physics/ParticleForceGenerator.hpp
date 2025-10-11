@@ -7,19 +7,20 @@ namespace surge::physics
 class ParticleForceGenerator
 {
 public:
-    virtual void updateForce(Particle& particle, const float duration) = 0;
+    virtual void updateForce(Particle& particle, const Time duration) = 0;
 };
 
 
 class ParticleGravity : public ParticleForceGenerator
 {
 public:
-    constexpr ParticleGravity(const math::Vector<3>& gravity)
+    constexpr ParticleGravity(const Acceleration& gravity)
         : gravity { gravity }
     {
     }
 
-    virtual void updateForce(Particle& particle, const float /*duration*/)
+
+    virtual void updateForce(Particle& particle, const Time /*duration*/)
     {
         if (!particle.finiteMass())
         {
@@ -28,49 +29,79 @@ public:
         particle.addForce(gravity * particle.mass);
     }
 
-    math::Vector<3> gravity;
+    Acceleration gravity;
 };
 
 class ParticleSpring : public ParticleForceGenerator
 {
     /** The particle at the other end of the spring. */
-    Particle* other;
+    const Particle& other;
 
     /** Holds the sprint constant. */
-    float springConstant;
+    Scalar springConstant;
 
     /** Holds the rest length of the spring. */
-    float restLength;
+    Scalar restLength;
+    Scalar damping;
 
 public:
     /** Creates a new spring with the given parameters. */
-    ParticleSpring(Particle* other, float springConstant, float restLength)
+    ParticleSpring(const Particle& other, const Scalar springConstant, const Scalar restLength, const Scalar damping)
         : other { other }
         , springConstant { springConstant }
         , restLength { restLength }
+        , damping { damping }
     {
     }
 
     /** Applies the spring force to the given particle. */
-    virtual void updateForce(Particle& particle, float)
+    virtual void updateForce(Particle& particle, const Time)
     {
-        // Calculate the vector of the spring
-        // Vector3 force;
-        // particle->getPosition(&force);
-        // force -= other->getPosition();
-        const auto force          = particle.position - other->position;
-        const auto forceIntensity = math::norm(force);
+        const auto force     = particle.position - other.position;
+        const auto intensity = math::norm(force);
+        if (math::equal(intensity, 0.0, 1e-6))
+        {
+            return;
+        }
+        const auto magnitude = (restLength - intensity) * springConstant / intensity;
+        particle.addForce(magnitude * force - damping * particle.velocity);
+    }
+};
 
-        // Calculate the magnitude of the force
-        // real magnitude = force.magnitude();
-        // magnitude      = real_abs(magnitude - restLength);
-        // magnitude *= springConstant;
-        const auto magnitude = springConstant * std::abs(forceIntensity - restLength);
+class Spring : public ParticleForceGenerator
+{
+public:
+    Particle& first;
+    Particle& second;
 
-        // Calculate the final force and apply it
-        // force.normalise();
-        // force *= -magnitude;
-        particle.addForce((magnitude / forceIntensity) * force);
+    Scalar springConstant;
+    Scalar restLength;
+    Scalar damping;
+
+
+    /** Creates a new spring with the given parameters. */
+    Spring(Particle& first, Particle& second, const Scalar springConstant, const Scalar restLength,
+           const Scalar damping)
+        : first { first }
+        , second { second }
+        , springConstant { springConstant }
+        , restLength { restLength }
+        , damping { damping }
+    {
+    }
+
+    /** Applies the spring force to the given particle. */
+    virtual void updateForce(Particle&, const Time)
+    {
+        const auto distance  = first.position - second.position;
+        const auto intensity = math::norm(distance);
+        if (math::equal(intensity, 0.0, 1e-6))
+        {
+            return;
+        }
+        const auto magnitude = (restLength - intensity) * springConstant / intensity;
+        first.addForce(magnitude * distance - damping * first.velocity);
+        second.addForce(-magnitude * distance - damping * second.velocity);
     }
 };
 
@@ -78,8 +109,7 @@ public:
 class ParticleAnchoredSpring : public ParticleForceGenerator
 {
 public:
-    ParticleAnchoredSpring(const math::Vector<3>& anchor, const float springConstant, const float restLength,
-                           float damping)
+    ParticleAnchoredSpring(const Anchor& anchor, const Scalar springConstant, const Scalar restLength, Scalar damping)
         : anchor { anchor }
         , springConstant { springConstant }
         , restLength { restLength }
@@ -87,22 +117,66 @@ public:
     {
     }
 
-    virtual void updateForce(Particle& particle, const float)
+    virtual void updateForce(Particle& particle, const Time)
     {
-        const auto force = particle.position - anchor;
-        const auto norm  = math::norm(force);
-        if (math::equal(norm, 0.0, 1e-6))
+        const auto force     = particle.position - anchor.position;
+        const auto intensity = math::norm(force);
+        if (math::equal(intensity, 0.0, 1e-6))
         {
             return;
         }
-        const auto magnitude = (restLength - norm) * springConstant / norm;
+        const auto magnitude = (restLength - intensity) * springConstant / intensity;
         particle.addForce(magnitude * force - damping * particle.velocity);
     }
 
-    math::Vector<3> anchor;
-    float           springConstant;
-    float           restLength;
-    float           damping;
+    Anchor anchor;
+    Scalar springConstant;
+    Scalar restLength;
+    Scalar damping;
+};
+
+class AnchoredSpring : public ParticleForceGenerator
+{
+public:
+    AnchoredSpring(const Anchor& anchor, Particle& particle, const Scalar springConstant, const Scalar restLength,
+                   Scalar damping)
+        : anchor { anchor }
+        , particle { particle }
+        , springConstant { springConstant }
+        , restLength { restLength }
+        , damping { damping }
+    {
+    }
+
+    virtual void updateForce(Particle& particle, const Time) override
+    {
+        const auto force     = particle.position - anchor.position;
+        const auto intensity = math::norm(force);
+        if (math::equal(intensity, 0.0, 1e-6))
+        {
+            return;
+        }
+        const auto magnitude = (restLength - intensity) * springConstant / intensity;
+        particle.addForce(magnitude * force - damping * particle.velocity);
+    }
+
+    // void update(const Time)
+    // {
+    //     const auto force     = particle.position - anchor.position;
+    //     const auto intensity = math::norm(force);
+    //     if (math::equal(intensity, 0.0, 1e-6))
+    //     {
+    //         return;
+    //     }
+    //     const auto magnitude = (restLength - intensity) * springConstant / intensity;
+    //     particle.addForce(magnitude * force - damping * particle.velocity);
+    // }
+
+    const Anchor& anchor;
+    Particle&     particle;
+    Scalar        springConstant;
+    Scalar        restLength;
+    Scalar        damping;
 };
 
 }  // namespace surge::physics

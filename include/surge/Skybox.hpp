@@ -30,8 +30,8 @@ public:
         , pipelineLayout { createPipelineLayout(descriptor.setLayout) }
         , pipeline { createGraphicPipeline(
               geometry::createVertexInputState<geometry::Position>(), VK_NULL_HANDLE, pipelineLayout,
-              shader::Shader { shader::ShaderInfo2<shader::Type::skybox, shader::Stage::vertex> { nullptr },
-                               shader::ShaderInfo2<shader::Type::skybox, shader::Stage::fragment> { nullptr } },
+              shader::Shader { shader::ShaderInfo<shader::Type::skybox, shader::Stage::vertex> { nullptr },
+                               shader::ShaderInfo<shader::Type::skybox, shader::Stage::fragment> { nullptr } },
               VkPipelineRasterizationStateCreateInfo {
                   .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
                   .pNext                   = nullptr,

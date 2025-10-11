@@ -5,18 +5,37 @@
 namespace surge::physics
 {
 
+using Time         = float;
+using Mass         = float;
+using Position     = math::Vector<3>;
+using Velocity     = math::Vector<3>;
+using Acceleration = math::Vector<3>;
+using Force        = math::Vector<3>;
+using Scalar       = float;
+
+class Anchor
+{
+public:
+    Position position;
+};
 
 class Particle
 {
 public:
-    float           mass;
-    math::Vector<3> position;
-    math::Vector<3> velocity;
-    math::Vector<3> acceleration;
-    float           damping;
-    math::Vector<3> accumulatedForce;
+    // enum class Type
+    // {
+    //     anchored,
+    //     free
+    // };
+    // Type         type;
+    Mass         mass;
+    Position     position;
+    Velocity     velocity;
+    Acceleration acceleration;
+    Scalar       damping;
+    Force        accumulatedForce;
 
-    void integrate(float duration)
+    void integrate(const Time duration)
     {
         assert(duration > 0.0);
 
@@ -32,10 +51,10 @@ public:
 
     bool finiteMass() const
     {
-        return mass < std::numeric_limits<float>::max();
+        return mass < std::numeric_limits<Mass>::max();
     }
 
-    void addForce(const math::Vector<3>& force)
+    void addForce(const Force& force)
     {
         accumulatedForce += force;
     }

@@ -281,51 +281,51 @@ VkPipeline createGraphicPipeline(const VkPipelineVertexInputStateCreateInfo vert
         return createGraphicPipeline(
             vertexInputState, VK_NULL_HANDLE, pipelineLayout,
             shader::Shader {
-                shader::ShaderInfo2<shader::Type::gltfAnimated, shader::Stage::vertex> { nullptr },
-                shader::ShaderInfo2<shader::Type::gltfAnimated, shader::Stage::fragment> { nullptr },
+                shader::ShaderInfo<shader::Type::gltfAnimated, shader::Stage::vertex> { nullptr },
+                shader::ShaderInfo<shader::Type::gltfAnimated, shader::Stage::fragment> { nullptr },
             });
     case shader::Type::gltfStatic:
         return createGraphicPipeline(
             vertexInputState, VK_NULL_HANDLE, pipelineLayout,
             shader::Shader {
-                shader::ShaderInfo2<shader::Type::gltfStatic, shader::Stage::vertex> { nullptr },
-                shader::ShaderInfo2<shader::Type::gltfStatic, shader::Stage::fragment> { nullptr },
+                shader::ShaderInfo<shader::Type::gltfStatic, shader::Stage::vertex> { nullptr },
+                shader::ShaderInfo<shader::Type::gltfStatic, shader::Stage::fragment> { nullptr },
             });
     case shader::Type::bbox:
         return createGraphicPipeline(vertexInputState, VK_NULL_HANDLE, pipelineLayout,
                                      shader::Shader {
-                                         shader::ShaderInfo2<shader::Type::bbox, shader::Stage::vertex> { nullptr },
-                                         shader::ShaderInfo2<shader::Type::bbox, shader::Stage::fragment> { nullptr },
+                                         shader::ShaderInfo<shader::Type::bbox, shader::Stage::vertex> { nullptr },
+                                         shader::ShaderInfo<shader::Type::bbox, shader::Stage::fragment> { nullptr },
                                      });
     case shader::Type::line:
         return createGraphicPipeline(vertexInputState, VK_NULL_HANDLE, pipelineLayout,
                                      shader::Shader {
-                                         shader::ShaderInfo2<shader::Type::line, shader::Stage::vertex> { nullptr },
-                                         shader::ShaderInfo2<shader::Type::line, shader::Stage::fragment> { nullptr },
+                                         shader::ShaderInfo<shader::Type::line, shader::Stage::vertex> { nullptr },
+                                         shader::ShaderInfo<shader::Type::line, shader::Stage::fragment> { nullptr },
                                      });
     case shader::Type::point:
         return createGraphicPipeline(vertexInputState, VK_NULL_HANDLE, pipelineLayout,
                                      shader::Shader {
-                                         shader::ShaderInfo2<shader::Type::point, shader::Stage::vertex> { nullptr },
-                                         shader::ShaderInfo2<shader::Type::point, shader::Stage::fragment> { nullptr },
+                                         shader::ShaderInfo<shader::Type::point, shader::Stage::vertex> { nullptr },
+                                         shader::ShaderInfo<shader::Type::point, shader::Stage::fragment> { nullptr },
                                      });
     case shader::Type::shader:
         return createGraphicPipeline(vertexInputState, VK_NULL_HANDLE, pipelineLayout,
                                      shader::Shader {
-                                         shader::ShaderInfo2<shader::Type::shader, shader::Stage::vertex> { nullptr },
-                                         shader::ShaderInfo2<shader::Type::shader, shader::Stage::fragment> { nullptr },
+                                         shader::ShaderInfo<shader::Type::shader, shader::Stage::vertex> { nullptr },
+                                         shader::ShaderInfo<shader::Type::shader, shader::Stage::fragment> { nullptr },
                                      });
     case shader::Type::skybox:
         return createGraphicPipeline(vertexInputState, VK_NULL_HANDLE, pipelineLayout,
                                      shader::Shader {
-                                         shader::ShaderInfo2<shader::Type::skybox, shader::Stage::vertex> { nullptr },
-                                         shader::ShaderInfo2<shader::Type::skybox, shader::Stage::fragment> { nullptr },
+                                         shader::ShaderInfo<shader::Type::skybox, shader::Stage::vertex> { nullptr },
+                                         shader::ShaderInfo<shader::Type::skybox, shader::Stage::fragment> { nullptr },
                                      });
     case shader::Type::ui:
         return createGraphicPipeline(vertexInputState, VK_NULL_HANDLE, pipelineLayout,
                                      shader::Shader {
-                                         shader::ShaderInfo2<shader::Type::ui, shader::Stage::vertex> { nullptr },
-                                         shader::ShaderInfo2<shader::Type::ui, shader::Stage::fragment> { nullptr },
+                                         shader::ShaderInfo<shader::Type::ui, shader::Stage::vertex> { nullptr },
+                                         shader::ShaderInfo<shader::Type::ui, shader::Stage::fragment> { nullptr },
                                      });
     default:
         throw std::runtime_error("Unknown shader type");
