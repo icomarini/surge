@@ -81,12 +81,7 @@ public:
 
     std::vector<Skin>      skins;
     std::vector<Animation> animations;
-    struct JointMatricesSSBO
-    {
-        Buffer                buffer;
-        VkDescriptorSetLayout descriptorSetLayout;
-        VkDescriptorSet       descriptorSet;
-    };
+
     std::optional<ShaderStorageBufferObject> jointMatricesSSBO;
 
     struct State
@@ -96,6 +91,8 @@ public:
         std::vector<math::Matrix<4, 4>> jointMatrices;
     };
     mutable State state;
+
+    entity::Entity entity;
 
     // using UniformBufferDescr = UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT>;
     using SSBODescr = Description<VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, Buffer>;
@@ -118,9 +115,9 @@ public:
         , mainSceneIndex { gltf.mainSceneIndex() }
         , skins { gltf.createSkins(scenes.front().nodesLut) }
         , animations { gltf.createAnimations(scenes.front().nodesLut) }
-        // , jointMatricesSSBO { std::in_place, computeJointMatricesSize(skins), descriptorPool }
         , jointMatricesSSBO { createJointMatricesSSBO(descriptorPool, skins) }
         , state { false, modelMatrix, std::vector<math::Matrix<4, 4>> {} }
+        , entity { gltf.createEntity(mainSceneIndex) }
     {
         assert(scenes.size() > 0);
     }
@@ -143,6 +140,7 @@ public:
         , animations {}
         , jointMatricesSSBO {}
         , state { false, modelMatrix, std::vector<math::Matrix<4, 4>> {} }
+        , entity {}
     {
         assert(scenes.size() > 0);
     }
@@ -164,7 +162,7 @@ public:
         {
             for (const auto& node : scene.nodes)
             {
-                node.updateMatrices(math::identity<4>);
+                node.update(math::identity<4>);
             }
         }
 
@@ -175,6 +173,8 @@ public:
                 updateJoints(node);
             }
         }
+
+        entity.update(skins, animations.front(), elapsedTime);
     }
 
     void updateJoints(const Node& node)
@@ -187,7 +187,7 @@ public:
 
             const auto inverse = math::inverse(node.state.globalMatrix);
 
-            for (const auto& [jointNode, inverseBindMatrix] : skin.joints)
+            for (const auto& [jointNode, jointNodeIndex, inverseBindMatrix] : skin.joints)
             {
                 state.jointMatrices.emplace_back(inverse * jointNode.state.globalMatrix * inverseBindMatrix);
             }

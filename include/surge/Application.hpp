@@ -14,6 +14,7 @@
 
 #include "surge/physics/Physics.hpp"
 
+#include "surge/entity/Entity.hpp"
 
 namespace surge
 {
@@ -62,10 +63,10 @@ public:
         , command {}
         , presenter { command }
         , defaults { command, resources }
-        , skybox { command, resources.at("skyboxTexture") }  // , lines {}
-                                                             // , points {}
+        , skybox { command, resources.at("skyboxTexture") }
         , physics { physics::earthGravity }
         , assets { createAssets(command, resources) }
+        , entities {}
         , renderer { assets, physics /*, lines, points*/ }
         , overlay { command, userInteraction, assets }
         , forceRegistry {}
@@ -173,22 +174,18 @@ private:
     }
 
 private:
-    mutable UserInteraction userInteraction;
-    const Context&          ctx;
-    const Command           command;
-    Presenter               presenter;
-    const Defaults          defaults;
-    Skybox                  skybox;
-    // std::vector<asset::Line>  lines;
-    // std::vector<asset::Point> points;
-    physics::Physics          physics;
-    std::vector<asset::Asset> assets;
-    Renderer                  renderer;
-    overlay::Overlay          overlay;
-    physics::ForceRegistry    forceRegistry;
-
-    // const ShadowMap  shadowMap;
-    // const Scene      scene;
+    mutable UserInteraction     userInteraction;
+    const Context&              ctx;
+    const Command               command;
+    Presenter                   presenter;
+    const Defaults              defaults;
+    Skybox                      skybox;
+    physics::Physics            physics;
+    std::vector<asset::Asset>   assets;
+    std::vector<entity::Entity> entities;
+    Renderer                    renderer;
+    overlay::Overlay            overlay;
+    physics::ForceRegistry      forceRegistry;
 
     std::vector<asset::Asset> createAssets(const Command&                                      command,
                                            const std::map<std::string, std::filesystem::path>& resources)
@@ -210,6 +207,10 @@ private:
                 continue;
             }
             assets.emplace_back(command, defaults, asset::GltfAsset { name, resources.at(name) });
+            assets.emplace_back(
+                command, defaults,
+                asset::GltfAsset { "robot",
+                                   "/home/ico/projects/uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" });
         }
 
         // assets.emplace_back(command, defaults,
@@ -256,6 +257,26 @@ private:
                     child.state.active = true;
                 }
             }
+            asset.entity.update(asset.skins, asset.animations.front(), 0);
+            int nodeIndex { 0 };
+            for (const auto& node : asset.entity.nodes.nodes)
+            {
+                if (node.value.skinIndex)
+                {
+                    std::cout << "node " << nodeIndex << ": "
+                              << (node.value.skinIndex ? std::to_string(node.value.skinIndex.value()) :
+                                                         std::string("nope"))
+                              << std::endl;
+                    // for (const auto)
+                }
+                nodeIndex++;
+            }
+            std::cout << "roots:";
+            for (const auto root : asset.entity.nodes.roots)
+            {
+                std::cout << " " << root;
+            }
+            std::cout << std::endl;
         }
         // std::vector<asset::Asset> assets;
         return assets;

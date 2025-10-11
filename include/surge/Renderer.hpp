@@ -12,8 +12,7 @@
 namespace surge
 {
 
-VkPolygonMode translate(const PolygonMode polygonMode);
-VkPolygonMode translate(const PolygonMode polygonMode)
+constexpr VkPolygonMode translate(const PolygonMode polygonMode)
 {
     switch (polygonMode)
     {
@@ -41,11 +40,32 @@ public:
 
     struct Renderable
     {
-        const asset::Asset& asset;
-        VkPipelineLayout    pipelineLayout;
-        VkPipeline          pipeline;
+        const asset::Asset&      asset;
+        VkPipelineLayout         pipelineLayout;
+        VkPipeline               pipeline;
+        std::vector<asset::Node> nodes;
 
-        void drawNode(const VkCommandBuffer commandBuffer, const asset::Node& node,
+        struct Animation
+        {
+            // asset::ShaderStorageBufferObject jointMatricesSSBO;
+
+            mutable struct State
+            {
+                bool                            active { true };
+                float                           progress { 0 };
+                std::vector<math::Matrix<4, 4>> jointMatrices;
+            } state;
+        };
+        std::optional<Animation> animation;
+
+        struct State
+        {
+            bool               active { true };
+            math::Matrix<4, 4> modelMatrix;
+        };
+        mutable State state;
+
+        void drawNode(const asset::Asset& asset, const VkCommandBuffer commandBuffer, const asset::Node& node,
                       const math::Matrix<4, 4>& globalMatrix) const
         {
             if (!node.state.active)
@@ -60,20 +80,14 @@ public:
                 .fragmentStageFlag = node.state.fragmentStageFlag,
             };
 
-            if (node.mesh)
+            if (node.meshIndex)
             {
-                for (const auto& primitive : node.mesh->primitives)
+                for (const auto& primitive : asset.meshes.at(node.meshIndex.value()).primitives)
                 {
-                    constexpr VkDeviceSize offset { 0 };
-                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &asset.model.vertexBuffer.buffer, &offset);
-                    vkCmdBindIndexBuffer(commandBuffer, asset.model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-
                     auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
                         vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
                     assert(setPolygonMode);
                     setPolygonMode(commandBuffer, translate(node.state.polygonMode));
-
-                    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
                     // bind material
                     constexpr uint32_t materialIndex = 1;
@@ -119,7 +133,7 @@ public:
             }
             for (const auto& child : node.children)
             {
-                drawNode(commandBuffer, child, nodePushBlock.matrix);
+                drawNode(asset, commandBuffer, child, nodePushBlock.matrix);
             }
         }
 
@@ -129,6 +143,14 @@ public:
             {
                 return;
             }
+
+            // bind model
+            constexpr VkDeviceSize offset { 0 };
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &asset.model.vertexBuffer.buffer, &offset);
+            vkCmdBindIndexBuffer(commandBuffer, asset.model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+            // bind pipeline
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
             // bind scene uniform
             constexpr uint32_t sceneUniformIndex = 0;
@@ -144,7 +166,47 @@ public:
             }
             for (const auto& node : asset.mainScene().nodes)
             {
-                drawNode(commandBuffer, node, asset.state.modelMatrix);
+                drawNode(asset, commandBuffer, node, asset.state.modelMatrix);
+            }
+            for (const auto& node : nodes)
+            {
+                drawNode(asset, commandBuffer, node, asset.state.modelMatrix * math::Translation({ 1, 0, 0 }));
+            }
+        }
+
+        void update() const
+        {
+            for (const auto& node : nodes)
+            {
+                node.update(math::identity<4>);
+            }
+        }
+
+        void updateJoints(const asset::Node& node)
+        {
+            if (node.skinIndex)
+            {
+                assert(animation);
+                const auto& skin          = asset.skins.at(node.skinIndex.value());
+                auto&       jointMatrices = animation->state.jointMatrices;
+                jointMatrices.clear();
+                jointMatrices.reserve(skin.joints.size());
+
+                const auto inverse = math::inverse(node.state.globalMatrix);
+
+                for (const auto& [jointNode, jointNodeIndex, inverseBindMatrix] : skin.joints)
+                {
+                    jointMatrices.emplace_back(inverse * jointNode.state.globalMatrix * inverseBindMatrix);
+                }
+
+                // assert(jointMatricesSSBO);
+                // memcpy(jointMatricesSSBO->buffer.mapped, state.jointMatrices.data(),
+                //        state.jointMatrices.size() * sizeof(math::Matrix<4, 4>));
+            }
+
+            for (const auto& child : node.children)
+            {
+                updateJoints(child);
             }
         }
 
@@ -196,6 +258,19 @@ public:
               }) }
     {
     }
+
+    // entity::Entity createEntity(const Index sceneIndex) const
+    // {
+    //     return entity::Entity {
+    //         .nodes     = createTree(sceneIndex),
+    //         .animation = createAnimation(),
+    //         .state =
+    //             entity::Entity::State {
+    //                 .active      = true,
+    //                 .modelMatrix = math::fullMatrix(math::identity<4>),
+    //             },
+    //     };
+    // }
 
     ~Renderer()
     {
@@ -365,15 +440,9 @@ public:
 
     VkPipelineLayout linePipelineLayout;
     VkPipeline       linePipeline;
-    // std::vector<asset::Line>& lines;
 
     VkPipelineLayout pointPipelineLayout;
     VkPipeline       pointPipeline;
-    // std::vector<asset::Point>& points;
-
-    // RenderableLine  renderableLine;
-    // RenderablePoint renderablePoint;
-
 
     void update(const VkExtent2D, const UserInteraction& ui)
     {
@@ -407,6 +476,11 @@ public:
             .extent = extent,
         };
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+        for (const auto& renderable : renderables)
+        {
+            renderable.update();
+        }
 
         for (const auto& renderable : renderables)
         {
@@ -444,14 +518,13 @@ private:
                     createPipelineLayout(pushConstantRange, descriptor.setLayout, asset.materialDescriptorSetLayout)
             };
 
-            // const auto           verticesShader  = shaders / (asset.shader + ".vert.spv");
-            // const auto           fragmentsShader = shaders / (asset.shader + ".frag.spv");
-            // const shader::Shader shader {
-            //     shader::ShaderInfo2<shader::Type::gltfAnimated, shader::Stage::vertex> { nullptr },
-            //     shader::ShaderInfo2<shader::Type::gltfAnimated, shader::Stage::fragment> { nullptr },
-
             renderables.emplace_back(asset, pipelineLayout,
-                                     createGraphicPipeline(asset.vertexInputState, pipelineLayout, asset.shader));
+                                     createGraphicPipeline(asset.vertexInputState, pipelineLayout, asset.shader),
+                                     asset.mainScene().nodes, std::nullopt,
+                                     Renderable::State {
+                                         .active      = true,
+                                         .modelMatrix = math::fullMatrix(math::identity<4>),
+                                     });
         }
         return renderables;
     }

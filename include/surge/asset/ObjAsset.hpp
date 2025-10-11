@@ -194,13 +194,11 @@ public:
                        SceneModelInfo {} };
     }
 
-    Node createNode(const Mesh& mesh) const
+    Node createNode(const Mesh&) const
     {
         return Node {
-            .name      = baptize<This::node>(0),
-            .parent    = nullptr,
             .children  = {}, 
-            .mesh      = &mesh,
+            .meshIndex = {0},
             .skinIndex = {},
             .state     = { 
                     .active            = false,

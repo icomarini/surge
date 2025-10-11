@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace surge
 {
 
@@ -17,6 +19,7 @@ using Float64 = double;
 
 using Size = long unsigned int;
 
+using Index = uint32_t;
 
 enum class PolygonMode : UInt8
 {

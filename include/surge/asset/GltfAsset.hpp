@@ -7,6 +7,8 @@
 #include "surge/geometry/Shape.hpp"
 #include "surge/geometry/Vertex.hpp"
 #include "surge/math/Vector.hpp"
+#include "surge/entity/Entity.hpp"
+
 
 #include "fastgltf/core.hpp"
 #include "fastgltf/tools.hpp"
@@ -526,8 +528,8 @@ public:
     //         });
     // }
 
-    void createNode(std::vector<Node>& nodes, Node* const parent, const std::vector<Mesh>& meshes, const Size nodeId,
-                    std::vector<Node*>& nodesLut) const
+    void createNode(std::vector<Node>& nodes, /*Node* const parent,*/ const std::vector<Mesh>& meshes,
+                    const Size nodeId, std::vector<Node*>& nodesLut) const
     {
         assert(nodesLut.at(nodeId) == nullptr);
         const auto& gltfNode = asset.nodes.at(nodeId);
@@ -535,10 +537,10 @@ public:
         const auto& trs = std::get<fastgltf::TRS>(gltfNode.transform);
 
         auto& node = nodes.emplace_back(
-            baptize<This::node>(gltfNode.name, nodeId),                             //
-            parent,                                                                 //
-            std::vector<Node> {},                                                   //
-            gltfNode.meshIndex ? &meshes.at(gltfNode.meshIndex.value()) : nullptr,  //
+            // baptize<This::node>(gltfNode.name, nodeId),  //
+            std::vector<Node> {},  //
+            gltfNode.meshIndex ? std::optional<uint32_t> { static_cast<uint32_t>(gltfNode.meshIndex.value()) } :
+                                 std::optional<uint32_t> {},
             gltfNode.skinIndex ? std::optional<uint32_t> { static_cast<uint32_t>(gltfNode.skinIndex.value()) } :
                                  std::optional<uint32_t> {},
             Node::State {
@@ -546,33 +548,63 @@ public:
                 .polygonMode       = PolygonMode::fill,
                 .vertexStageFlag   = 0,
                 .fragmentStageFlag = 0,
-                .translation =
-                    math::Vector<3> {
-                        trs.translation.x(),
-                        trs.translation.y(),
-                        trs.translation.z(),
-                    },
+                .translation       = math::Vector<3> { trs.translation.x(), trs.translation.y(), trs.translation.z() },
                 .rotation =
-                    math::Quaternion<> {
-                        trs.rotation.x(),
-                        trs.rotation.y(),
-                        trs.rotation.z(),
-                        trs.rotation.w(),
-                    },
-                .scale =
-                    math::Vector<3> {
-                        trs.scale.x(),
-                        trs.scale.y(),
-                        trs.scale.z(),
-                    },
+                    math::Quaternion<> { trs.rotation.x(), trs.rotation.y(), trs.rotation.z(), trs.rotation.w() },
+                .scale = math::Vector<3> { trs.scale.x(), trs.scale.y(), trs.scale.z() },
             });
         nodesLut[nodeId] = &node;
 
         node.children.reserve(gltfNode.children.size());
         for (const auto& childId : gltfNode.children)
         {
-            createNode(node.children, &node, meshes, childId, nodesLut);
+            createNode(node.children, /*&node,*/ meshes, childId, nodesLut);
         }
+    }
+
+    Tree<entity::Node> createTree(const Index sceneIndex) const
+    {
+        auto createNodes = [this]()
+        {
+            Tree<entity::Node>::Nodes nodes;
+            nodes.reserve(asset.nodes.size());
+            for (const auto& gltfNode : asset.nodes)
+            {
+                assert(std::holds_alternative<fastgltf::TRS>(gltfNode.transform));
+                const auto& trs = std::get<fastgltf::TRS>(gltfNode.transform);
+
+                nodes.emplace_back(
+                    entity::Node {
+                        gltfNode.meshIndex ? std::optional<Index> { static_cast<Index>(gltfNode.meshIndex.value()) } :
+                                             std::optional<Index> {},
+                        gltfNode.skinIndex ? std::optional<Index> { static_cast<Index>(gltfNode.skinIndex.value()) } :
+                                             std::optional<Index> {},
+                        entity::Node::State {
+                            .active            = true,
+                            .polygonMode       = PolygonMode::fill,
+                            .vertexStageFlag   = 0,
+                            .fragmentStageFlag = 0,
+                            .translation =
+                                math::Vector<3> { trs.translation.x(), trs.translation.y(), trs.translation.z() },
+                            .rotation     = math::Quaternion<> { trs.rotation.x(), trs.rotation.y(), trs.rotation.z(),
+                                                                 trs.rotation.w() },
+                            .scale        = math::Vector<3> { trs.scale.x(), trs.scale.y(), trs.scale.z() },
+                            .localMatrix  = math::Matrix<4, 4> {},
+                            .globalMatrix = math::Matrix<4, 4> {},
+                        } },
+                    std::vector<Index> { gltfNode.children.begin(), gltfNode.children.end() });
+            }
+            return nodes;
+        };
+        auto createRoots = [&]()
+        {
+            return std::vector<Index> { asset.scenes.at(sceneIndex).nodeIndices.begin(),
+                                        asset.scenes.at(sceneIndex).nodeIndices.end() };
+        };
+        return Tree<entity::Node> {
+            .roots = createRoots(),
+            .nodes = createNodes(),
+        };
     }
 
     std::vector<Scene> createScenes(const std::vector<Mesh>& meshes) const
@@ -582,12 +614,12 @@ public:
         uint32_t sceneId = 0;
         for (const fastgltf::Scene& fastgltfScene : asset.scenes)
         {
-            auto& scene = scenes.emplace_back(baptize<This::scene>(fastgltfScene.name, sceneId++));
+            auto& scene = scenes.emplace_back(baptize<This::scene>(fastgltfScene.name, sceneId++), createTree(sceneId));
             scene.nodes.reserve(fastgltfScene.nodeIndices.size());
             scene.nodesLut.resize(asset.nodes.size());
             for (const auto nodeId : fastgltfScene.nodeIndices)
             {
-                createNode(scene.nodes, nullptr, meshes, nodeId, scene.nodesLut);
+                createNode(scene.nodes, /*nullptr,*/ meshes, nodeId, scene.nodesLut);
             }
         }
 
@@ -607,8 +639,11 @@ public:
 
         for (const fastgltf::Skin& fastgltfSkin : asset.skins)
         {
-            const auto skeleton = fastgltfSkin.skeleton ? nodesLut.at(fastgltfSkin.skeleton.value()) : nullptr;
-            auto&      skin     = skins.emplace_back(baptize<This::skin>(fastgltfSkin.name, skinId++), skeleton);
+            const auto skeleton      = fastgltfSkin.skeleton ? nodesLut.at(fastgltfSkin.skeleton.value()) : nullptr;
+            const auto skeletonIndex = fastgltfSkin.skeleton ?
+                                           std::optional<Index> { static_cast<Index>(fastgltfSkin.skeleton.value()) } :
+                                           std::optional<Index> {};
+            auto& skin = skins.emplace_back(baptize<This::skin>(fastgltfSkin.name, skinId++), skeleton, skeletonIndex);
             skin.joints.reserve(fastgltfSkin.joints.size());
             std::size_t jointId { 0 };
             for (const auto joint : fastgltfSkin.joints)
@@ -616,7 +651,7 @@ public:
                 assert(fastgltfSkin.inverseBindMatrices);
                 const auto& accessor = asset.accessors.at(fastgltfSkin.inverseBindMatrices.value());
                 skin.joints.emplace_back(
-                    *nodesLut.at(joint),
+                    *nodesLut.at(joint), joint,
                     math::transpose(fastgltf::getAccessorElement<math::Matrix<4, 4>>(asset, accessor, jointId++)));
             }
         }
@@ -697,13 +732,41 @@ public:
                     { fastgltf::AnimationPath::Weights, Animation::Channel::Path::weights },
                 };
                 const auto node = fastgltfChannel.nodeIndex ? nodesLut.at(fastgltfChannel.nodeIndex.value()) : nullptr;
-                channels.emplace_back(convert.at(fastgltfChannel.path), node, fastgltfChannel.samplerIndex);
+                channels.emplace_back(convert.at(fastgltfChannel.path), node,
+                                      fastgltfChannel.nodeIndex ? std::optional<Index> { static_cast<Index>(
+                                                                      fastgltfChannel.nodeIndex.value()) } :
+                                                                  std::optional<Index> {},
+                                      fastgltfChannel.samplerIndex);
             }
 
             animations.emplace_back(baptize<This::animation>(fastgltfAnimation.name, animationId++), start, end,
                                     std::move(samplers), std::move(channels));
         }
         return animations;
+    }
+    std::optional<entity::Entity::Animation> createAnimation() const
+    {
+        return !asset.skins.empty() ? std::optional<entity::Entity::Animation> { entity::Entity::Animation {
+                                          .state =
+                                              entity::Entity::Animation::State {
+                                                  .active        = true,
+                                                  .progress      = {},
+                                                  .jointMatrices = {},
+                                              } } } :
+                                      std::optional<entity::Entity::Animation> {};
+    }
+
+    entity::Entity createEntity(const Index sceneIndex) const
+    {
+        return entity::Entity {
+            .nodes     = createTree(sceneIndex),
+            .animation = createAnimation(),
+            .state =
+                entity::Entity::State {
+                    .active      = true,
+                    .modelMatrix = math::fullMatrix(math::identity<4>),
+                },
+        };
     }
 
 private:
@@ -734,12 +797,10 @@ private:
             throw std::runtime_error(errorMessage(data.error()));
         }
 
-        [[maybe_unused]] const auto type = fastgltf::determineGltfFileType(data.get());
-        assert(type == fastgltf::GltfType::glTF);
-
-        constexpr auto options = fastgltf::Options::DontRequireValidAssetMember | fastgltf::Options::AllowDouble |
+        constexpr auto extensions = fastgltf::Extensions::KHR_texture_transform;
+        constexpr auto options    = fastgltf::Options::DontRequireValidAssetMember | fastgltf::Options::AllowDouble |
                                  fastgltf::Options::DecomposeNodeMatrices | fastgltf::Options::LoadExternalBuffers;
-        auto load = fastgltf::Parser().loadGltfJson(data.get(), path.parent_path(), options);
+        auto load = fastgltf::Parser(extensions).loadGltf(data.get(), path.parent_path(), options);
         if (!load)
         {
             throw std::runtime_error(errorMessage(load.error()));
@@ -748,6 +809,4 @@ private:
         return std::move(load.get());
     }
 };
-
-
 }  // namespace surge::asset

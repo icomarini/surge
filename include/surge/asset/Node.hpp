@@ -1,12 +1,11 @@
 #pragma once
 
-#include "surge/Defaults.hpp"
+// #include "surge/Defaults.hpp"
 #include "surge/asset/Mesh.hpp"
 #include "surge/math/angles.hpp"
 
 namespace surge::asset
 {
-
 struct Node
 {
     struct State
@@ -22,21 +21,20 @@ struct Node
         math::Matrix<4, 4> globalMatrix {};
     };
 
-    std::string             name;
-    Node* const             parent;
     std::vector<Node>       children;
-    const Mesh*             mesh;
+    std::optional<uint32_t> meshIndex;
     std::optional<uint32_t> skinIndex;
     mutable State           state;
+    std::optional<uint32_t> samplerIndex;
 
-    void updateMatrices(const math::StaticMatrix auto& parentMatrix) const
+    void update(const math::StaticMatrix auto& parentMatrix) const
     {
         state.localMatrix =
             math::Translation { state.translation } * math::Rotation { state.rotation } * math::Scaling { state.scale };
         state.globalMatrix = parentMatrix * state.localMatrix;
         for (const auto& child : children)
         {
-            child.updateMatrices(state.globalMatrix);
+            child.update(state.globalMatrix);
         }
     }
 };

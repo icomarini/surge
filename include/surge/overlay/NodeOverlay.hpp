@@ -6,8 +6,6 @@
 
 namespace surge::overlay
 {
-std::string idName(const uint32_t id, const std::string& name);
-
 std::string idName(const uint32_t id, const std::string& name)
 {
     return std::to_string(id) + ": " + name;
@@ -39,10 +37,10 @@ void slider(const std::string& name, const std::string& nodeName, math::Vector<s
 
 static void overlay(const asset::Node& node, uint32_t& nodeId)
 {
-    const auto nodeName = idName(nodeId++, node.name);
+    const auto nodeName = idName(nodeId++, "");
     if (ImGui::TreeNode(nodeName.c_str()))
     {
-        if (node.mesh)
+        if (node.meshIndex)
         {
             ImGui::Checkbox("active", &node.state.active);
 
@@ -100,10 +98,10 @@ static void overlay(const asset::Node& node, uint32_t& nodeId)
         }
 
         // ImGui::Text("index: %d", node.index);
-        slider("translation ", node.name, node.state.translation, xyzw);
-        slider("rotation    ", node.name, node.state.rotation, xyzw);
-        slider("scale       ", node.name, node.state.scale, xyzw);
-        ImGui::Text("mesh:  %s", node.mesh ? node.mesh->name.c_str() : "none");
+        slider("translation ", "", node.state.translation, xyzw);
+        slider("rotation    ", "", node.state.rotation, xyzw);
+        slider("scale       ", "", node.state.scale, xyzw);
+        ImGui::Text("mesh:  %s", node.meshIndex ? std::to_string(node.meshIndex.value()).c_str() : "none");
         ImGui::Text("skin:  %s", node.skinIndex ? std::to_string(node.skinIndex.value()).c_str() : "none");
 
         if (node.children.empty())

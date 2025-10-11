@@ -8,9 +8,9 @@
 namespace surge::overlay
 {
 
-std::pair<math::Vector<2>, math::Vector<2>> overlay(const asset::Asset&    asset,
-                                                    const math::Vector<2>& previousWindowPosition,
-                                                    const math::Vector<2>& previousWindowSize);
+// std::pair<math::Vector<2>, math::Vector<2>> overlay(const asset::Asset&    asset,
+//                                                     const math::Vector<2>& previousWindowPosition,
+//                                                     const math::Vector<2>& previousWindowSize);
 
 std::pair<math::Vector<2>, math::Vector<2>> overlay(const asset::Asset&    asset,
                                                     const math::Vector<2>& previousWindowPosition,
@@ -146,13 +146,13 @@ std::pair<math::Vector<2>, math::Vector<2>> overlay(const asset::Asset&    asset
         {
             if (ImGui::TreeNode(idName(skinId++, skin.name).c_str()))
             {
-                ImGui::Text("skeleton:   %s", skin.skeleton ? skin.skeleton->name.c_str() : "none");
+                ImGui::Text("skeleton:   %s", skin.skeleton ? "yes" : "none");
                 if (ImGui::TreeNode(("joints:     " + std::to_string(skin.joints.size())).c_str()))
                 {
                     uint32_t jointId = 0;
                     for (const auto& joint : skin.joints)
                     {
-                        ImGui::Text(idName(jointId++, joint.node.name).c_str(), 0);
+                        ImGui::Text(idName(jointId++, "").c_str(), 0);
                     }
                     ImGui::TreePop();
                 }
