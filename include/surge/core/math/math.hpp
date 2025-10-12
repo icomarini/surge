@@ -1,6 +1,5 @@
 #pragma once
 
-#include "surge/types.hpp"
 #include "surge/core/math/Vector.hpp"
 
 #include <cassert>

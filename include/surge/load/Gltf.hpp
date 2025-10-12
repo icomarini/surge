@@ -179,7 +179,7 @@ public:
             const fastgltf::visitor visitor {
                 [](const auto&) -> LoadedTexture { throw std::runtime_error("unsupported visitor"); },
                 [&](const fastgltf::sources::URI& uri) -> LoadedTexture
-                { return LoadedTexture { name, std::filesystem::path { path.parent_path() / uri.uri.path() } }; },
+                { return LoadedTexture { LoadedTexture::Handle { path.parent_path() / uri.uri.path() } }; },
                 [&](const fastgltf::sources::Vector& vector) -> LoadedTexture
                 {
                     return LoadedTexture { name, reinterpret_cast<const uint8_t*>(vector.bytes.data()),
@@ -223,7 +223,7 @@ public:
         // external textures
         for (const auto& [textureType, path] : externalTextures)
         {
-            textures.emplace_back(command, LoadedTexture(path.stem(), path), defaults.sampler,
+            textures.emplace_back(command, LoadedTexture(LoadedTexture::Handle { path }), defaults.sampler,
                                   asset::SceneTextureInfo {});
         }
 

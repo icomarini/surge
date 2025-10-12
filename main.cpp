@@ -16,8 +16,8 @@ int main()
 
         const std::filesystem::path                      home { "/home/ico/projects/" };
         std::map<std::string, surge::asset::AssetHandle> assetHandles {
-            { "default", surge::asset::TextureHandle { home / "surge/textures/default.png" } },
-            { "skybox", surge::asset::TextureHandle { home / "surge/textures/skybox.ktx" } },
+            { "default", surge::load::LoadedTexture::Handle { home / "surge/textures/default.png" } },
+            { "skybox", surge::load::LoadedTexture::Handle { home / "surge/textures/skybox.ktx" } },
             { "oaktree", surge::load::Gltf::Handle { home / "surge/models/oaktree.gltf" } },
             { "man", surge::load::Gltf::Handle { home / "extern/Vulkan/assets/models/CesiumMan/glTF/CesiumMan.gltf" } },
             { "dragon", surge::load::Gltf::Handle { home / "extern/Vulkan/assets/models/chinesedragon.gltf" } },

@@ -15,10 +15,10 @@ class Skybox
     using CubeTextureInfo = asset::TextureInfo<CubeImageInfo, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>;
 
 public:
-    Skybox(const core::Command& command, const std::filesystem::path& loadedTexture)
+    Skybox(const core::Command& command, const load::LoadedTexture::Handle& handle)
         : camera { 16.0 / 9.0, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } }
         , uniformBuffer { sizeof(core::math::Matrix<4, 4>), core::UniformBufferInfo {} }
-        , texture { command, load::LoadedTexture { loadedTexture }, CubeTextureInfo {} }
+        , texture { command, load::LoadedTexture { handle }, CubeTextureInfo {} }
         , model { command, core::geometry::cubeFill, true, asset::SceneModelInfo {} }
         , descriptor { 1, core::UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT> { uniformBuffer },
                        core::Description<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT,

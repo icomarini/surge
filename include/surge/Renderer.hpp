@@ -4,7 +4,6 @@
 #include "surge/asset/Asset.hpp"
 #include "surge/physics/Physics.hpp"
 #include "surge/core/Pipeline.hpp"
-// #include "surge/geometry/shapes.hpp"
 #include "surge/asset/Line.hpp"
 #include "surge/entity/Entity.hpp"
 

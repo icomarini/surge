@@ -59,8 +59,8 @@ public:
         , ctx { createContext(appName, engineName, WIDTH, HEIGHT, &userInteraction) }
         , command {}
         , presenter { command }
-        , defaults { command, std::get<asset::TextureHandle>(assetHandles.at("default")).path }
-        , skybox { command, std::get<asset::TextureHandle>(assetHandles.at("skybox")).path }
+        , defaults { command, std::get<load::LoadedTexture::Handle>(assetHandles.at("default")) }
+        , skybox { command, std::get<load::LoadedTexture::Handle>(assetHandles.at("skybox")) }
         , physics { physics::earthGravity }
         , assets { createAssets(command, defaults, assetHandles) }
         , renderer { assets, physics }

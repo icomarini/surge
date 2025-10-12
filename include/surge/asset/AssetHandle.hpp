@@ -4,18 +4,16 @@
 #include "surge/load/Obj.hpp"
 #include "surge/load/LoadedTexture.hpp"
 
-#include <filesystem>
-#include <string>
 #include <variant>
 
 namespace surge::asset
 {
 
 
-struct TextureHandle
-{
-    std::filesystem::path path;
-};
+// struct TextureHandle
+// {
+//     std::filesystem::path path;
+// };
 
 // struct GltfHandle
 // {
@@ -29,6 +27,6 @@ struct TextureHandle
 //     std::optional<std::filesystem::path> texturePath;
 // };
 
-using AssetHandle = std::variant<TextureHandle, load::Gltf::Handle, load::Obj::Handle>;
+using AssetHandle = std::variant<load::LoadedTexture::Handle, load::Gltf::Handle, load::Obj::Handle>;
 
 }  // namespace surge::asset

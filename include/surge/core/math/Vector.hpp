@@ -1,7 +1,7 @@
 #pragma once
 
 #include "surge/core/utils/utils.hpp"
-#include "surge/types.hpp"
+#include "surge/core/utils/types.hpp"
 
 #include <array>
 #include <cassert>

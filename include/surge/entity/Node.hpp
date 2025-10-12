@@ -1,8 +1,5 @@
 #pragma once
 
-// #include "surge/math/angles.hpp"
-// #include "surge/math/matrices.hpp"
-// #include "surge/math/Vector.hpp"
 #include "surge/asset/Mesh.hpp"
 
 #include <optional>

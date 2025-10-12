@@ -77,9 +77,8 @@ public:
         uint32_t                 fragmentStageFlag;
     };
 
-    Defaults(const core::Command& command, const std::filesystem::path& defaultTexturePath)
-        : texture { command, load::LoadedTexture { baptize<This::texture>(), defaultTexturePath },
-                    asset::SceneTextureInfo {} }
+    Defaults(const core::Command& command, const load::LoadedTexture::Handle& defaultTextureHandle)
+        : texture { command, load::LoadedTexture { defaultTextureHandle }, asset::SceneTextureInfo {} }
         , descriptorPool { core::Descriptor::createDescriptorPool(
               5U, std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U }) }
         , descriptorSetLayout { core::Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture

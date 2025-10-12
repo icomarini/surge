@@ -16,28 +16,28 @@ namespace surge::load
 class LoadedTexture
 {
 public:
-    struct TextureHandle
+    struct Handle
     {
         std::filesystem::path path;
     };
 
-    LoadedTexture(const std::string& name, const std::filesystem::path& path)
+    LoadedTexture(const Handle& handle)
         : width {}
         , height {}
         , mipLevels { 1 }
         , arrayLayers { 1 }
-        , name { name }
+        , name { handle.path.filename() }
         , vOffsets { {} }
     {
-        const auto fileExtension = path.extension();
+        const auto fileExtension = handle.path.extension();
 
         if (fileExtension == ".ktx")
         {
             ktxTexture* data = nullptr;
-            if (ktxTexture_CreateFromNamedFile(path.string().c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &data) !=
-                KTX_SUCCESS)
+            if (ktxTexture_CreateFromNamedFile(handle.path.string().c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
+                                               &data) != KTX_SUCCESS)
             {
-                throw std::runtime_error("failed to load texture " + path.string());
+                throw std::runtime_error("failed to load texture " + handle.path.string());
             }
 
             width       = data->baseWidth;
@@ -63,10 +63,11 @@ public:
         else
         {
             int        texWidth, texHeight, texChannels;
-            const auto data = stbi_load(path.string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+            const auto data =
+                stbi_load(handle.path.string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
             if (data == nullptr)
             {
-                throw std::runtime_error("failed to load texture " + path.string());
+                throw std::runtime_error("failed to load texture " + handle.path.string());
             }
             pData    = data;
             width    = static_cast<uint32_t>(texWidth);
@@ -76,7 +77,7 @@ public:
     }
 
     LoadedTexture(const std::filesystem::path& path)
-        : LoadedTexture(path.filename(), path)
+        : LoadedTexture(Handle { path })
     {
     }
 

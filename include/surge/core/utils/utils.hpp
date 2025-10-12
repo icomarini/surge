@@ -1,6 +1,6 @@
 #pragma once
 
-#include "surge/types.hpp"
+#include "surge/core/utils/types.hpp"
 
 #include <cassert>
 #include <filesystem>
