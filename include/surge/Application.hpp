@@ -58,16 +58,15 @@ public:
     const std::string appName    = "surge-app";
     const std::string engineName = "surge";
 
-    Application(const std::map<std::string, std::filesystem::path>& resources,
-                const std::map<std::string, asset::AssetHandle>&    assetHandles)
+    Application(const std::map<std::string, asset::AssetHandle>& assetHandles)
         : userInteraction { WIDTH, HEIGHT }
         , ctx { createContext(appName, engineName, WIDTH, HEIGHT, &userInteraction) }
         , command {}
         , presenter { command }
-        , defaults { command, resources }
+        , defaults { command, std::get<asset::TextureHandle>(assetHandles.at("default")).path }
         , skybox { command, std::get<asset::TextureHandle>(assetHandles.at("skybox")).path }
         , physics { physics::earthGravity }
-        , assets { createAssets(command, defaults, resources, assetHandles) }
+        , assets { createAssets(command, defaults, assetHandles) }
         , renderer { assets, physics }
         , overlay { command, userInteraction, assets }
     {
@@ -119,26 +118,29 @@ public:
         auto     start = std::chrono::high_resolution_clock::now();
         uint32_t ticCount {};
 
-        // auto entity1 = renderer.createEntity("robot", 0, math::Translation { math::Vector<3> { 0, 0, 0 } });
-        // entity1.animation->state.progress += 1;
-
-        // auto entity2 = renderer.createEntity("robot", 0, math::Translation { math::Vector<3> { 1, 0, 0 } });
-        // entity2.animation->state.progress += 2;
-
-        // auto entity3 = renderer.createEntity("man", 0, math::Translation { math::Vector<3> { 2, 0, 0 } });
-        // entity3.animation->state.progress += 0;
-
-        // auto entity4 = renderer.createEntity("man", 0, math::Translation { math::Vector<3> { 3, 0, 0 } });
-        // entity4.animation->state.progress += 1;
 
         std::vector<entity::Entity> entities;
-        entities.reserve(assets.size());
-        float offset = 0;
+        constexpr float             stepX = 2;
+        constexpr float             stepY = 2;
+        constexpr Size              sizeY = 3;
+        entities.reserve(assets.size() * sizeY);
+        float offsetX = 0;
         for (const auto& [name, asset] : assets)
         {
             const auto [pipelineLayout, pipeline] = renderer.pipelines.at(name);
-            entities.emplace_back(asset, pipelineLayout, pipeline, 0,
-                                  math::Translation { math::Vector<3> { offset++, 0, 0 } });
+
+            float offsetY = 0;
+            for (float y = 0; y < sizeY; ++y)
+            {
+                auto& entity = entities.emplace_back(asset, pipelineLayout, pipeline, 0,
+                                                     math::Translation { math::Vector<3> { offsetX, 0, offsetY } });
+                if (entity.animation)
+                {
+                    entity.animation->state.progress += 0.5 * y;
+                }
+                offsetY += stepY;
+            }
+            offsetX += stepX;
         }
 
         VkExtent2D extent { WIDTH, HEIGHT };
@@ -176,9 +178,6 @@ public:
                 {
                     entity.update(0, elapsedTime);
                 }
-                // entity2.update(0, elapsedTime);
-                // entity3.update(0, elapsedTime);
-                // entity4.update(0, elapsedTime);
                 // === entity playground ===
 
                 skybox.update(userInteraction);
@@ -195,10 +194,6 @@ public:
                 {
                     entity.draw(inFlight.commandBuffer, renderer.descriptor.set);
                 }
-                // entity1.draw(inFlight.commandBuffer, renderer.descriptor.set);
-                // entity2.draw(inFlight.commandBuffer, renderer.descriptor.set);
-                // entity3.draw(inFlight.commandBuffer, renderer.descriptor.set);
-                // entity4.draw(inFlight.commandBuffer, renderer.descriptor.set);
                 overlay.draw(inFlight.commandBuffer);
 
                 presenter.present(command, userInteraction.framebufferResized);
@@ -215,21 +210,6 @@ public:
     }
 
 private:
-    // template<typename... Pipelines>
-    // void render(Presenter& presenter, const UserInteraction& ui, Pipelines&... pipelines)
-    // {
-    //     // const auto [extent, image, imageView, depthImageView, commandBuffer] = presenter.acquire();
-    //     const auto inFlight = presenter.acquire();
-
-    //     (pipelines.update(inFlight.extent, ui), ...);
-
-    //     // presenter.record(image, imageView, depthImageView, extent, commandBuffer, pipelines...);
-    //     // presenter.record(inFlight, pipelines...);
-
-    //     presenter.present(command, ui.framebufferResized);
-    // }
-
-private:
     mutable UserInteraction             userInteraction;
     const Context&                      ctx;
     const Command                       command;
@@ -244,31 +224,8 @@ private:
 
     static std::map<std::string, asset::Asset>
     createAssets(const Command& command, const Defaults& defaults,
-                 const std::map<std::string, std::filesystem::path>& resources,
-                 const std::map<std::string, asset::AssetHandle>&    assetHandles)
+                 const std::map<std::string, asset::AssetHandle>& assetHandles)
     {
-        // constexpr std::array names { "oaktree", "helmet", "dragon", "buggy" };
-        // constexpr std::array names { "buggy" };
-        // constexpr std::array names { "simple" };
-
-        // constexpr std::array names { "nope" };
-        // constexpr std::array names { "man" };
-        // constexpr std::array names { "gun" };
-
-        // // std::vector<asset::Asset> assets;
-        // assets.reserve(names.size() + 2);
-        // for (const auto& name : names)
-        // {
-        //     if (name == std::string { "nope" })
-        //     {
-        //         continue;
-        //     }
-        //     assets.emplace_back(command, defaults, asset::GltfAsset { name, resources.at(name) });
-        //     assets.emplace_back(
-        //         command, defaults,
-        //         asset::GltfAsset { "robot",
-        //                            "/home/ico/projects/uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" });
-        // }
         std::map<std::string, asset::Asset> assets;
         for (const auto& [name, assetHandle] : assetHandles)
         {
@@ -292,53 +249,6 @@ private:
                 },
                 assetHandle);
         }
-
-        // auto addAsset = [&](const auto& loadedAsset)
-        // {
-        //     assets.emplace(std::piecewise_construct, std::forward_as_tuple(loadedAsset.name),
-        //                    std::forward_as_tuple(command, defaults, loadedAsset));
-        // };
-
-        // addAsset(asset::GltfAsset { "man", resources.at("man") });
-        // addAsset(asset::GltfAsset { "robot", resources.at("man") });
-
-        // assets.emplace(std::piecewise_construct, std::forward_as_tuple("man"),
-        //                std::forward_as_tuple(command, defaults, asset::GltfAsset { "man", resources.at("man") }));
-        // assets.emplace(std::piecewise_construct, std::forward_as_tuple("robot"),
-        //                std::forward_as_tuple(
-        //                    command, defaults,
-        //                    asset::GltfAsset {
-        //                        "robot", "/home/ico/projects/uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb"
-        //                        }));
-
-        // assets.emplace(std::piecewise_construct, std::forward_as_tuple("viking"),
-        //                std::forward_as_tuple(command, defaults,
-        //                                      asset::ObjAsset { "viking room", resources.at("vikingRoomModel"),
-        //                                                        resources.at("vikingRoomTexture") }));
-
-        // const math::Vector<3> translation { -1.0f, 1.0f, 0.0f };
-        // const math::Vector<3> scaling { 0.01f, 0.01f, 0.01f };
-
-        // assets.emplace_back(command, defaults,
-        //                     asset::ObjAsset { "container",
-        //                                       "/home/ico/projects/Container_v1_L1/12279_Container_v1_l1.obj",
-        //                                       "/home/ico/projects/Container_v1_L1/Container_diffuse.jpg" },
-        //                     math::Translation { translation } * math::Scaling { scaling });
-
-        // using Type                       = asset::GltfAsset::TextureType;
-        // const std::filesystem::path base = "/home/ico/projects/extern/Vulkan/assets/models/cerberus";
-        // assets.emplace_back(command, defaults,
-        //                     asset::GltfAsset { "gun",
-        //                                               base / "cerberus.gltf",
-        //                                               {
-        //                                                   { Type::baseColorTexture, base / "albedo.ktx" },
-        //                                                   { Type::metallicRoughnessTexture, base / "roughness.ktx" },
-        //                                                   { Type::emissiveTexture, base / "metallic.ktx" },
-        //                                                   { Type::normalTexture, base / "normal.ktx" },
-        //                                                   { Type::occlusionTexture, base / "ao.ktx" },
-        //                                               } });
-
-        // std::vector<asset::Asset> assets;
         return assets;
     }
 };

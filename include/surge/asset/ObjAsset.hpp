@@ -194,23 +194,6 @@ public:
                        SceneModelInfo {} };
     }
 
-    // Node createNode(const Mesh&) const
-    // {
-    //     return Node {
-    //         .children  = {},
-    //         .meshIndex = {0},
-    //         .skinIndex = {},
-    //         .state     = {
-    //                 .active            = false,
-    //                 .polygonMode       = PolygonMode::fill,
-    //                 .vertexStageFlag   = 0,
-    //                 .fragmentStageFlag = 0,
-    //                 .translation       = { 0, 0, 0 },
-    //                 .scale             = { 1, 1, 1 },
-    //          },
-    //     };
-    // }
-
     Tree<entity::Node> createTree() const
     {
         auto createNode = [this]()
@@ -222,7 +205,7 @@ public:
                     std::optional<Index> { 0 },
                     std::optional<Index> {},
                     entity::Node::State {
-                        .active            = false,
+                        .active            = true,
                         .polygonMode       = PolygonMode::fill,
                         .vertexStageFlag   = 0,
                         .fragmentStageFlag = 0,
