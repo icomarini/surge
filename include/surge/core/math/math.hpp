@@ -1,7 +1,7 @@
 #pragma once
 
 #include "surge/types.hpp"
-#include "surge/math/Vector.hpp"
+#include "surge/core/math/Vector.hpp"
 
 #include <cassert>
 #include <cmath>

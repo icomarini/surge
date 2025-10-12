@@ -1,7 +1,7 @@
 #pragma once
 
 #include "surge/asset/Material.hpp"
-#include "surge/math/BoundingBox.hpp"
+#include "surge/core/math/BoundingBox.hpp"
 
 namespace surge::asset
 {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "surge/utils/utils.hpp"
+#include "surge/core/utils/utils.hpp"
 #include "surge/types.hpp"
 
 #include <array>

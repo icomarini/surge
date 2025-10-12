@@ -1,6 +1,6 @@
 #pragma once
 
-#include "surge/math/Vector.hpp"
+#include "surge/core/math/Vector.hpp"
 
 #include "glm/glm.hpp"
 

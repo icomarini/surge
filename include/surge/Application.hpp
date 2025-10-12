@@ -1,19 +1,12 @@
 #pragma once
 
-#include "surge/colors.hpp"
-#include "surge/Context.hpp"
-#include "surge/Command.hpp"
+#include "surge/core/colors.hpp"
 #include "surge/Defaults.hpp"
 #include "surge/overlay/Overlay.hpp"
-#include "surge/Presenter.hpp"
+#include "surge/core/Presenter.hpp"
 #include "surge/Renderer.hpp"
 #include "surge/Skybox.hpp"
 
-#include "surge/load/Gltf.hpp"
-#include "surge/load/Obj.hpp"
-
-#include "surge/asset/Asset.hpp"
-#include "surge/asset/Line.hpp"
 #include "surge/asset/AssetHandle.hpp"
 
 #include "surge/physics/Physics.hpp"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "surge/Context.hpp"
+#include "surge/core/Context.hpp"
 #include "surge/shader_library.hpp"
 
 #include <filesystem>

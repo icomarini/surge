@@ -1,8 +1,6 @@
 #pragma once
 
-#include "surge/Context.hpp"
-#include "surge/Buffer.hpp"
-#include "surge/Command.hpp"
+#include "surge/core/Command.hpp"
 
 #include <filesystem>
 #include <vector>

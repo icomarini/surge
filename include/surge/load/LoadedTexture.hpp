@@ -1,6 +1,6 @@
 #pragma once
 
-#include "surge/utils/utils.hpp"
+#include "surge/core/utils/utils.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>

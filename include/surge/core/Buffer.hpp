@@ -1,7 +1,6 @@
 #pragma once
 
-#include "surge/Context.hpp"
-#include "surge/Descriptor.hpp"
+#include "surge/core/Descriptor.hpp"
 
 namespace surge
 {

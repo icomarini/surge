@@ -1,10 +1,6 @@
 #pragma once
 
-#include "surge/Context.hpp"
-#include "surge/Pipeline.hpp"
-#include "surge/UserInteraction.hpp"
-
-#include "surge/math/Vector.hpp"
+#include "surge/core/math/Vector.hpp"
 
 namespace surge::asset
 {

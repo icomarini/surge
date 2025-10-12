@@ -1,6 +1,6 @@
 #pragma once
 
-#include "surge/utils/Tree.hpp"
+#include "surge/core/utils/Tree.hpp"
 #include "surge/entity/Node.hpp"
 
 namespace surge::asset

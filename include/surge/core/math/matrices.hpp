@@ -1,8 +1,7 @@
 #pragma once
 
-#include "surge/math/angles.hpp"
-#include "surge/math/math.hpp"
-#include "surge/math/Matrix.hpp"
+#include "surge/core/math/angles.hpp"
+#include "surge/core/math/Matrix.hpp"
 
 #include <sstream>
 

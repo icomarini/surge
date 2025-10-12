@@ -1,10 +1,8 @@
 #pragma once
 
-#include "surge/Context.hpp"
-#include "surge/Command.hpp"
+#include "surge/core/Command.hpp"
 
 #include "surge/Pipeline.hpp"
-#include "surge/Descriptor.hpp"
 #include "surge/asset/Asset.hpp"
 
 #include "surge/overlay/Font.hpp"
@@ -38,7 +36,7 @@ public:
         , pipelineLayout { createPipelineLayout(createPushConstantRange<PushConstBlock>(VK_SHADER_STAGE_VERTEX_BIT),
                                                 descriptor.setLayout) }
         , pipeline { createGraphicPipeline(
-              geometry::createVertexInputState<LoadedOverlay::Vertex>(), VK_NULL_HANDLE, pipelineLayout,
+              createVertexInputState<LoadedOverlay::Vertex>(), VK_NULL_HANDLE, pipelineLayout,
               shader::Shader { shader::ShaderInfo<shader::Type::ui, shader::Stage::vertex> { nullptr },
                                shader::ShaderInfo<shader::Type::ui, shader::Stage::fragment> { nullptr } },
               VkPipelineRasterizationStateCreateInfo {

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "surge/Context.hpp"
-#include "surge/Buffer.hpp"
 #include "surge/Defaults.hpp"
 
 #include "surge/Pipeline.hpp"
@@ -97,7 +95,7 @@ public:
         , materialDescriptorSetLayout { gltf.createMaterialDescriptorSetLayout() }
         , materials { gltf.createMaterials(defaults, descriptorPool, materialDescriptorSetLayout, textures) }
         , meshes { gltf.createMeshes(defaults, materials) }
-        , vertexInputState { geometry::createVertexInputState<load::Gltf::Vertex>() }
+        , vertexInputState { createVertexInputState<load::Gltf::Vertex>() }
         , model { gltf.createModel(command, meshes) }
         , scenes { gltf.createScenes() }
         , mainSceneIndex { gltf.mainSceneIndex() }
@@ -117,7 +115,7 @@ public:
         , materialDescriptorSetLayout { obj.createMaterialDescriptorSetLayout() }
         , materials { obj.createMaterials(defaults, descriptorPool, materialDescriptorSetLayout, textures) }
         , meshes { obj.createMeshes(defaults, materials) }
-        , vertexInputState { geometry::createVertexInputState<load::Obj::Vertex>() }
+        , vertexInputState { createVertexInputState<load::Obj::Vertex>() }
         , model { obj.createModel(command, meshes.front()) }
         , scenes { obj.createScene() }
         , mainSceneIndex { 0 }

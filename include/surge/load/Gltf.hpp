@@ -5,7 +5,6 @@
 #include "surge/asset/Skin.hpp"
 #include "surge/geometry/Shape.hpp"
 #include "surge/geometry/Vertex.hpp"
-#include "surge/math/Vector.hpp"
 
 #include "fastgltf/core.hpp"
 #include "fastgltf/tools.hpp"

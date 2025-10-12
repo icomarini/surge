@@ -1,7 +1,5 @@
 #pragma once
 
-#include "surge/Context.hpp"
-#include "surge/Descriptor.hpp"
 #include "surge/asset/Texture.hpp"
 #include "surge/Pipeline.hpp"
 #include "surge/geometry/shapes.hpp"
@@ -28,7 +26,7 @@ public:
                                    asset::Texture> { texture } }
         , pipelineLayout { createPipelineLayout(descriptor.setLayout) }
         , pipeline { createGraphicPipeline(
-              geometry::createVertexInputState<geometry::Position>(), VK_NULL_HANDLE, pipelineLayout,
+              createVertexInputState<geometry::Position>(), VK_NULL_HANDLE, pipelineLayout,
               shader::Shader { shader::ShaderInfo<shader::Type::skybox, shader::Stage::vertex> { nullptr },
                                shader::ShaderInfo<shader::Type::skybox, shader::Stage::fragment> { nullptr } },
               VkPipelineRasterizationStateCreateInfo {

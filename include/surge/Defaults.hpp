@@ -1,13 +1,13 @@
 #pragma once
 
-#include "surge/Descriptor.hpp"
+#include "surge/core/Command.hpp"
+#include "surge/core/math/matrices.hpp"
 #include "surge/Pipeline.hpp"
 #include "surge/asset/Texture.hpp"
 #include "surge/asset/Material.hpp"
 #include "surge/asset/Model.hpp"
 #include "surge/load/LoadedTexture.hpp"
 #include "surge/geometry/shapes.hpp"
-#include "surge/math/matrices.hpp"
 
 namespace surge
 {
@@ -112,8 +112,7 @@ public:
         , descriptorlessPipelineLayout { createPipelineLayout(
               createPushConstantRange<NodePushBlock>(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)) }
         , descriptorlessPipeline { createGraphicPipeline(
-              geometry::createVertexInputState<geometry::PositionAndColor>(), VK_NULL_HANDLE,
-              descriptorlessPipelineLayout,
+              createVertexInputState<geometry::PositionAndColor>(), VK_NULL_HANDLE, descriptorlessPipelineLayout,
               shader::Shader { shader::ShaderInfo<shader::Type::bbox, shader::Stage::vertex> { nullptr },
                                shader::ShaderInfo<shader::Type::bbox, shader::Stage::fragment> { nullptr } },
               createRasterizationStateInfo(VK_POLYGON_MODE_LINE),

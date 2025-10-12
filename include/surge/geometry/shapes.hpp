@@ -13,22 +13,22 @@ using PositionAndColor = geometry::Vertex<
     geometry::AttributeSlot<geometry::Attribute::position, math::Vector<3>, 3, geometry::Format::sfloat>,
     geometry::AttributeSlot<geometry::Attribute::color, math::Vector<4>, 4, geometry::Format::sfloat>>;
 
-static constexpr Shape cubeLine { "cubeline",
-                                  std::array {
-                                      PositionAndColor { { 1, 1, 1 }, { 1, 1, 1, 1 } },
-                                      PositionAndColor { { 1, -1, 1 }, { 1, 1, 1, 1 } },
-                                      PositionAndColor { { -1, -1, 1 }, { 1, 1, 1, 1 } },
-                                      PositionAndColor { { -1, 1, 1 }, { 1, 1, 1, 1 } },
-                                      PositionAndColor { { 1, 1, -1 }, { 1, 1, 1, 1 } },
-                                      PositionAndColor { { 1, -1, -1 }, { 1, 1, 1, 1 } },
-                                      PositionAndColor { { -1, -1, -1 }, { 1, 1, 1, 1 } },
-                                      PositionAndColor { { -1, 1, -1 }, { 1, 1, 1, 1 } },
-                                  },
-                                  std::array {
-                                      0, 1, 1, 2, 2, 3, 3, 0,  // up
-                                      4, 5, 5, 6, 6, 7, 7, 4,  // down
-                                      0, 4, 1, 5, 2, 6, 3, 7,  // side
-                                  } };
+// static constexpr Shape cubeLine { "cubeline",
+//                                   std::array {
+//                                       PositionAndColor { { 1, 1, 1 }, { 1, 1, 1, 1 } },
+//                                       PositionAndColor { { 1, -1, 1 }, { 1, 1, 1, 1 } },
+//                                       PositionAndColor { { -1, -1, 1 }, { 1, 1, 1, 1 } },
+//                                       PositionAndColor { { -1, 1, 1 }, { 1, 1, 1, 1 } },
+//                                       PositionAndColor { { 1, 1, -1 }, { 1, 1, 1, 1 } },
+//                                       PositionAndColor { { 1, -1, -1 }, { 1, 1, 1, 1 } },
+//                                       PositionAndColor { { -1, -1, -1 }, { 1, 1, 1, 1 } },
+//                                       PositionAndColor { { -1, 1, -1 }, { 1, 1, 1, 1 } },
+//                                   },
+//                                   std::array {
+//                                       0, 1, 1, 2, 2, 3, 3, 0,  // up
+//                                       4, 5, 5, 6, 6, 7, 7, 4,  // down
+//                                       0, 4, 1, 5, 2, 6, 3, 7,  // side
+//                                   } };
 
 
 //    [-1, 1, 1] 5----------7 [ 1, 1, 1]

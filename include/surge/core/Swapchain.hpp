@@ -1,7 +1,6 @@
 #pragma once
 
-#include "surge/Context.hpp"
-#include "surge/Image.hpp"
+#include "surge/core/Image.hpp"
 
 namespace surge
 {

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "surge/Context.hpp"
-#include "surge/Command.hpp"
 #include "surge/Camera.hpp"
 #include "surge/asset/Asset.hpp"
 #include "surge/physics/Physics.hpp"
@@ -159,7 +157,7 @@ private:
     {
         std::map<std::string, std::pair<VkPipelineLayout, VkPipeline>> pipelines;
 
-        constexpr VkPipelineVertexInputStateCreateInfo emptyVertexInputState = geometry::createVertexInputState();
+        constexpr VkPipelineVertexInputStateCreateInfo emptyVertexInputState = createVertexInputState();
         {  // line
             auto& [pipelineLayout, pipeline] = pipelines["line"];
             pipelineLayout = createPipelineLayout(createPushConstantRange<asset::Line>(VK_SHADER_STAGE_VERTEX_BIT),

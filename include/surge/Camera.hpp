@@ -1,7 +1,7 @@
 #pragma once
 
-#include "surge/UserInteraction.hpp"
-#include "surge/math/matrices.hpp"
+#include "surge/core/UserInteraction.hpp"
+#include "surge/core/math/matrices.hpp"
 
 #include <algorithm>
 #include <iomanip>

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "surge/Context.hpp"
-#include "surge/Buffer.hpp"
+#include "surge/core/Context.hpp"
+#include "surge/core/Buffer.hpp"
 
 #include <array>
 

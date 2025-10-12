@@ -1,6 +1,6 @@
 #pragma once
 
-#include "surge/math/matrices.hpp"
+#include "surge/core/math/matrices.hpp"
 
 #include <string>
 #include <vector>

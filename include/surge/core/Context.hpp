@@ -1,10 +1,10 @@
 #pragma once
 
-#include "surge/utils/utils.hpp"
+#include "surge/core/utils/utils.hpp"
 
-#include "surge/Window.hpp"
+#include "surge/core/Window.hpp"
 #ifndef NDEBUG
-#include "surge/debug.hpp"
+#include "surge/core/debug.hpp"
 #endif
 
 #include <vulkan/vulkan.h>
@@ -15,7 +15,6 @@
 #include <limits>
 #include <map>
 #include <optional>
-// #include <print>
 #include <set>
 #include <vector>
 

@@ -1,10 +1,8 @@
 #pragma once
 
-#include "surge/Context.hpp"
-#include "surge/Command.hpp"
-#include "surge/Swapchain.hpp"
-#include "surge/Image.hpp"
-#include "surge/utils/Cycle.hpp"
+#include "surge/core/Command.hpp"
+#include "surge/core/Swapchain.hpp"
+#include "surge/core/utils/Cycle.hpp"
 
 namespace surge
 {

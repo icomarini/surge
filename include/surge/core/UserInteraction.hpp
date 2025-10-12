@@ -1,7 +1,6 @@
 #pragma once
 
-#include "surge/math/math.hpp"
-#include "surge/math/Vector.hpp"
+#include "surge/core/math/math.hpp"
 
 #include <map>
 #include <iostream>

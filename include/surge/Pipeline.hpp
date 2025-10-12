@@ -1,7 +1,6 @@
 #pragma once
 
 #include "surge/Shader.hpp"
-#include "surge/utils/utils.hpp"
 #include "surge/geometry/Vertex.hpp"
 
 #include <filesystem>
@@ -9,6 +8,92 @@
 
 namespace surge
 {
+
+namespace detail
+{
+
+template<Size size, geometry::Format format>
+constexpr VkFormat extractFormat()
+{
+    constexpr std::array lut {
+        std::pair { std::pair { 1, geometry::Format::sfloat }, VK_FORMAT_R32_SFLOAT },
+        std::pair { std::pair { 2, geometry::Format::sfloat }, VK_FORMAT_R32G32_SFLOAT },
+        std::pair { std::pair { 3, geometry::Format::sfloat }, VK_FORMAT_R32G32B32_SFLOAT },
+        std::pair { std::pair { 4, geometry::Format::sfloat }, VK_FORMAT_R32G32B32A32_SFLOAT },
+        std::pair { std::pair { 1, geometry::Format::unorm }, VK_FORMAT_R8_UNORM },
+        std::pair { std::pair { 2, geometry::Format::unorm }, VK_FORMAT_R8G8_UNORM },
+        std::pair { std::pair { 3, geometry::Format::unorm }, VK_FORMAT_R8G8B8_UNORM },
+        std::pair { std::pair { 4, geometry::Format::unorm }, VK_FORMAT_R8G8B8A8_UNORM },
+    };
+
+    VkFormat result;
+    forEach<0, lut.size()>(
+        [&]<int i>()
+        {
+            constexpr auto t = lut.at(i);
+            if constexpr (t.first.first == size && t.first.second == format)
+            {
+                result = t.second;
+            }
+        });
+    return result;
+};
+template<typename... Attributes>
+static constexpr auto createAttributeDescriptions(geometry::Vertex<Attributes...>)
+{
+    using Vertex = geometry::Vertex<Attributes...>;
+    std::array<VkVertexInputAttributeDescription, Vertex::attributeCount> attributeDescriptions;
+    forEach<0, Vertex::attributeCount>(
+        [&]<int index>()
+        {
+            using Attribute              = typename Vertex::Attribute<index>;
+            attributeDescriptions[index] = {
+                .location = index,
+                .binding  = 0,
+                .format   = extractFormat<Attribute::size, Attribute::format>(),
+                .offset   = Vertex::template computeByteOffset<Attribute::attribute>(),
+            };
+        });
+    return attributeDescriptions;
+}
+}  // namespace detail
+
+template<typename Vertex>
+VkPipelineVertexInputStateCreateInfo createVertexInputState()
+{
+    static constexpr VkVertexInputBindingDescription bindingDescription {
+        .binding   = 0,
+        .stride    = sizeof(Vertex),
+        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+
+    };
+    static constexpr auto attributeDescriptions = detail::createAttributeDescriptions(Vertex {});
+
+    static constexpr VkPipelineVertexInputStateCreateInfo vertexInputState {
+        .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+        .pNext                           = nullptr,
+        .flags                           = {},
+        .vertexBindingDescriptionCount   = 1,
+        .pVertexBindingDescriptions      = &bindingDescription,
+        .vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
+        .pVertexAttributeDescriptions    = attributeDescriptions.data(),
+    };
+    return vertexInputState;
+}
+
+constexpr VkPipelineVertexInputStateCreateInfo createVertexInputState()
+{
+    return VkPipelineVertexInputStateCreateInfo {
+        .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+        .pNext                           = nullptr,
+        .flags                           = {},
+        .vertexBindingDescriptionCount   = 0,
+        .pVertexBindingDescriptions      = nullptr,
+        .vertexAttributeDescriptionCount = 0,
+        .pVertexAttributeDescriptions    = nullptr,
+    };
+    // return vertexInputState;
+}
 
 template<typename Type>
 constexpr VkPushConstantRange createPushConstantRange(const VkShaderStageFlags stageFlags)
@@ -336,8 +421,8 @@ template<typename Vertex, typename ShaderStages, typename... CreateInfos>
 VkPipeline createGraphicPipeline(const VkPipelineCache pipelineCache, const VkPipelineLayout pipelineLayout,
                                  const ShaderStages& shaderStages, CreateInfos... createInfos)
 {
-    return createGraphicPipeline(geometry::createVertexInputState<Vertex>(), pipelineCache, pipelineLayout,
-                                 shaderStages, createInfos...);
+    return createGraphicPipeline(createVertexInputState<Vertex>(), pipelineCache, pipelineLayout, shaderStages,
+                                 createInfos...);
 }
 
 
