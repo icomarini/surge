@@ -121,10 +121,20 @@ public:
 
         auto     start = std::chrono::high_resolution_clock::now();
         uint32_t ticCount {};
-        auto     entity1 = renderer.createEntity("robot", 0);
-        auto     entity2 = renderer.createEntity("robot", 0);
-        auto     entity3 = renderer.createEntity("robot", 0);
-        auto     entity4 = renderer.createEntity("robot", 0);
+
+        auto entity1 = renderer.createEntity("robot", 0, math::Translation { math::Vector<3> { 0, 0, 0 } });
+        entity1.animation->state.progress += 1;
+
+        auto entity2 = renderer.createEntity("robot", 0, math::Translation { math::Vector<3> { 1, 0, 0 } });
+        entity2.animation->state.progress += 2;
+
+        auto entity3 = renderer.createEntity("man", 0, math::Translation { math::Vector<3> { 2, 0, 0 } });
+        entity3.animation->state.progress += 0;
+
+        auto entity4 = renderer.createEntity("man", 0, math::Translation { math::Vector<3> { 3, 0, 0 } });
+        entity4.animation->state.progress += 1;
+
+        VkExtent2D extent { WIDTH, HEIGHT };
 
         while (!context().exit())
         {
@@ -161,7 +171,27 @@ public:
                 entity4.update(0, elapsedTime);
                 // === entity playground ===
 
-                render(presenter, userInteraction, skybox, renderer, overlay);
+                skybox.update(userInteraction);
+                renderer.update(userInteraction);
+                overlay.update(extent, userInteraction);
+
+                // === rendering ===
+                const auto inFlight = presenter.acquire();
+                extent              = inFlight.extent;
+
+                skybox.draw(inFlight.commandBuffer);
+                renderer.draw(inFlight.commandBuffer);
+                entity1.draw(inFlight.commandBuffer, renderer.descriptor.set);
+                entity2.draw(inFlight.commandBuffer, renderer.descriptor.set);
+                entity3.draw(inFlight.commandBuffer, renderer.descriptor.set);
+                entity4.draw(inFlight.commandBuffer, renderer.descriptor.set);
+                overlay.draw(inFlight.commandBuffer);
+
+                // presenter.record(inFlight, skybox, renderer, overlay);
+
+                presenter.present(command, userInteraction.framebufferResized);
+
+                // render(presenter, userInteraction, skybox, renderer, overlay);
 
                 start = std::chrono::high_resolution_clock::now();
             }
@@ -177,11 +207,14 @@ private:
     template<typename... Pipelines>
     void render(Presenter& presenter, const UserInteraction& ui, Pipelines&... pipelines)
     {
-        const auto [extent, image, imageView, depthImageView, commandBuffer] = presenter.acquire();
+        // const auto [extent, image, imageView, depthImageView, commandBuffer] = presenter.acquire();
+        const auto inFlight = presenter.acquire();
 
-        (pipelines.update(extent, ui), ...);
+        (pipelines.update(inFlight.extent, ui), ...);
 
-        presenter.record(image, imageView, depthImageView, extent, commandBuffer, pipelines...);
+        // presenter.record(image, imageView, depthImageView, extent, commandBuffer, pipelines...);
+        // presenter.record(inFlight, pipelines...);
+
         presenter.present(command, ui.framebufferResized);
     }
 

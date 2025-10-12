@@ -230,12 +230,16 @@ public:
     {
     }
 
-    entity::Entity createEntity(const std::string& name, const Index sceneIndex) const
+    entity::Entity createEntity(const std::string& name, const Index sceneIndex,
+                                const math::StaticMatrix auto& modelMatrix) const
     {
-        const auto& asset = assets.at(name);
+        const auto& asset                     = assets.at(name);
+        const auto [pipelineLayout, pipeline] = pipelines.at(name);
         return entity::Entity {
-            .asset = asset,
-            .nodes = asset.scenes.at(sceneIndex).treenNodes,
+            .asset          = asset,
+            .nodes          = asset.scenes.at(sceneIndex).treenNodes,
+            .pipelineLayout = pipelineLayout,
+            .pipeline       = pipeline,
             .animation =
                 !asset.skins.empty() ?
                     std::optional<entity::Entity::Animation> { std::in_place, asset.descriptorPool, asset.skins } :
@@ -243,7 +247,7 @@ public:
             .state =
                 entity::Entity::State {
                     .active      = true,
-                    .modelMatrix = math::fullMatrix(math::identity<4>),
+                    .modelMatrix = math::fullMatrix(modelMatrix),
                 },
         };
     }
@@ -360,6 +364,11 @@ public:
 
     void update(const VkExtent2D, const UserInteraction& ui)
     {
+        update({}, ui);
+    }
+
+    void update(const UserInteraction& ui)
+    {
         camera.update(ui);
         const std::array sceneMatrices {
             math::fullMatrix(camera.mats.perspective),
@@ -367,39 +376,39 @@ public:
         };
         memcpy(scene.mapped, sceneMatrices.data(), 2 * sizeof(math::Matrix<4, 4>));
 
-        for (auto& asset : assets)
-        {
-            asset.second.update(ui.elapsedTime);
-        }
+        // for (auto& asset : assets)
+        // {
+        //     asset.second.update(ui.elapsedTime);
+        // }
     }
 
-    void draw(const VkCommandBuffer commandBuffer, const VkExtent2D extent) const
+    void draw(const VkCommandBuffer commandBuffer) const
     {
-        const VkViewport viewport {
-            .x        = 0.0f,
-            .y        = 0.0f,
-            .width    = static_cast<float>(extent.width),
-            .height   = static_cast<float>(extent.height),
-            .minDepth = 0.0f,
-            .maxDepth = 1.0f,
-        };
-        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+        // const VkViewport viewport {
+        //     .x        = 0.0f,
+        //     .y        = 0.0f,
+        //     .width    = static_cast<float>(extent.width),
+        //     .height   = static_cast<float>(extent.height),
+        //     .minDepth = 0.0f,
+        //     .maxDepth = 1.0f,
+        // };
+        // vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-        const VkRect2D scissor {
-            .offset = { 0, 0 },
-            .extent = extent,
-        };
-        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+        // const VkRect2D scissor {
+        //     .offset = { 0, 0 },
+        //     .extent = extent,
+        // };
+        // vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-        for (const auto& renderable : renderables)
-        {
-            renderable.update();
-        }
+        // for (const auto& renderable : renderables)
+        // {
+        //     renderable.update();
+        // }
 
-        for (const auto& renderable : renderables)
-        {
-            renderable.draw(commandBuffer, descriptor.set);
-        }
+        // for (const auto& renderable : renderables)
+        // {
+        //     renderable.draw(commandBuffer, descriptor.set);
+        // }
 
         drawParticles(commandBuffer, descriptor.set);
         drawSprings(commandBuffer, descriptor.set);

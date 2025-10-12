@@ -11,9 +11,6 @@ namespace surge::entity
 
 struct Entity
 {
-    const asset::Asset& asset;
-    Tree<Node>          nodes;
-
     struct Animation
     {
         Animation(const VkDescriptorPool descriptorPool, const std::vector<asset::Skin>& skins)
@@ -39,14 +36,20 @@ struct Entity
             std::vector<math::Matrix<4, 4>> jointMatrices;
         } state;
     };
-    std::optional<Animation> animation;
+
 
     struct State
     {
         bool               active { true };
         math::Matrix<4, 4> modelMatrix;
     };
-    mutable State state;
+
+    const asset::Asset&      asset;
+    Tree<Node>               nodes;
+    VkPipelineLayout         pipelineLayout;
+    VkPipeline               pipeline;
+    std::optional<Animation> animation;
+    mutable State            state;
 
     void update(const Index animationIndex, const float elapsedTime)
     {
@@ -89,7 +92,7 @@ struct Entity
         }
     }
 
-    void draw(const VkCommandBuffer commandBuffer) const
+    void draw(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const
     {
         if (!state.active)
         {
@@ -102,20 +105,29 @@ struct Entity
         vkCmdBindIndexBuffer(commandBuffer, asset.model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
         // bind pipeline
-        // vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-        // // bind scene uniform
-        // constexpr uint32_t sceneUniformIndex = 0;
-        // vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, sceneUniformIndex, 1,
-        //                         &sceneDescriptor, 0, nullptr);
+        // bind scene uniform
+        constexpr uint32_t sceneUniformIndex = 0;
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, sceneUniformIndex, 1,
+                                &sceneDescriptor, 0, nullptr);
 
-        // if (asset.jointMatricesSSBO)
-        // {
-        //     // bind joint matrices ssbo
-        //     constexpr uint32_t jointMatricesSSBOIndex = 2;
-        //     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
-        //                             jointMatricesSSBOIndex, 1, &asset.jointMatricesSSBO->descriptorSet, 0, nullptr);
-        // }
+        if (animation)
+        {
+            // bind joint matrices ssbo
+            constexpr uint32_t jointMatricesSSBOIndex = 2;
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
+                                    jointMatricesSSBOIndex, 1, &animation->jointMatricesSSBO.descriptorSet, 0, nullptr);
+        }
+
+        nodes.traverse<Traversal::linear>(
+            [&](const Node& node)
+            {
+                if (node.meshIndex)
+                {
+                    node.draw(commandBuffer, asset.meshes.at(node.meshIndex.value()), pipelineLayout);
+                }
+            });
         // for (const auto& node : asset.mainScene().nodes)
         // {
         //     drawNode(asset, commandBuffer, node, asset.state.modelMatrix);

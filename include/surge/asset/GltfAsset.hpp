@@ -235,10 +235,10 @@ public:
     VkDescriptorPool createDescriptorPool() const
     {
         return Descriptor::createDescriptorPool(
-            asset.materials.size() + asset.meshes.size() + asset.skins.size(),
+            asset.materials.size() + asset.meshes.size() + asset.skins.size() + 16,
             std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(5 * asset.materials.size()) },
             std::pair { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, static_cast<uint32_t>(asset.meshes.size()) },
-            std::pair { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, static_cast<uint32_t>(asset.skins.size()) });
+            std::pair { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, static_cast<uint32_t>(asset.skins.size() + 16) });
     }
 
     VkDescriptorSetLayout createMaterialDescriptorSetLayout() const

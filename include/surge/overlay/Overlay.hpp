@@ -210,7 +210,7 @@ public:
     // {
     // }
 
-    void draw(const VkCommandBuffer commandBuffer, const VkExtent2D) const
+    void draw(const VkCommandBuffer commandBuffer) const
     {
         if (!model)
         {
@@ -229,15 +229,15 @@ public:
         assert(setPolygonMode);
         setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
 
-        const VkViewport viewport {
-            .x        = 0.0f,
-            .y        = 0.0f,
-            .width    = static_cast<float>(ImGui::GetIO().DisplaySize.x),
-            .height   = static_cast<float>(ImGui::GetIO().DisplaySize.y),
-            .minDepth = 0.0f,
-            .maxDepth = 1.0f,
-        };
-        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+        // const VkViewport viewport {
+        //     .x        = 0.0f,
+        //     .y        = 0.0f,
+        //     .width    = static_cast<float>(ImGui::GetIO().DisplaySize.x),
+        //     .height   = static_cast<float>(ImGui::GetIO().DisplaySize.y),
+        //     .minDepth = 0.0f,
+        //     .maxDepth = 1.0f,
+        // };
+        // vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
         // UI scale and translate via push constants
         const PushConstBlock pushConstBlock {

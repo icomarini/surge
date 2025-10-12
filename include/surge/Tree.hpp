@@ -55,6 +55,25 @@ struct Tree
     }
 
     template<Traversal traversal>
+    void traverse(auto func) const
+    {
+        if constexpr (traversal == Traversal::depthFirst)
+        {
+            for (const auto index : roots)
+            {
+                traverse(index, func);
+            }
+        }
+        else if constexpr (traversal == Traversal::linear)
+        {
+            for (const auto& node : nodes)
+            {
+                func(node.value);
+            }
+        }
+    }
+
+    template<Traversal traversal>
     void traverse(auto func, const auto& arg)
     {
         if constexpr (traversal == Traversal::depthFirst)

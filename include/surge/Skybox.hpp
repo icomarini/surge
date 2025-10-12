@@ -66,39 +66,27 @@ public:
 
     void update(const VkExtent2D, const UserInteraction& ui) const
     {
+        update({}, ui);
+    }
+
+    void update(const UserInteraction& ui) const
+    {
         camera.update(ui);
         const auto viewProjection = camera.mats.perspective * camera.mats.view;
         memcpy(uniformBuffer.mapped, &viewProjection, sizeof(math::Matrix<4, 4>));
     }
 
-
     void drawOffscreen(const VkCommandBuffer) const
     {
     }
 
-    void draw(const VkCommandBuffer commandBuffer, const VkExtent2D extent) const
+    void draw(const VkCommandBuffer commandBuffer) const
     {
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
         constexpr std::array<VkDeviceSize, 1> offsets { 0 };
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model.vertexBuffer.buffer, offsets.data());
         vkCmdBindIndexBuffer(commandBuffer, model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-
-        const VkViewport viewport {
-            .x        = 0.0f,
-            .y        = 0.0f,
-            .width    = static_cast<float>(extent.width),
-            .height   = static_cast<float>(extent.height),
-            .minDepth = 0.0f,
-            .maxDepth = 1.0f,
-        };
-        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-        const VkRect2D scissor {
-            .offset = { 0, 0 },
-            .extent = extent,
-        };
-        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptor.set,
                                 0, nullptr);

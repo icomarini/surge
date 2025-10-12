@@ -93,7 +93,7 @@ public:
             {
                 return;
             }
-            assert(sampler.inputs.at(index) <= progress && progress < sampler.inputs.at(index + 1));
+            assert(sampler.inputs.at(index) <= progress && progress <= sampler.inputs.at(index + 1));
             const auto a =
                 (progress - sampler.inputs.at(index)) / (sampler.inputs.at(index + 1) - sampler.inputs.at(index));
             const auto& x4 { sampler.outputs.at(index) };
