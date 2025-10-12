@@ -1,6 +1,6 @@
 #pragma once
 
-#include "surge/asset/Node.hpp"
+#include "surge/entity/Node.hpp"
 
 #include <imgui.h>
 
@@ -35,7 +35,7 @@ void slider(const std::string& name, const std::string& nodeName, math::Vector<s
     ImGui::PopItemWidth();
 }
 
-static void overlay(const asset::Node& node, uint32_t& nodeId)
+static void overlay(const entity::Node& node, uint32_t& nodeId)
 {
     const auto nodeName = idName(nodeId++, "");
     if (ImGui::TreeNode(nodeName.c_str()))
@@ -104,17 +104,17 @@ static void overlay(const asset::Node& node, uint32_t& nodeId)
         ImGui::Text("mesh:  %s", node.meshIndex ? std::to_string(node.meshIndex.value()).c_str() : "none");
         ImGui::Text("skin:  %s", node.skinIndex ? std::to_string(node.skinIndex.value()).c_str() : "none");
 
-        if (node.children.empty())
-        {
-            ImGui::Text("<no children>");
-        }
-        else
-        {
-            for (const auto& child : node.children)
-            {
-                overlay(child, nodeId);
-            }
-        }
+        // if (node.children.empty())
+        // {
+        //     ImGui::Text("<no children>");
+        // }
+        // else
+        // {
+        //     for (const auto& child : node.children)
+        //     {
+        //         overlay(child, nodeId);
+        //     }
+        // }
         ImGui::TreePop();
     }
 }

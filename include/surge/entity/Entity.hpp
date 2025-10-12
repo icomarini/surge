@@ -51,6 +51,23 @@ struct Entity
     std::optional<Animation> animation;
     mutable State            state;
 
+    Entity(const asset::Asset& asset, const VkPipelineLayout pipelineLayout, const VkPipeline pipeline,
+           const Index sceneIndex, const math::StaticMatrix auto& modelMatrix)
+        : asset { asset }
+        , nodes { asset.scenes.at(sceneIndex).treenNodes }
+        , pipelineLayout { pipelineLayout }
+        , pipeline { pipeline }
+        , animation { !asset.skins.empty() ?
+                          std::optional<entity::Entity::Animation> { std::in_place, asset.descriptorPool,
+                                                                     asset.skins } :
+                          std::optional<entity::Entity::Animation> {} }
+        , state { entity::Entity::State {
+              .active      = true,
+              .modelMatrix = math::fullMatrix(modelMatrix),
+          } }
+    {
+    }
+
     void update(const Index animationIndex, const float elapsedTime)
     {
         if (animation)

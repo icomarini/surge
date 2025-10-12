@@ -1,6 +1,5 @@
 #pragma once
 
-#include "surge/asset/Node.hpp"
 #include "surge/math/matrices.hpp"
 
 #include <string>
@@ -8,8 +7,6 @@
 
 namespace surge::asset
 {
-// struct Node;
-
 struct Skin
 {
     struct Joint

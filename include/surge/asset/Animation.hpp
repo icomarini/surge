@@ -1,7 +1,6 @@
 #pragma once
 
 #include "surge/Tree.hpp"
-#include "surge/asset/Node.hpp"
 #include "surge/entity/Node.hpp"
 
 namespace surge::asset
@@ -80,7 +79,6 @@ public:
             }
         }
     };
-
 
     std::string          name;
     float                start = std::numeric_limits<float>::max();

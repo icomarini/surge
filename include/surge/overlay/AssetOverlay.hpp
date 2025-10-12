@@ -26,7 +26,7 @@ std::pair<math::Vector<2>, math::Vector<2>> overlay(const asset::Asset&    asset
                                    ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings;
     ImGui::Begin(asset.name.c_str(), nullptr, windowOptions);
 
-    ImGui::Checkbox("active", &asset.state.active);
+    // ImGui::Checkbox("active", &asset.state.active);
 
     if (ImGui::CollapsingHeader(("Textures: " + std::to_string(asset.textures.size())).c_str(),
                                 ImGuiTreeNodeFlags_None))
@@ -124,16 +124,16 @@ std::pair<math::Vector<2>, math::Vector<2>> overlay(const asset::Asset&    asset
     if (ImGui::CollapsingHeader(("Scenes: " + std::to_string(asset.scenes.size())).c_str(), ImGuiTreeNodeFlags_None))
     {
         uint32_t sceneId {};
-        uint32_t nodeId {};
+        // uint32_t nodeId {};
         ImGui::Text("main scene: %lo", asset.mainSceneIndex);
         for (const auto& scene : asset.scenes)
         {
             if (ImGui::TreeNode(idName(sceneId++, scene.name).c_str()))
             {
-                for (const auto& node : scene.nodes)
-                {
-                    overlay(node, nodeId);
-                }
+                // for (const auto& node : scene.nodes)
+                // {
+                //     overlay(node, nodeId);
+                // }
                 ImGui::TreePop();
             }
         }
@@ -189,50 +189,50 @@ std::pair<math::Vector<2>, math::Vector<2>> overlay(const asset::Asset&    asset
         }
     }
 
-    if (ImGui::CollapsingHeader(("Joint Matrices: " + std::to_string(asset.state.jointMatrices.size())).c_str(),
-                                ImGuiTreeNodeFlags_None))
-    {
-        uint32_t jointMatrixId {};
-        for (const auto& jointMatrix : asset.state.jointMatrices)
-        {
-            const auto jointMatrixName = idName(jointMatrixId++, "joint matrix");
-            if (ImGui::TreeNode(jointMatrixName.c_str()))
-            {
-                ImGui::Text("%s", math::toString(jointMatrix).c_str());
-                math::Vector<4> row0 {
-                    math::get<0, 0>(jointMatrix),
-                    math::get<0, 1>(jointMatrix),
-                    math::get<0, 2>(jointMatrix),
-                    math::get<0, 3>(jointMatrix),
-                };
-                math::Vector<4> row1 {
-                    math::get<1, 0>(jointMatrix),
-                    math::get<1, 1>(jointMatrix),
-                    math::get<1, 2>(jointMatrix),
-                    math::get<1, 3>(jointMatrix),
-                };
-                math::Vector<4> row2 {
-                    math::get<2, 0>(jointMatrix),
-                    math::get<2, 1>(jointMatrix),
-                    math::get<2, 2>(jointMatrix),
-                    math::get<2, 3>(jointMatrix),
-                };
-                math::Vector<4> row3 {
-                    math::get<3, 0>(jointMatrix),
-                    math::get<3, 1>(jointMatrix),
-                    math::get<3, 2>(jointMatrix),
-                    math::get<3, 3>(jointMatrix),
-                };
+    // if (ImGui::CollapsingHeader(("Joint Matrices: " + std::to_string(asset.state.jointMatrices.size())).c_str(),
+    //                             ImGuiTreeNodeFlags_None))
+    // {
+    //     uint32_t jointMatrixId {};
+    //     for (const auto& jointMatrix : asset.state.jointMatrices)
+    //     {
+    //         const auto jointMatrixName = idName(jointMatrixId++, "joint matrix");
+    //         if (ImGui::TreeNode(jointMatrixName.c_str()))
+    //         {
+    //             ImGui::Text("%s", math::toString(jointMatrix).c_str());
+    //             math::Vector<4> row0 {
+    //                 math::get<0, 0>(jointMatrix),
+    //                 math::get<0, 1>(jointMatrix),
+    //                 math::get<0, 2>(jointMatrix),
+    //                 math::get<0, 3>(jointMatrix),
+    //             };
+    //             math::Vector<4> row1 {
+    //                 math::get<1, 0>(jointMatrix),
+    //                 math::get<1, 1>(jointMatrix),
+    //                 math::get<1, 2>(jointMatrix),
+    //                 math::get<1, 3>(jointMatrix),
+    //             };
+    //             math::Vector<4> row2 {
+    //                 math::get<2, 0>(jointMatrix),
+    //                 math::get<2, 1>(jointMatrix),
+    //                 math::get<2, 2>(jointMatrix),
+    //                 math::get<2, 3>(jointMatrix),
+    //             };
+    //             math::Vector<4> row3 {
+    //                 math::get<3, 0>(jointMatrix),
+    //                 math::get<3, 1>(jointMatrix),
+    //                 math::get<3, 2>(jointMatrix),
+    //                 math::get<3, 3>(jointMatrix),
+    //             };
 
-                slider("", jointMatrixName + "0", row0, xyzw);
-                slider("", jointMatrixName, row1, xyzw);
-                slider("", jointMatrixName, row2, xyzw);
-                slider("", jointMatrixName, row3, xyzw);
+    //             slider("", jointMatrixName + "0", row0, xyzw);
+    //             slider("", jointMatrixName, row1, xyzw);
+    //             slider("", jointMatrixName, row2, xyzw);
+    //             slider("", jointMatrixName, row3, xyzw);
 
-                ImGui::TreePop();
-            }
-        }
-    }
+    //             ImGui::TreePop();
+    //         }
+    //     }
+    // }
 
     const auto pos  = ImGui::GetWindowPos();
     const auto size = ImGui::GetWindowSize();

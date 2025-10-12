@@ -1,5 +1,7 @@
 #pragma once
 
+#include "surge/utils.hpp"
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
@@ -11,11 +13,11 @@
 namespace surge
 {
 
-template<class... Ts>
-struct overload : Ts...
-{
-    using Ts::operator()...;
-};
+// template<class... Ts>
+// struct overload : Ts...
+// {
+//     using Ts::operator()...;
+// };
 
 class LoadedTexture
 {

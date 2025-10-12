@@ -25,8 +25,43 @@ int main()
             { "gun", "/home/ico/projects/extern/Vulkan/assets/models/cerberus/cerberus.gltf" }
         };
 
-        surge::Application app(resources);
-        app.run();
+        // assets.emplace_back(command, defaults,
+        //                     asset::GltfAsset { "gun",
+        //                                               home / "extern/Vulkan/assets/models/cerberus/cerberus.gltf",
+        //                                               {
+        //                                                   { Type::baseColorTexture, base / "albedo.ktx" },
+        //                                                   { Type::metallicRoughnessTexture, base / "roughness.ktx" },
+        //                                                   { Type::emissiveTexture, base / "metallic.ktx" },
+        //                                                   { Type::normalTexture, base / "normal.ktx" },
+        //                                                   { Type::occlusionTexture, base / "ao.ktx" },
+        //                                               } });
+
+        const std::filesystem::path                      home { "/home/ico/projects/" };
+        std::map<std::string, surge::asset::AssetHandle> assetHandles {
+            { "skybox", surge::asset::TextureHandle { home / "surge/textures/skybox.ktx" } },
+            { "man", surge::asset::GltfHandle { home / "extern/Vulkan/assets/models/CesiumMan/glTF/CesiumMan.gltf" } },
+            { "dragon", surge::asset::GltfHandle { home / "extern/Vulkan/assets/models/chinesedragon.gltf" } },
+            { "robot", surge::asset::GltfHandle { home / "uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" } },
+            { "viking", surge::asset::ObjHandle { home / "surge/models/viking_room.obj",
+                                                  home / "surge/textures/viking_room.png" } },
+            // { "cerberus",
+            //   surge::asset::GltfHandle { home / "extern/Vulkan/assets/models/cerberus/cerberus.gltf",
+            //                              {
+            //                                  { surge::asset::GltfAsset::TextureType::baseColorTexture,
+            //                                    home / "extern/Vulkan/assets/models/cerberus/albedo.ktx" },
+            //                                  { surge::asset::GltfAsset::TextureType::metallicRoughnessTexture,
+            //                                    home / "extern/Vulkan/assets/models/cerberus/roughness.ktx" },
+            //                                  { surge::asset::GltfAsset::TextureType::emissiveTexture,
+            //                                    home / "extern/Vulkan/assets/models/cerberus/metallic.ktx" },
+            //                                  { surge::asset::GltfAsset::TextureType::normalTexture,
+            //                                    home / "extern/Vulkan/assets/models/cerberus/normal.ktx" },
+            //                                  { surge::asset::GltfAsset::TextureType::occlusionTexture,
+            //                                    home / "extern/Vulkan/assets/models/cerberus/ao.ktx" },
+            //                              } } },
+        };
+
+        surge::Application application(resources, assetHandles);
+        application.run();
     }
     catch (const std::exception& e)
     {

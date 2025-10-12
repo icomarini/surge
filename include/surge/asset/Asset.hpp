@@ -11,7 +11,6 @@
 #include "surge/asset/ObjAsset.hpp"
 #include "surge/asset/LoadedTexture.hpp"
 #include "surge/asset/Mesh.hpp"
-#include "surge/asset/Node.hpp"
 #include "surge/asset/Scene.hpp"
 #include "surge/asset/Skin.hpp"
 
@@ -84,24 +83,17 @@ public:
 
     VkDescriptorSetLayout jointMatricesDescriptorSetLayout;
 
-    struct State
-    {
-        bool                            active;
-        math::Matrix<4, 4>              modelMatrix;
-        std::vector<math::Matrix<4, 4>> jointMatrices;
-    };
-    mutable State state;
 
-    static constexpr auto pushConstantRange =
-        createPushConstantRange<entity::Node::PushConstants>(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+    // static constexpr auto pushConstantRange =
+    //     createPushConstantRange<entity::Node::PushConstants>(VK_SHADER_STAGE_VERTEX_BIT |
+    //     VK_SHADER_STAGE_FRAGMENT_BIT);
 
     // using UniformBufferDescr = UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT>;
     using SSBODescr = Description<VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, Buffer>;
 
     Asset(Asset&&) = default;
 
-    Asset(const Command& command, const Defaults& defaults, const GltfAsset& gltf,
-          const math::Matrix<4, 4>& modelMatrix = math::fullMatrix(math::identity<4>))
+    Asset(const Command& command, const Defaults& defaults, const GltfAsset& gltf)
         : name { gltf.name }
         , path { gltf.path }
         , shader { gltf.shader() }
@@ -112,19 +104,16 @@ public:
         , meshes { gltf.createMeshes(defaults, materials) }
         , vertexInputState { geometry::createVertexInputState<GltfAsset::Vertex>() }
         , model { gltf.createModel(command, meshes) }
-        , scenes { gltf.createScenes(meshes) }
+        , scenes { gltf.createScenes() }
         , mainSceneIndex { gltf.mainSceneIndex() }
-        , skins { gltf.createSkins(scenes.front().nodesLut) }
-        , animations { gltf.createAnimations(scenes.front().nodesLut) }
-        // , jointMatricesSSBO { createJointMatricesSSBO(descriptorPool, skins) }
+        , skins { gltf.createSkins() }
+        , animations { gltf.createAnimations() }
         , jointMatricesDescriptorSetLayout { createJointMatricesDescriptorSetLayout(skins) }
-        , state { false, modelMatrix, std::vector<math::Matrix<4, 4>> {} }
     {
         assert(scenes.size() > 0);
     }
 
-    Asset(const Command& command, const Defaults& defaults, const ObjAsset& obj,
-          const math::Matrix<4, 4>& modelMatrix = math::fullMatrix(math::identity<4>))
+    Asset(const Command& command, const Defaults& defaults, const ObjAsset& obj)
         : name { obj.name }
         , path { obj.path }
         , shader { shader::Type::shader }
@@ -135,12 +124,11 @@ public:
         , meshes { obj.createMesh(defaults, materials) }
         , vertexInputState { geometry::createVertexInputState<ObjAsset::Vertex>() }
         , model { obj.createModel(command, meshes.front()) }
-        , scenes { obj.createScene(meshes.front()) }
+        , scenes { obj.createScene() }
         , mainSceneIndex { 0 }
         , skins {}
-        , animations {}  // , jointMatricesSSBO {}
+        , animations {}
         , jointMatricesDescriptorSetLayout { VK_NULL_HANDLE }
-        , state { false, modelMatrix, std::vector<math::Matrix<4, 4>> {} }
     {
         assert(scenes.size() > 0);
     }

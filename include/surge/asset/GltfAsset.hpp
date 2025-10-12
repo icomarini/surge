@@ -1,7 +1,6 @@
 #pragma once
 
 #include "surge/shader_library.hpp"
-#include "surge/asset/Node.hpp"
 #include "surge/asset/Scene.hpp"
 #include "surge/asset/Skin.hpp"
 #include "surge/geometry/Shape.hpp"
@@ -528,40 +527,6 @@ public:
     //         });
     // }
 
-    void createNode(std::vector<Node>& nodes, /*Node* const parent,*/ const std::vector<Mesh>& meshes,
-                    const Size nodeId, std::vector<Node*>& nodesLut) const
-    {
-        assert(nodesLut.at(nodeId) == nullptr);
-        const auto& gltfNode = asset.nodes.at(nodeId);
-        assert(std::holds_alternative<fastgltf::TRS>(gltfNode.transform));
-        const auto& trs = std::get<fastgltf::TRS>(gltfNode.transform);
-
-        auto& node = nodes.emplace_back(
-            // baptize<This::node>(gltfNode.name, nodeId),  //
-            std::vector<Node> {},  //
-            gltfNode.meshIndex ? std::optional<uint32_t> { static_cast<uint32_t>(gltfNode.meshIndex.value()) } :
-                                 std::optional<uint32_t> {},
-            gltfNode.skinIndex ? std::optional<uint32_t> { static_cast<uint32_t>(gltfNode.skinIndex.value()) } :
-                                 std::optional<uint32_t> {},
-            Node::State {
-                .active            = true,
-                .polygonMode       = PolygonMode::fill,
-                .vertexStageFlag   = 0,
-                .fragmentStageFlag = 0,
-                .translation       = math::Vector<3> { trs.translation.x(), trs.translation.y(), trs.translation.z() },
-                .rotation =
-                    math::Quaternion<> { trs.rotation.x(), trs.rotation.y(), trs.rotation.z(), trs.rotation.w() },
-                .scale = math::Vector<3> { trs.scale.x(), trs.scale.y(), trs.scale.z() },
-            });
-        nodesLut[nodeId] = &node;
-
-        node.children.reserve(gltfNode.children.size());
-        for (const auto& childId : gltfNode.children)
-        {
-            createNode(node.children, /*&node,*/ meshes, childId, nodesLut);
-        }
-    }
-
     Tree<entity::Node> createTree(const Index sceneIndex) const
     {
         auto createNodes = [this]()
@@ -607,20 +572,14 @@ public:
         };
     }
 
-    std::vector<Scene> createScenes(const std::vector<Mesh>& meshes) const
+    std::vector<Scene> createScenes() const
     {
         std::vector<Scene> scenes;
         scenes.reserve(asset.scenes.size());
         uint32_t sceneId = 0;
         for (const fastgltf::Scene& fastgltfScene : asset.scenes)
         {
-            auto& scene = scenes.emplace_back(baptize<This::scene>(fastgltfScene.name, sceneId), createTree(sceneId));
-            scene.nodes.reserve(fastgltfScene.nodeIndices.size());
-            scene.nodesLut.resize(asset.nodes.size());
-            for (const auto nodeId : fastgltfScene.nodeIndices)
-            {
-                createNode(scene.nodes, /*nullptr,*/ meshes, nodeId, scene.nodesLut);
-            }
+            scenes.emplace_back(baptize<This::scene>(fastgltfScene.name, sceneId), createTree(sceneId));
             ++sceneId;
         }
 
@@ -632,7 +591,7 @@ public:
         return asset.defaultScene.value_or(0);
     }
 
-    std::vector<Skin> createSkins(const std::vector<Node*>& nodesLut) const
+    std::vector<Skin> createSkins() const
     {
         std::vector<Skin> skins;
         skins.reserve(asset.skins.size());
@@ -658,7 +617,7 @@ public:
         return skins;
     }
 
-    std::vector<Animation> createAnimations(const std::vector<Node*>& nodesLut) const
+    std::vector<Animation> createAnimations(/*const std::vector<Node*>& nodesLut*/) const
     {
         std::vector<Animation> animations;
         animations.reserve(asset.skins.size());

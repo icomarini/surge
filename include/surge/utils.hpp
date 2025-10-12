@@ -86,4 +86,9 @@ inline constexpr bool is_specialization_of_v = is_specialization_of<T, Primary>:
 //     auto operator
 //     using Ts::operator()...;
 // };
+template<class... Ts>
+struct overload : Ts...
+{
+    using Ts::operator()...;
+};
 }  // namespace surge

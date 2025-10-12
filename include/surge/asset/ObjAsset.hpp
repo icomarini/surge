@@ -1,7 +1,7 @@
 #pragma once
 
 #include "surge/asset/LoadedTexture.hpp"
-#include "surge/asset/Node.hpp"
+// #include "surge/asset/Node.hpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
@@ -194,31 +194,63 @@ public:
                        SceneModelInfo {} };
     }
 
-    Node createNode(const Mesh&) const
+    // Node createNode(const Mesh&) const
+    // {
+    //     return Node {
+    //         .children  = {},
+    //         .meshIndex = {0},
+    //         .skinIndex = {},
+    //         .state     = {
+    //                 .active            = false,
+    //                 .polygonMode       = PolygonMode::fill,
+    //                 .vertexStageFlag   = 0,
+    //                 .fragmentStageFlag = 0,
+    //                 .translation       = { 0, 0, 0 },
+    //                 .scale             = { 1, 1, 1 },
+    //          },
+    //     };
+    // }
+
+    Tree<entity::Node> createTree() const
     {
-        return Node {
-            .children  = {}, 
-            .meshIndex = {0},
-            .skinIndex = {},
-            .state     = { 
-                    .active            = false,
-                    .polygonMode       = PolygonMode::fill,
-                    .vertexStageFlag   = 0,
-                    .fragmentStageFlag = 0,
-                    .translation       = { 0, 0, 0 },
-                    .scale             = { 1, 1, 1 },
-             },
+        auto createNode = [this]()
+        {
+            Tree<entity::Node>::Nodes nodes;
+            nodes.reserve(1);
+            nodes.emplace_back(
+                entity::Node {
+                    std::optional<Index> { 0 },
+                    std::optional<Index> {},
+                    entity::Node::State {
+                        .active            = false,
+                        .polygonMode       = PolygonMode::fill,
+                        .vertexStageFlag   = 0,
+                        .fragmentStageFlag = 0,
+                        .translation       = { 0, 0, 0 },
+                        .scale             = { 1, 1, 1 },
+                        .localMatrix       = math::Matrix<4, 4> {},
+                        .globalMatrix      = math::Matrix<4, 4> {},
+                    },
+                },
+                std::vector<Index> {});
+            return nodes;
+        };
+        // auto createRoots = [&]()
+        // {
+        //     return std::vector<Index> { asset.scenes.at(sceneIndex).nodeIndices.begin(),
+        //                                 asset.scenes.at(sceneIndex).nodeIndices.end() };
+        // };
+        return Tree<entity::Node> {
+            .roots = std::vector<Index> { 0 },
+            .nodes = createNode(),
         };
     }
 
-    std::vector<Scene> createScene(const Mesh& mesh) const
+    std::vector<Scene> createScene() const
     {
         std::vector<Scene> scenes;
         scenes.reserve(1);
-        auto& scene = scenes.emplace_back(baptize<This::scene>(0));
-        scene.nodes.reserve(1);
-        auto& node = scene.nodes.emplace_back(createNode(mesh));
-        scene.nodesLut.emplace_back(&node);
+        scenes.emplace_back(baptize<This::scene>(0), createTree());
         return scenes;
     }
 

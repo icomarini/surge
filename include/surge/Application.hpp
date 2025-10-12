@@ -11,6 +11,7 @@
 
 #include "surge/asset/Asset.hpp"
 #include "surge/asset/Line.hpp"
+#include "surge/asset/AssetHandle.hpp"
 
 #include "surge/physics/Physics.hpp"
 
@@ -57,18 +58,18 @@ public:
     const std::string appName    = "surge-app";
     const std::string engineName = "surge";
 
-    Application(const std::map<std::string, std::filesystem::path>& resources)
+    Application(const std::map<std::string, std::filesystem::path>& resources,
+                const std::map<std::string, asset::AssetHandle>&    assetHandles)
         : userInteraction { WIDTH, HEIGHT }
         , ctx { createContext(appName, engineName, WIDTH, HEIGHT, &userInteraction) }
         , command {}
         , presenter { command }
         , defaults { command, resources }
-        , skybox { command, resources.at("skyboxTexture") }
+        , skybox { command, std::get<asset::TextureHandle>(assetHandles.at("skybox")).path }
         , physics { physics::earthGravity }
-        , assets { createAssets(command, resources) }
+        , assets { createAssets(command, defaults, resources, assetHandles) }
         , renderer { assets, physics }
         , overlay { command, userInteraction, assets }
-        , forceRegistry {}
     {
         resetPhysics();
 
@@ -118,17 +119,27 @@ public:
         auto     start = std::chrono::high_resolution_clock::now();
         uint32_t ticCount {};
 
-        auto entity1 = renderer.createEntity("robot", 0, math::Translation { math::Vector<3> { 0, 0, 0 } });
-        entity1.animation->state.progress += 1;
+        // auto entity1 = renderer.createEntity("robot", 0, math::Translation { math::Vector<3> { 0, 0, 0 } });
+        // entity1.animation->state.progress += 1;
 
-        auto entity2 = renderer.createEntity("robot", 0, math::Translation { math::Vector<3> { 1, 0, 0 } });
-        entity2.animation->state.progress += 2;
+        // auto entity2 = renderer.createEntity("robot", 0, math::Translation { math::Vector<3> { 1, 0, 0 } });
+        // entity2.animation->state.progress += 2;
 
-        auto entity3 = renderer.createEntity("man", 0, math::Translation { math::Vector<3> { 2, 0, 0 } });
-        entity3.animation->state.progress += 0;
+        // auto entity3 = renderer.createEntity("man", 0, math::Translation { math::Vector<3> { 2, 0, 0 } });
+        // entity3.animation->state.progress += 0;
 
-        auto entity4 = renderer.createEntity("man", 0, math::Translation { math::Vector<3> { 3, 0, 0 } });
-        entity4.animation->state.progress += 1;
+        // auto entity4 = renderer.createEntity("man", 0, math::Translation { math::Vector<3> { 3, 0, 0 } });
+        // entity4.animation->state.progress += 1;
+
+        std::vector<entity::Entity> entities;
+        entities.reserve(assets.size());
+        float offset = 0;
+        for (const auto& [name, asset] : assets)
+        {
+            const auto [pipelineLayout, pipeline] = renderer.pipelines.at(name);
+            entities.emplace_back(asset, pipelineLayout, pipeline, 0,
+                                  math::Translation { math::Vector<3> { offset++, 0, 0 } });
+        }
 
         VkExtent2D extent { WIDTH, HEIGHT };
 
@@ -161,10 +172,13 @@ public:
                 // === physics playground ===
 
                 // === entity playground ===
-                entity1.update(0, elapsedTime);
-                entity2.update(0, elapsedTime);
-                entity3.update(0, elapsedTime);
-                entity4.update(0, elapsedTime);
+                for (auto& entity : entities)
+                {
+                    entity.update(0, elapsedTime);
+                }
+                // entity2.update(0, elapsedTime);
+                // entity3.update(0, elapsedTime);
+                // entity4.update(0, elapsedTime);
                 // === entity playground ===
 
                 skybox.update(userInteraction);
@@ -177,10 +191,14 @@ public:
 
                 skybox.draw(inFlight.commandBuffer);
                 renderer.draw(inFlight.commandBuffer);
-                entity1.draw(inFlight.commandBuffer, renderer.descriptor.set);
-                entity2.draw(inFlight.commandBuffer, renderer.descriptor.set);
-                entity3.draw(inFlight.commandBuffer, renderer.descriptor.set);
-                entity4.draw(inFlight.commandBuffer, renderer.descriptor.set);
+                for (const auto& entity : entities)
+                {
+                    entity.draw(inFlight.commandBuffer, renderer.descriptor.set);
+                }
+                // entity1.draw(inFlight.commandBuffer, renderer.descriptor.set);
+                // entity2.draw(inFlight.commandBuffer, renderer.descriptor.set);
+                // entity3.draw(inFlight.commandBuffer, renderer.descriptor.set);
+                // entity4.draw(inFlight.commandBuffer, renderer.descriptor.set);
                 overlay.draw(inFlight.commandBuffer);
 
                 presenter.present(command, userInteraction.framebufferResized);
@@ -197,19 +215,19 @@ public:
     }
 
 private:
-    template<typename... Pipelines>
-    void render(Presenter& presenter, const UserInteraction& ui, Pipelines&... pipelines)
-    {
-        // const auto [extent, image, imageView, depthImageView, commandBuffer] = presenter.acquire();
-        const auto inFlight = presenter.acquire();
+    // template<typename... Pipelines>
+    // void render(Presenter& presenter, const UserInteraction& ui, Pipelines&... pipelines)
+    // {
+    //     // const auto [extent, image, imageView, depthImageView, commandBuffer] = presenter.acquire();
+    //     const auto inFlight = presenter.acquire();
 
-        (pipelines.update(inFlight.extent, ui), ...);
+    //     (pipelines.update(inFlight.extent, ui), ...);
 
-        // presenter.record(image, imageView, depthImageView, extent, commandBuffer, pipelines...);
-        // presenter.record(inFlight, pipelines...);
+    //     // presenter.record(image, imageView, depthImageView, extent, commandBuffer, pipelines...);
+    //     // presenter.record(inFlight, pipelines...);
 
-        presenter.present(command, ui.framebufferResized);
-    }
+    //     presenter.present(command, ui.framebufferResized);
+    // }
 
 private:
     mutable UserInteraction             userInteraction;
@@ -220,13 +238,14 @@ private:
     Skybox                              skybox;
     physics::Physics                    physics;
     std::map<std::string, asset::Asset> assets;
-    // std::vector<entity::Entity>         entities;
-    Renderer               renderer;
-    overlay::Overlay       overlay;
-    physics::ForceRegistry forceRegistry;
+    Renderer                            renderer;
+    overlay::Overlay                    overlay;
 
-    std::map<std::string, asset::Asset> createAssets(const Command&                                      command,
-                                                     const std::map<std::string, std::filesystem::path>& resources)
+
+    static std::map<std::string, asset::Asset>
+    createAssets(const Command& command, const Defaults& defaults,
+                 const std::map<std::string, std::filesystem::path>& resources,
+                 const std::map<std::string, asset::AssetHandle>&    assetHandles)
     {
         // constexpr std::array names { "oaktree", "helmet", "dragon", "buggy" };
         // constexpr std::array names { "buggy" };
@@ -250,20 +269,52 @@ private:
         //         asset::GltfAsset { "robot",
         //                            "/home/ico/projects/uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" });
         // }
-
         std::map<std::string, asset::Asset> assets;
+        for (const auto& [name, assetHandle] : assetHandles)
+        {
+            std::visit(
+                overload {
+                    [&](const auto&) {},
+                    [&](const asset::GltfHandle& handle)
+                    {
+                        assets.emplace(
+                            std::piecewise_construct, std::forward_as_tuple(name),
+                            std::forward_as_tuple(command, defaults,
+                                                  asset::GltfAsset { name, handle.path, handle.externalPaths }));
+                    },
+                    [&](const asset::ObjHandle& handle)
+                    {
+                        assets.emplace(
+                            std::piecewise_construct, std::forward_as_tuple(name),
+                            std::forward_as_tuple(command, defaults,
+                                                  asset::ObjAsset { name, handle.meshPath, handle.texturePath }));
+                    },
+                },
+                assetHandle);
+        }
 
-        assets.emplace(std::piecewise_construct, std::forward_as_tuple("man"),
-                       std::forward_as_tuple(command, defaults, asset::GltfAsset { "man", resources.at("man") }));
-        assets.emplace(std::piecewise_construct, std::forward_as_tuple("robot"),
-                       std::forward_as_tuple(
-                           command, defaults,
-                           asset::GltfAsset {
-                               "robot", "/home/ico/projects/uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" }));
+        // auto addAsset = [&](const auto& loadedAsset)
+        // {
+        //     assets.emplace(std::piecewise_construct, std::forward_as_tuple(loadedAsset.name),
+        //                    std::forward_as_tuple(command, defaults, loadedAsset));
+        // };
 
-        // assets.emplace_back(command, defaults,
-        //                     asset::ObjAsset { "viking room", resources.at("vikingRoomModel"),
-        //                                              resources.at("vikingRoomTexture") });
+        // addAsset(asset::GltfAsset { "man", resources.at("man") });
+        // addAsset(asset::GltfAsset { "robot", resources.at("man") });
+
+        // assets.emplace(std::piecewise_construct, std::forward_as_tuple("man"),
+        //                std::forward_as_tuple(command, defaults, asset::GltfAsset { "man", resources.at("man") }));
+        // assets.emplace(std::piecewise_construct, std::forward_as_tuple("robot"),
+        //                std::forward_as_tuple(
+        //                    command, defaults,
+        //                    asset::GltfAsset {
+        //                        "robot", "/home/ico/projects/uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb"
+        //                        }));
+
+        // assets.emplace(std::piecewise_construct, std::forward_as_tuple("viking"),
+        //                std::forward_as_tuple(command, defaults,
+        //                                      asset::ObjAsset { "viking room", resources.at("vikingRoomModel"),
+        //                                                        resources.at("vikingRoomTexture") }));
 
         // const math::Vector<3> translation { -1.0f, 1.0f, 0.0f };
         // const math::Vector<3> scaling { 0.01f, 0.01f, 0.01f };
@@ -287,45 +338,6 @@ private:
         //                                                   { Type::occlusionTexture, base / "ao.ktx" },
         //                                               } });
 
-        for (auto& [name, asset] : assets)
-        {
-            asset.state.active = true;
-            for (auto& mesh : asset.meshes)
-            {
-                for (auto& primitive : mesh.primitives)
-                {
-                    primitive.state.boundingBox = true;
-                }
-            }
-            for (auto& node : asset.mainScene().nodes)
-            {
-                node.state.active = true;
-                for (auto& child : node.children)
-                {
-                    child.state.active = true;
-                }
-            }
-            // asset.entity.update(asset.skins, asset.animations.front(), 0);
-            // int  nodeIndex { 0 };
-            // for (const auto& node : asset.entity.nodes.nodes)
-            // {
-            //     if (node.value.skinIndex)
-            //     {
-            //         std::cout << "node " << nodeIndex << ": "
-            //                   << (node.value.skinIndex ? std::to_string(node.value.skinIndex.value()) :
-            //                                              std::string("nope"))
-            //                   << std::endl;
-            //         // for (const auto)
-            //     }
-            //     nodeIndex++;
-            // }
-            // std::cout << "roots:";
-            // for (const auto root : asset.entity.nodes.roots)
-            // {
-            //     std::cout << " " << root;
-            // }
-            // std::cout << std::endl;
-        }
         // std::vector<asset::Asset> assets;
         return assets;
     }
