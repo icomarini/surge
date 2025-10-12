@@ -5,7 +5,7 @@
 #include "surge/Pipeline.hpp"
 #include "surge/Texture.hpp"
 #include "surge/asset/Material.hpp"
-#include "surge/asset/LoadedTexture.hpp"
+#include "surge/load/LoadedTexture.hpp"
 #include "surge/geometry/shapes.hpp"
 #include "surge/math/matrices.hpp"
 
@@ -78,7 +78,7 @@ public:
     };
 
     Defaults(const Command& command, const std::filesystem::path& defaultTexturePath)
-        : texture { command, LoadedTexture { baptize<This::texture>(), defaultTexturePath }, SceneTextureInfo {} }
+        : texture { command, load::LoadedTexture { baptize<This::texture>(), defaultTexturePath }, SceneTextureInfo {} }
         , descriptorPool { Descriptor::createDescriptorPool(
               5U, std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U }) }
         , descriptorSetLayout { Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture

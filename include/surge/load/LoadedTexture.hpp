@@ -10,18 +10,17 @@
 #include <filesystem>
 #include <variant>
 
-namespace surge
+namespace surge::load
 {
-
-// template<class... Ts>
-// struct overload : Ts...
-// {
-//     using Ts::operator()...;
-// };
 
 class LoadedTexture
 {
 public:
+    struct TextureHandle
+    {
+        std::filesystem::path path;
+    };
+
     LoadedTexture(const std::string& name, const std::filesystem::path& path)
         : width {}
         , height {}
@@ -149,4 +148,4 @@ private:
     std::vector<std::tuple<uint32_t, uint32_t, uint64_t>> vOffsets;
 };
 
-}  // namespace surge
+}  // namespace surge::load

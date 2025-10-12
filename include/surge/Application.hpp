@@ -9,6 +9,9 @@
 #include "surge/Renderer.hpp"
 #include "surge/Skybox.hpp"
 
+#include "surge/load/Gltf.hpp"
+#include "surge/load/Obj.hpp"
+
 #include "surge/asset/Asset.hpp"
 #include "surge/asset/Line.hpp"
 #include "surge/asset/AssetHandle.hpp"
@@ -232,19 +235,17 @@ private:
             std::visit(
                 overload {
                     [&](const auto&) {},
-                    [&](const asset::GltfHandle& handle)
+                    [&](const load::Gltf::Handle& handle)
                     {
-                        assets.emplace(
-                            std::piecewise_construct, std::forward_as_tuple(name),
-                            std::forward_as_tuple(command, defaults,
-                                                  asset::GltfAsset { name, handle.path, handle.externalPaths }));
+                        assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
+                                       std::forward_as_tuple(command, defaults,
+                                                             load::Gltf { name, handle.path, handle.externalPaths }));
                     },
-                    [&](const asset::ObjHandle& handle)
+                    [&](const load::Obj::Handle& handle)
                     {
-                        assets.emplace(
-                            std::piecewise_construct, std::forward_as_tuple(name),
-                            std::forward_as_tuple(command, defaults,
-                                                  asset::ObjAsset { name, handle.meshPath, handle.texturePath }));
+                        assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
+                                       std::forward_as_tuple(command, defaults,
+                                                             load::Obj { name, handle.meshPath, handle.texturePath }));
                     },
                 },
                 assetHandle);

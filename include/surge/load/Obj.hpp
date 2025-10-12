@@ -1,7 +1,6 @@
 #pragma once
 
-#include "surge/asset/LoadedTexture.hpp"
-// #include "surge/asset/Node.hpp"
+#include "surge/load/LoadedTexture.hpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
@@ -11,12 +10,18 @@
 #include <optional>
 #include <vector>
 
-namespace surge::asset
+namespace surge::load
 {
 
-class ObjAsset
+class Obj
 {
 public:
+    struct Handle
+    {
+        std::filesystem::path                meshPath;
+        std::optional<std::filesystem::path> texturePath;
+    };
+
     using TextureDescr = TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT>;
     using Index        = geometry::Index;
     using Vertex       = geometry::Vertex<
@@ -25,8 +30,8 @@ public:
               geometry::AttributeSlot<geometry::Attribute::normal, math::Vector<3>, 3, geometry::Format::sfloat>,
               geometry::AttributeSlot<geometry::Attribute::texCoord, math::Vector<2>, 2, geometry::Format::sfloat>>;
 
-    ObjAsset(const std::string& name, const std::filesystem::path& modelPath,
-             const std::optional<std::filesystem::path>& texturePath)
+    Obj(const std::string& name, const std::filesystem::path& modelPath,
+        const std::optional<std::filesystem::path>& texturePath)
         : name { name }
         , path { modelPath }
         , texture {}
@@ -70,40 +75,41 @@ public:
                                                      >(1);
     }
 
-    std::vector<Material> createMaterials(const Defaults& defaults, const VkDescriptorPool descriptorPool,
-                                          const VkDescriptorSetLayout materialDescriptorSetLayout,
-                                          const std::vector<Texture>& textures) const
+    std::vector<asset::Material> createMaterials(const Defaults& defaults, const VkDescriptorPool descriptorPool,
+                                                 const VkDescriptorSetLayout materialDescriptorSetLayout,
+                                                 const std::vector<Texture>& textures) const
     {
         if (textures.empty())
         {
             return {};
         }
         assert(textures.size() == 1);
-        return { Material { .name                     = baptize<This::material>(0),
-                            .doubleSided              = false,
-                            .unlit                    = false,
-                            .alphaMode                = Material::AlphaMode::opaque,
-                            .alphaCutoff              = 1,
-                            .baseColorTexture         = Material::TextureData { &textures.front(), 0 },
-                            .baseColorFactor          = { 1, 1, 1, 1 },
-                            .metallicRoughnessTexture = Material::TextureData { &defaults.texture, 0 },
-                            .metallicFactor           = 1,
-                            .roughnessFactor          = 1,
-                            .emissiveTexture          = Material::TextureData { &defaults.texture, 0 },
-                            .emissiveFactor           = { 0, 0, 0, 0 },
-                            .emissiveStrength         = 1,
-                            .normalTexture            = Material::TextureData { &defaults.texture, 0 },
-                            .normalScale              = 1,
-                            .occlusionTexture         = Material::TextureData { &defaults.texture, 0 },
-                            .occlusionStrength        = 1,
-                            .descriptorSet            = Descriptor::createDescriptorSet(
-                                materialDescriptorSetLayout, descriptorPool,  //
-                                TextureDescr { textures.front() }, TextureDescr { defaults.texture },
-                                TextureDescr { defaults.texture }, TextureDescr { defaults.texture },
-                                TextureDescr { defaults.texture }) } };
+        using TextureData = asset::Material::TextureData;
+        return { asset::Material { .name                     = baptize<This::material>(0),
+                                   .doubleSided              = false,
+                                   .unlit                    = false,
+                                   .alphaMode                = asset::Material::AlphaMode::opaque,
+                                   .alphaCutoff              = 1,
+                                   .baseColorTexture         = TextureData { &textures.front(), 0 },
+                                   .baseColorFactor          = { 1, 1, 1, 1 },
+                                   .metallicRoughnessTexture = TextureData { &defaults.texture, 0 },
+                                   .metallicFactor           = 1,
+                                   .roughnessFactor          = 1,
+                                   .emissiveTexture          = TextureData { &defaults.texture, 0 },
+                                   .emissiveFactor           = { 0, 0, 0, 0 },
+                                   .emissiveStrength         = 1,
+                                   .normalTexture            = TextureData { &defaults.texture, 0 },
+                                   .normalScale              = 1,
+                                   .occlusionTexture         = TextureData { &defaults.texture, 0 },
+                                   .occlusionStrength        = 1,
+                                   .descriptorSet            = Descriptor::createDescriptorSet(
+                                       materialDescriptorSetLayout, descriptorPool,  //
+                                       TextureDescr { textures.front() }, TextureDescr { defaults.texture },
+                                       TextureDescr { defaults.texture }, TextureDescr { defaults.texture },
+                                       TextureDescr { defaults.texture }) } };
     }
 
-    std::vector<Mesh> createMesh(const Defaults& defaults, const std::vector<Material>& materials) const
+    std::vector<asset::Mesh> createMeshes(const Defaults& defaults, const std::vector<asset::Material>& materials) const
     {
         Size indexCount {};
         for (const auto& shape : shapes)
@@ -134,10 +140,10 @@ public:
         // const bool              texCoord = materials.size() > 0;
         const math::BoundingBox bbox { .min = min, .max = max };
 
-        std::vector<Mesh> meshes;
-        auto&             mesh = meshes.emplace_back(baptize<This::mesh>(0));
+        std::vector<asset::Mesh> meshes;
+        auto&                    mesh = meshes.emplace_back(baptize<This::mesh>(0));
         mesh.primitives.emplace_back(0, indexCount, indexCount, material,
-                                     Mesh::Primitive::Attributes {
+                                     asset::Mesh::Primitive::Attributes {
                                          { geometry::Attribute::position, true },
                                          { geometry::Attribute::color, false },
                                          { geometry::Attribute::normal, false },
@@ -145,12 +151,12 @@ public:
                                          { geometry::Attribute::jointIndex, false },
                                          { geometry::Attribute::jointWeight, false },
                                      },
-                                     bbox, Mesh::Primitive::State { false });
+                                     bbox, asset::Mesh::Primitive::State { false });
 
         return meshes;
     }
 
-    Model createModel(const Command& command, const Mesh& mesh) const
+    Model createModel(const Command& command, const asset::Mesh& mesh) const
     {
         assert(mesh.primitives.size() == 1);
 
@@ -229,9 +235,9 @@ public:
         };
     }
 
-    std::vector<Scene> createScene() const
+    std::vector<asset::Scene> createScene() const
     {
-        std::vector<Scene> scenes;
+        std::vector<asset::Scene> scenes;
         scenes.reserve(1);
         scenes.emplace_back(baptize<This::scene>(0), createTree());
         return scenes;
@@ -245,4 +251,4 @@ public:
     std::optional<LoadedTexture>     texture;
 };
 
-}  // namespace surge::asset
+}  // namespace surge::load

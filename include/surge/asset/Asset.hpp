@@ -7,9 +7,9 @@
 #include "surge/Pipeline.hpp"
 #include "surge/shader_library.hpp"
 #include "surge/asset/Animation.hpp"
-#include "surge/asset/GltfAsset.hpp"
-#include "surge/asset/ObjAsset.hpp"
-#include "surge/asset/LoadedTexture.hpp"
+#include "surge/load/Gltf.hpp"
+#include "surge/load/Obj.hpp"
+#include "surge/load/LoadedTexture.hpp"
 #include "surge/asset/Mesh.hpp"
 #include "surge/asset/Scene.hpp"
 #include "surge/asset/Skin.hpp"
@@ -83,17 +83,11 @@ public:
 
     VkDescriptorSetLayout jointMatricesDescriptorSetLayout;
 
-
-    // static constexpr auto pushConstantRange =
-    //     createPushConstantRange<entity::Node::PushConstants>(VK_SHADER_STAGE_VERTEX_BIT |
-    //     VK_SHADER_STAGE_FRAGMENT_BIT);
-
-    // using UniformBufferDescr = UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT>;
     using SSBODescr = Description<VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, Buffer>;
 
     Asset(Asset&&) = default;
 
-    Asset(const Command& command, const Defaults& defaults, const GltfAsset& gltf)
+    Asset(const Command& command, const Defaults& defaults, const load::Gltf& gltf)
         : name { gltf.name }
         , path { gltf.path }
         , shader { gltf.shader() }
@@ -102,7 +96,7 @@ public:
         , materialDescriptorSetLayout { gltf.createMaterialDescriptorSetLayout() }
         , materials { gltf.createMaterials(defaults, descriptorPool, materialDescriptorSetLayout, textures) }
         , meshes { gltf.createMeshes(defaults, materials) }
-        , vertexInputState { geometry::createVertexInputState<GltfAsset::Vertex>() }
+        , vertexInputState { geometry::createVertexInputState<load::Gltf::Vertex>() }
         , model { gltf.createModel(command, meshes) }
         , scenes { gltf.createScenes() }
         , mainSceneIndex { gltf.mainSceneIndex() }
@@ -113,7 +107,7 @@ public:
         assert(scenes.size() > 0);
     }
 
-    Asset(const Command& command, const Defaults& defaults, const ObjAsset& obj)
+    Asset(const Command& command, const Defaults& defaults, const load::Obj& obj)
         : name { obj.name }
         , path { obj.path }
         , shader { shader::Type::shader }
@@ -121,8 +115,8 @@ public:
         , descriptorPool { obj.createDescriptorPool() }
         , materialDescriptorSetLayout { obj.createMaterialDescriptorSetLayout() }
         , materials { obj.createMaterials(defaults, descriptorPool, materialDescriptorSetLayout, textures) }
-        , meshes { obj.createMesh(defaults, materials) }
-        , vertexInputState { geometry::createVertexInputState<ObjAsset::Vertex>() }
+        , meshes { obj.createMeshes(defaults, materials) }
+        , vertexInputState { geometry::createVertexInputState<load::Obj::Vertex>() }
         , model { obj.createModel(command, meshes.front()) }
         , scenes { obj.createScene() }
         , mainSceneIndex { 0 }

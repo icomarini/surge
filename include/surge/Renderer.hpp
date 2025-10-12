@@ -26,28 +26,6 @@ public:
     {
     }
 
-    entity::Entity createEntity(const std::string& name, const Index sceneIndex,
-                                const math::StaticMatrix auto& modelMatrix) const
-    {
-        const auto& asset                     = assets.at(name);
-        const auto [pipelineLayout, pipeline] = pipelines.at(name);
-        return entity::Entity {
-            .asset          = asset,
-            .nodes          = asset.scenes.at(sceneIndex).treenNodes,
-            .pipelineLayout = pipelineLayout,
-            .pipeline       = pipeline,
-            .animation =
-                !asset.skins.empty() ?
-                    std::optional<entity::Entity::Animation> { std::in_place, asset.descriptorPool, asset.skins } :
-                    std::optional<entity::Entity::Animation> {},
-            .state =
-                entity::Entity::State {
-                    .active      = true,
-                    .modelMatrix = math::fullMatrix(modelMatrix),
-                },
-        };
-    }
-
     ~Renderer()
     {
         for (const auto& [name, pipeline] : pipelines)

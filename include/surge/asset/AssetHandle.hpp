@@ -1,6 +1,8 @@
 #pragma once
 
-#include "surge/asset/GltfAsset.hpp"
+#include "surge/load/Gltf.hpp"
+#include "surge/load/Obj.hpp"
+#include "surge/load/LoadedTexture.hpp"
 
 #include <filesystem>
 #include <string>
@@ -15,18 +17,18 @@ struct TextureHandle
     std::filesystem::path path;
 };
 
-struct GltfHandle
-{
-    std::filesystem::path                                          path;
-    std::map<asset::GltfAsset::TextureType, std::filesystem::path> externalPaths {};
-};
+// struct GltfHandle
+// {
+//     std::filesystem::path                                    path;
+//     std::map<load::Gltf::TextureType, std::filesystem::path> externalPaths {};
+// };
 
-struct ObjHandle
-{
-    std::filesystem::path meshPath;
-    std::filesystem::path texturePath;
-};
+// struct ObjHandle
+// {
+//     std::filesystem::path                meshPath;
+//     std::optional<std::filesystem::path> texturePath;
+// };
 
-using AssetHandle = std::variant<TextureHandle, GltfHandle, ObjHandle>;
+using AssetHandle = std::variant<TextureHandle, load::Gltf::Handle, load::Obj::Handle>;
 
 }  // namespace surge::asset

@@ -22,7 +22,7 @@ public:
     Skybox(const Command& command, const std::filesystem::path& loadedTexture)
         : camera { 16.0 / 9.0, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } }
         , uniformBuffer { sizeof(math::Matrix<4, 4>), UniformBufferInfo {} }
-        , texture { command, LoadedTexture { loadedTexture }, CubeTextureInfo {} }
+        , texture { command, load::LoadedTexture { loadedTexture }, CubeTextureInfo {} }
         , model { command, geometry::cubeFill, true, SceneModelInfo {} }
         , descriptor { 1, UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT> { uniformBuffer },
                        Description<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, Texture> {

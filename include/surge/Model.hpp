@@ -3,7 +3,6 @@
 #include "surge/Context.hpp"
 #include "surge/Buffer.hpp"
 #include "surge/Command.hpp"
-#include "surge/asset/LoadedModel.hpp"
 
 #include <filesystem>
 #include <vector>
