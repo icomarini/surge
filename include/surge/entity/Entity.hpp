@@ -1,10 +1,9 @@
 #pragma once
 
-#include "surge/Tree.hpp"
-#include "surge/entity/Node.hpp"
-#include "surge/math/angles.hpp"
-#include "surge/asset/Skin.hpp"
-#include "surge/asset/Animation.hpp"
+// #include "surge/Tree.hpp"
+// #include "surge/entity/Node.hpp"
+// #include "surge/math/angles.hpp"
+#include "surge/asset/Asset.hpp"
 
 namespace surge::entity
 {
@@ -12,12 +11,26 @@ namespace surge::entity
 
 struct Entity
 {
-    // const asset::Asset& asset;
-    Tree<Node> nodes;
+    const asset::Asset& asset;
+    Tree<Node>          nodes;
 
     struct Animation
     {
-        // asset::ShaderStorageBufferObject jointMatricesSSBO;
+        Animation(const VkDescriptorPool descriptorPool, const std::vector<asset::Skin>& skins)
+            : jointMatricesSSBO { sizeof(math::Matrix<4, 4>) *
+                                      std::accumulate(skins.begin(), skins.end(), 0L,
+                                                      [](const Size total, const asset::Skin& skin)
+                                                      { return total + skin.joints.size(); }),
+                                  descriptorPool }
+            , state {
+                .active        = true,
+                .progress      = {},
+                .jointMatrices = {},
+            }
+        {
+        }
+
+        asset::ShaderStorageBufferObject jointMatricesSSBO;
 
         mutable struct State
         {
@@ -35,49 +48,82 @@ struct Entity
     };
     mutable State state;
 
-    void update(const std::vector<asset::Skin>& skins, const asset::Animation& anim, const float elapsedTime)
+    void update(const Index animationIndex, const float elapsedTime)
     {
         if (animation)
         {
-            auto& progress = animation->state.progress;
+            const auto& anim     = asset.animations.at(animationIndex);
+            auto&       progress = animation->state.progress;
             progress += elapsedTime;
             if (progress > anim.end)
             {
                 progress -= anim.end;
             }
-            for (const auto& channel : anim.channels)
-            {
-                channel.update(nodes, anim.samplers, progress);
-            }
+            anim.update(nodes, progress);
         }
         nodes.traverse<Traversal::depthFirst>(&Node::update, state.modelMatrix);
         if (animation)
         {
+            assert(!asset.skins.empty());
             nodes.traverse<Traversal::linear>(
                 [&](const entity::Node& node)
                 {
                     if (node.skinIndex)
                     {
                         assert(animation);
-                        const auto& skin          = skins.at(node.skinIndex.value());
+                        const auto& skin          = asset.skins.at(node.skinIndex.value());
                         auto&       jointMatrices = animation->state.jointMatrices;
                         jointMatrices.clear();
                         jointMatrices.reserve(skin.joints.size());
-
                         const auto inverse = math::inverse(node.state.globalMatrix);
-
                         for (const auto& [jointNode, jointNodeIndex, inverseBindMatrix] : skin.joints)
                         {
                             jointMatrices.emplace_back(inverse * nodes.get(jointNodeIndex).state.globalMatrix *
                                                        inverseBindMatrix);
                         }
 
-                        // assert(jointMatricesSSBO);
-                        // memcpy(jointMatricesSSBO->buffer.mapped, jointMatrices.data(),
-                        //        jointMatrices.size() * sizeof(math::Matrix<4, 4>));
+                        memcpy(animation->jointMatricesSSBO.buffer.mapped, jointMatrices.data(),
+                               jointMatrices.size() * sizeof(math::Matrix<4, 4>));
                     }
                 });
         }
+    }
+
+    void draw(const VkCommandBuffer commandBuffer) const
+    {
+        if (!state.active)
+        {
+            return;
+        }
+
+        // bind model
+        constexpr VkDeviceSize offset { 0 };
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &asset.model.vertexBuffer.buffer, &offset);
+        vkCmdBindIndexBuffer(commandBuffer, asset.model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+        // bind pipeline
+        // vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+        // // bind scene uniform
+        // constexpr uint32_t sceneUniformIndex = 0;
+        // vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, sceneUniformIndex, 1,
+        //                         &sceneDescriptor, 0, nullptr);
+
+        // if (asset.jointMatricesSSBO)
+        // {
+        //     // bind joint matrices ssbo
+        //     constexpr uint32_t jointMatricesSSBOIndex = 2;
+        //     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
+        //                             jointMatricesSSBOIndex, 1, &asset.jointMatricesSSBO->descriptorSet, 0, nullptr);
+        // }
+        // for (const auto& node : asset.mainScene().nodes)
+        // {
+        //     drawNode(asset, commandBuffer, node, asset.state.modelMatrix);
+        // }
+        // for (const auto& node : nodes)
+        // {
+        //     drawNode(asset, commandBuffer, node, asset.state.modelMatrix * math::Translation({ 1, 0, 0 }));
+        // }
     }
 };
 }  // namespace surge::entity

@@ -7,7 +7,7 @@
 #include "surge/geometry/Shape.hpp"
 #include "surge/geometry/Vertex.hpp"
 #include "surge/math/Vector.hpp"
-#include "surge/entity/Entity.hpp"
+// #include "surge/entity/Entity.hpp"
 
 
 #include "fastgltf/core.hpp"
@@ -614,13 +614,14 @@ public:
         uint32_t sceneId = 0;
         for (const fastgltf::Scene& fastgltfScene : asset.scenes)
         {
-            auto& scene = scenes.emplace_back(baptize<This::scene>(fastgltfScene.name, sceneId++), createTree(sceneId));
+            auto& scene = scenes.emplace_back(baptize<This::scene>(fastgltfScene.name, sceneId), createTree(sceneId));
             scene.nodes.reserve(fastgltfScene.nodeIndices.size());
             scene.nodesLut.resize(asset.nodes.size());
             for (const auto nodeId : fastgltfScene.nodeIndices)
             {
                 createNode(scene.nodes, /*nullptr,*/ meshes, nodeId, scene.nodesLut);
             }
+            ++sceneId;
         }
 
         return scenes;
@@ -744,30 +745,30 @@ public:
         }
         return animations;
     }
-    std::optional<entity::Entity::Animation> createAnimation() const
-    {
-        return !asset.skins.empty() ? std::optional<entity::Entity::Animation> { entity::Entity::Animation {
-                                          .state =
-                                              entity::Entity::Animation::State {
-                                                  .active        = true,
-                                                  .progress      = {},
-                                                  .jointMatrices = {},
-                                              } } } :
-                                      std::optional<entity::Entity::Animation> {};
-    }
+    // std::optional<entity::Entity::Animation> createAnimation() const
+    // {
+    //     return !asset.skins.empty() ? std::optional<entity::Entity::Animation> { entity::Entity::Animation {
+    //                                       .state =
+    //                                           entity::Entity::Animation::State {
+    //                                               .active        = true,
+    //                                               .progress      = {},
+    //                                               .jointMatrices = {},
+    //                                           } } } :
+    //                                   std::optional<entity::Entity::Animation> {};
+    // }
 
-    entity::Entity createEntity(const Index sceneIndex) const
-    {
-        return entity::Entity {
-            .nodes     = createTree(sceneIndex),
-            .animation = createAnimation(),
-            .state =
-                entity::Entity::State {
-                    .active      = true,
-                    .modelMatrix = math::fullMatrix(math::identity<4>),
-                },
-        };
-    }
+    // entity::Entity createEntity(const Index sceneIndex) const
+    // {
+    //     return entity::Entity {
+    //         .nodes     = createTree(sceneIndex),
+    //         .animation = createAnimation(),
+    //         .state =
+    //             entity::Entity::State {
+    //                 .active      = true,
+    //                 .modelMatrix = math::fullMatrix(math::identity<4>),
+    //             },
+    //     };
+    // }
 
 private:
     static std::map<TextureType, Index>

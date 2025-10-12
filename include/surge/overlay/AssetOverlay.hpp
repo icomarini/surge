@@ -152,7 +152,7 @@ std::pair<math::Vector<2>, math::Vector<2>> overlay(const asset::Asset&    asset
                     uint32_t jointId = 0;
                     for (const auto& joint : skin.joints)
                     {
-                        ImGui::Text(idName(jointId++, "").c_str(), 0);
+                        ImGui::Text(idName(jointId++, std::to_string(joint.nodeIndex)).c_str(), 0);
                     }
                     ImGui::TreePop();
                 }

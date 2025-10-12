@@ -208,10 +208,10 @@ VkPipelineVertexInputStateCreateInfo createVertexInputState()
     return vertexInputState;
 }
 
-VkPipelineVertexInputStateCreateInfo createVertexInputState();
-VkPipelineVertexInputStateCreateInfo createVertexInputState()
+// VkPipelineVertexInputStateCreateInfo createVertexInputState();
+constexpr VkPipelineVertexInputStateCreateInfo createVertexInputState()
 {
-    static constexpr VkPipelineVertexInputStateCreateInfo vertexInputState {
+    return VkPipelineVertexInputStateCreateInfo {
         .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         .pNext                           = nullptr,
         .flags                           = {},
@@ -220,6 +220,6 @@ VkPipelineVertexInputStateCreateInfo createVertexInputState()
         .vertexAttributeDescriptionCount = 0,
         .pVertexAttributeDescriptions    = nullptr,
     };
-    return vertexInputState;
+    // return vertexInputState;
 }
 }  // namespace surge::geometry

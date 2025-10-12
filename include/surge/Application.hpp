@@ -121,6 +121,11 @@ public:
 
         auto     start = std::chrono::high_resolution_clock::now();
         uint32_t ticCount {};
+        auto     entity1 = renderer.createEntity("robot", 0);
+        auto     entity2 = renderer.createEntity("robot", 0);
+        auto     entity3 = renderer.createEntity("robot", 0);
+        auto     entity4 = renderer.createEntity("robot", 0);
+
         while (!context().exit())
         {
             if (elapsedTime > 1.0 / 144.0)
@@ -149,6 +154,13 @@ public:
                 }
                 // === physics playground ===
 
+                // === entity playground ===
+                entity1.update(0, elapsedTime);
+                entity2.update(0, elapsedTime);
+                entity3.update(0, elapsedTime);
+                entity4.update(0, elapsedTime);
+                // === entity playground ===
+
                 render(presenter, userInteraction, skybox, renderer, overlay);
 
                 start = std::chrono::high_resolution_clock::now();
@@ -174,44 +186,54 @@ private:
     }
 
 private:
-    mutable UserInteraction     userInteraction;
-    const Context&              ctx;
-    const Command               command;
-    Presenter                   presenter;
-    const Defaults              defaults;
-    Skybox                      skybox;
-    physics::Physics            physics;
-    std::vector<asset::Asset>   assets;
-    std::vector<entity::Entity> entities;
-    Renderer                    renderer;
-    overlay::Overlay            overlay;
-    physics::ForceRegistry      forceRegistry;
+    mutable UserInteraction             userInteraction;
+    const Context&                      ctx;
+    const Command                       command;
+    Presenter                           presenter;
+    const Defaults                      defaults;
+    Skybox                              skybox;
+    physics::Physics                    physics;
+    std::map<std::string, asset::Asset> assets;
+    std::vector<entity::Entity>         entities;
+    Renderer                            renderer;
+    overlay::Overlay                    overlay;
+    physics::ForceRegistry              forceRegistry;
 
-    std::vector<asset::Asset> createAssets(const Command&                                      command,
-                                           const std::map<std::string, std::filesystem::path>& resources)
+    std::map<std::string, asset::Asset> createAssets(const Command&                                      command,
+                                                     const std::map<std::string, std::filesystem::path>& resources)
     {
         // constexpr std::array names { "oaktree", "helmet", "dragon", "buggy" };
         // constexpr std::array names { "buggy" };
         // constexpr std::array names { "simple" };
 
         // constexpr std::array names { "nope" };
-        constexpr std::array names { "man" };
+        // constexpr std::array names { "man" };
         // constexpr std::array names { "gun" };
 
-        std::vector<asset::Asset> assets;
-        assets.reserve(names.size() + 2);
-        for (const auto& name : names)
-        {
-            if (name == std::string { "nope" })
-            {
-                continue;
-            }
-            assets.emplace_back(command, defaults, asset::GltfAsset { name, resources.at(name) });
-            assets.emplace_back(
-                command, defaults,
-                asset::GltfAsset { "robot",
-                                   "/home/ico/projects/uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" });
-        }
+        // // std::vector<asset::Asset> assets;
+        // assets.reserve(names.size() + 2);
+        // for (const auto& name : names)
+        // {
+        //     if (name == std::string { "nope" })
+        //     {
+        //         continue;
+        //     }
+        //     assets.emplace_back(command, defaults, asset::GltfAsset { name, resources.at(name) });
+        //     assets.emplace_back(
+        //         command, defaults,
+        //         asset::GltfAsset { "robot",
+        //                            "/home/ico/projects/uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" });
+        // }
+
+        std::map<std::string, asset::Asset> assets;
+
+        assets.emplace(std::piecewise_construct, std::forward_as_tuple("man"),
+                       std::forward_as_tuple(command, defaults, asset::GltfAsset { "man", resources.at("man") }));
+        assets.emplace(std::piecewise_construct, std::forward_as_tuple("robot"),
+                       std::forward_as_tuple(
+                           command, defaults,
+                           asset::GltfAsset {
+                               "robot", "/home/ico/projects/uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" }));
 
         // assets.emplace_back(command, defaults,
         //                     asset::ObjAsset { "viking room", resources.at("vikingRoomModel"),
@@ -239,7 +261,7 @@ private:
         //                                                   { Type::occlusionTexture, base / "ao.ktx" },
         //                                               } });
 
-        for (auto& asset : assets)
+        for (auto& [name, asset] : assets)
         {
             asset.state.active = true;
             for (auto& mesh : asset.meshes)
@@ -257,26 +279,26 @@ private:
                     child.state.active = true;
                 }
             }
-            asset.entity.update(asset.skins, asset.animations.front(), 0);
-            int nodeIndex { 0 };
-            for (const auto& node : asset.entity.nodes.nodes)
-            {
-                if (node.value.skinIndex)
-                {
-                    std::cout << "node " << nodeIndex << ": "
-                              << (node.value.skinIndex ? std::to_string(node.value.skinIndex.value()) :
-                                                         std::string("nope"))
-                              << std::endl;
-                    // for (const auto)
-                }
-                nodeIndex++;
-            }
-            std::cout << "roots:";
-            for (const auto root : asset.entity.nodes.roots)
-            {
-                std::cout << " " << root;
-            }
-            std::cout << std::endl;
+            // asset.entity.update(asset.skins, asset.animations.front(), 0);
+            // int  nodeIndex { 0 };
+            // for (const auto& node : asset.entity.nodes.nodes)
+            // {
+            //     if (node.value.skinIndex)
+            //     {
+            //         std::cout << "node " << nodeIndex << ": "
+            //                   << (node.value.skinIndex ? std::to_string(node.value.skinIndex.value()) :
+            //                                              std::string("nope"))
+            //                   << std::endl;
+            //         // for (const auto)
+            //     }
+            //     nodeIndex++;
+            // }
+            // std::cout << "roots:";
+            // for (const auto root : asset.entity.nodes.roots)
+            // {
+            //     std::cout << " " << root;
+            // }
+            // std::cout << std::endl;
         }
         // std::vector<asset::Asset> assets;
         return assets;

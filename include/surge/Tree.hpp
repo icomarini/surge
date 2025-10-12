@@ -25,7 +25,12 @@ struct Tree
     using Nodes = std::vector<Node>;
     Nodes nodes;
 
-    const Value& get(const Index index)
+    const Value& get(const Index index) const
+    {
+        return nodes.at(index).value;
+    }
+
+    Value& get(const Index index)
     {
         return nodes.at(index).value;
     }

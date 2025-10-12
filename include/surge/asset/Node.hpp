@@ -25,7 +25,6 @@ struct Node
     std::optional<uint32_t> meshIndex;
     std::optional<uint32_t> skinIndex;
     mutable State           state;
-    std::optional<uint32_t> samplerIndex;
 
     void update(const math::StaticMatrix auto& parentMatrix) const
     {

@@ -200,12 +200,11 @@ public:
         }
     }
 
-    static void update(Tree<entity::Node>& nodes, const std::vector<Sampler>& samplers,
-                       const std::vector<Channel>& channels, const float progress)
+    void update(Tree<entity::Node>& nodes, const float progress) const
     {
         for (const auto& channel : channels)
         {
-            channel.update(nodes, samplers, progress);
+            channel.update(nodes.get(channel.nodeIndex.value()), samplers.at(channel.samplerIndex), progress);
         }
     }
 };

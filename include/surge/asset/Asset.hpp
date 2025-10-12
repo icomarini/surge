@@ -1,10 +1,10 @@
 #pragma once
 
-
 #include "surge/Context.hpp"
 #include "surge/Buffer.hpp"
 #include "surge/Defaults.hpp"
 #include "surge/Model.hpp"
+#include "surge/Pipeline.hpp"
 #include "surge/shader_library.hpp"
 #include "surge/asset/Animation.hpp"
 #include "surge/asset/GltfAsset.hpp"
@@ -31,7 +31,7 @@ public:
                                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT>;
     using SSBODescr      = Description<VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, Buffer>;
 
-    ShaderStorageBufferObject(const uint32_t size, const VkDescriptorPool descriptorPool)
+    ShaderStorageBufferObject(const Size size, const VkDescriptorPool descriptorPool)
         : buffer { size, SSBOBufferInfo {} }
         , descriptorSetLayout { Descriptor::createDescriptorSetLayout<SSBODescr>(1) }
         , descriptorSet { Descriptor::createDescriptorSet(descriptorSetLayout, descriptorPool, SSBODescr { buffer }) }
@@ -82,7 +82,12 @@ public:
     std::vector<Skin>      skins;
     std::vector<Animation> animations;
 
+    VkPipelineLayout pipelineLayout;
+    VkPipeline       pipeline;
+
     std::optional<ShaderStorageBufferObject> jointMatricesSSBO;
+
+    VkDescriptorSetLayout jointMatricesDescriptorSetLayout;
 
     struct State
     {
@@ -92,7 +97,10 @@ public:
     };
     mutable State state;
 
-    entity::Entity entity;
+    // entity::Entity entity;
+
+    static constexpr auto pushConstantRange =
+        createPushConstantRange<entity::Node::PushConstants>(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 
     // using UniformBufferDescr = UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT>;
     using SSBODescr = Description<VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, Buffer>;
@@ -116,8 +124,8 @@ public:
         , skins { gltf.createSkins(scenes.front().nodesLut) }
         , animations { gltf.createAnimations(scenes.front().nodesLut) }
         , jointMatricesSSBO { createJointMatricesSSBO(descriptorPool, skins) }
+        , jointMatricesDescriptorSetLayout { createJointMatricesDescriptorSetLayout(skins) }
         , state { false, modelMatrix, std::vector<math::Matrix<4, 4>> {} }
-        , entity { gltf.createEntity(mainSceneIndex) }
     {
         assert(scenes.size() > 0);
     }
@@ -139,14 +147,18 @@ public:
         , skins {}
         , animations {}
         , jointMatricesSSBO {}
+        , jointMatricesDescriptorSetLayout { VK_NULL_HANDLE }
         , state { false, modelMatrix, std::vector<math::Matrix<4, 4>> {} }
-        , entity {}
     {
         assert(scenes.size() > 0);
     }
 
     ~Asset()
     {
+        if (jointMatricesDescriptorSetLayout != VK_NULL_HANDLE)
+        {
+            context().destroy(jointMatricesDescriptorSetLayout);
+        }
         context().destroy(materialDescriptorSetLayout);
         context().destroy(descriptorPool);
     }
@@ -174,7 +186,7 @@ public:
             }
         }
 
-        entity.update(skins, animations.front(), elapsedTime);
+        // entity.update(skins, animations.front(), elapsedTime);
     }
 
     void updateJoints(const Node& node)
@@ -212,7 +224,12 @@ public:
         return scenes.at(mainSceneIndex);
     }
 
-private:
+    static VkDescriptorSetLayout createJointMatricesDescriptorSetLayout(const std::vector<Skin>& skins)
+    {
+        return !skins.empty() > 0 ? Descriptor::createDescriptorSetLayout<SSBODescr>(1) :
+                                    VkDescriptorSetLayout { VK_NULL_HANDLE };
+    }
+
     static std::optional<ShaderStorageBufferObject> createJointMatricesSSBO(const VkDescriptorPool   descriptorPool,
                                                                             const std::vector<Skin>& skins)
     {

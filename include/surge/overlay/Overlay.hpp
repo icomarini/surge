@@ -30,7 +30,7 @@ public:
     };
 
 
-    Overlay(const Command& command, UserInteraction&, const std::vector<asset::Asset>& assets)
+    Overlay(const Command& command, UserInteraction&, const std::map<std::string, asset::Asset>& assets)
         : imGuiContext { 1 }
         , fontTexture { command, Font {}, SceneTextureInfo {} }
         , model {}
@@ -88,7 +88,7 @@ public:
 
 
     static void newFrame(const VkExtent2D extent, const float scale, std::array<float, 50>& frameTimes,
-                         const UserInteraction& ui, const std::vector<asset::Asset>& assets)
+                         const UserInteraction& ui, const std::map<std::string, asset::Asset>& assets)
     {
         ImGuiIO& io                = ImGui::GetIO();
         io.DisplaySize             = ImVec2(extent.width, extent.height);
@@ -164,7 +164,7 @@ public:
         math::Vector<2> previousWindowSize { size.x, size.y };
         for (const auto& asset : assets)
         {
-            const auto [pos, size] = overlay(asset, previousWindowPosition, previousWindowSize);
+            const auto [pos, size] = overlay(asset.second, previousWindowPosition, previousWindowSize);
             previousWindowPosition = pos;
             previousWindowSize     = size;
         }
@@ -329,7 +329,7 @@ private:
     VkPipelineLayout pipelineLayout;
     VkPipeline       pipeline;
 
-    const std::vector<asset::Asset>& assets;
+    const std::map<std::string, asset::Asset>& assets;
 };
 
 }  // namespace surge::overlay

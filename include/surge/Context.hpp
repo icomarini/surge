@@ -21,6 +21,21 @@
 
 namespace surge
 {
+constexpr VkPolygonMode translate(const PolygonMode polygonMode)
+{
+    switch (polygonMode)
+    {
+    case PolygonMode::point:
+        return VK_POLYGON_MODE_POINT;
+    case PolygonMode::line:
+        return VK_POLYGON_MODE_LINE;
+    case PolygonMode::fill:
+        return VK_POLYGON_MODE_FILL;
+    default:
+        throw;
+    }
+}
+
 class Context
 {
 public:
