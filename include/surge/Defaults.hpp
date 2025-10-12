@@ -72,22 +72,22 @@ public:
 
     struct NodePushBlock
     {
-        math::Matrix<4, 4> matrix;
-        uint32_t           vertexStageFlag;
-        uint32_t           fragmentStageFlag;
+        core::math::Matrix<4, 4> matrix;
+        uint32_t                 vertexStageFlag;
+        uint32_t                 fragmentStageFlag;
     };
 
-    Defaults(const Command& command, const std::filesystem::path& defaultTexturePath)
+    Defaults(const core::Command& command, const std::filesystem::path& defaultTexturePath)
         : texture { command, load::LoadedTexture { baptize<This::texture>(), defaultTexturePath },
                     asset::SceneTextureInfo {} }
-        , descriptorPool { Descriptor::createDescriptorPool(
+        , descriptorPool { core::Descriptor::createDescriptorPool(
               5U, std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U }) }
-        , descriptorSetLayout { Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture
-                                                                      TextureDescr,  // metallic/rough texture
-                                                                      TextureDescr,  // normal texture
-                                                                      TextureDescr,  // occlusion texture
-                                                                      TextureDescr   // emissive texture
-                                                                      >(1) }
+        , descriptorSetLayout { core::Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture
+                                                                            TextureDescr,  // metallic/rough texture
+                                                                            TextureDescr,  // normal texture
+                                                                            TextureDescr,  // occlusion texture
+                                                                            TextureDescr   // emissive texture
+                                                                            >(1) }
         , material { .name                     = baptize<This::material>(),
                      .doubleSided              = false,
                      .unlit                    = false,
@@ -105,17 +105,19 @@ public:
                      .normalScale              = 1,
                      .occlusionTexture         = asset::Material::TextureData { &texture, 0 },
                      .occlusionStrength        = 1,
-                     .descriptorSet            = Descriptor::createDescriptorSet(
+                     .descriptorSet            = core::Descriptor::createDescriptorSet(
                          descriptorSetLayout, descriptorPool,  //
                          TextureDescr { texture }, TextureDescr { texture }, TextureDescr { texture },
                          TextureDescr { texture }, TextureDescr { texture }) }
-        , descriptorlessPipelineLayout { createPipelineLayout(
-              createPushConstantRange<NodePushBlock>(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)) }
-        , descriptorlessPipeline { createGraphicPipeline(
-              createVertexInputState<geometry::PositionAndColor>(), VK_NULL_HANDLE, descriptorlessPipelineLayout,
-              shader::Shader { shader::ShaderInfo<shader::Type::bbox, shader::Stage::vertex> { nullptr },
-                               shader::ShaderInfo<shader::Type::bbox, shader::Stage::fragment> { nullptr } },
-              createRasterizationStateInfo(VK_POLYGON_MODE_LINE),
+        , descriptorlessPipelineLayout { core::createPipelineLayout(
+              core::createPushConstantRange<NodePushBlock>(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)) }
+        , descriptorlessPipeline { core::createGraphicPipeline(
+              core::createVertexInputState<core::geometry::PositionAndColor>(), VK_NULL_HANDLE,
+              descriptorlessPipelineLayout,
+              core::shader::Shader {
+                  core::shader::ShaderInfo<core::shader::Type::bbox, core::shader::Stage::vertex> { nullptr },
+                  core::shader::ShaderInfo<core::shader::Type::bbox, core::shader::Stage::fragment> { nullptr } },
+              core::createRasterizationStateInfo(VK_POLYGON_MODE_LINE),
               VkPipelineInputAssemblyStateCreateInfo {
                   .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
                   .pNext                  = nullptr,
@@ -123,16 +125,16 @@ public:
                   .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
                   .primitiveRestartEnable = VK_FALSE,
               }) }
-        , coordinateSystem { command, geometry::coordinateSystem, true, asset::SceneModelInfo {} }
+        , coordinateSystem { command, core::geometry::coordinateSystem, true, asset::SceneModelInfo {} }
     {
     }
 
     ~Defaults()
     {
-        context().destroy(descriptorlessPipeline);
-        context().destroy(descriptorlessPipelineLayout);
-        context().destroy(descriptorSetLayout);
-        context().destroy(descriptorPool);
+        core::context().destroy(descriptorlessPipeline);
+        core::context().destroy(descriptorlessPipelineLayout);
+        core::context().destroy(descriptorSetLayout);
+        core::context().destroy(descriptorPool);
     }
 };
 

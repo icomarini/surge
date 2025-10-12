@@ -5,7 +5,7 @@
 
 #include <array>
 
-namespace surge
+namespace surge::core
 {
 
 using StagingBufferInfo = BufferInfo<VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -216,4 +216,4 @@ private:
     }
 };
 
-}  // namespace surge
+}  // namespace surge::core

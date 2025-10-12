@@ -1,8 +1,6 @@
 #pragma once
 
 #include "surge/Defaults.hpp"
-
-// #include "surge/Pipeline.hpp"
 #include "surge/asset/Animation.hpp"
 #include "surge/load/Gltf.hpp"
 #include "surge/load/Obj.hpp"
@@ -24,14 +22,15 @@ namespace surge::asset
 class ShaderStorageBufferObject
 {
 public:
-    using SSBOBufferInfo = BufferInfo<VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT>;
-    using SSBODescr      = Description<VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, Buffer>;
+    using SSBOBufferInfo = core::BufferInfo<VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                                            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT>;
+    using SSBODescr = core::Description<VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, core::Buffer>;
 
-    ShaderStorageBufferObject(const Size size, const VkDescriptorPool descriptorPool)
+    ShaderStorageBufferObject(const core::Size size, const VkDescriptorPool descriptorPool)
         : buffer { size, SSBOBufferInfo {} }
-        , descriptorSetLayout { Descriptor::createDescriptorSetLayout<SSBODescr>(1) }
-        , descriptorSet { Descriptor::createDescriptorSet(descriptorSetLayout, descriptorPool, SSBODescr { buffer }) }
+        , descriptorSetLayout { core::Descriptor::createDescriptorSetLayout<SSBODescr>(1) }
+        , descriptorSet { core::Descriptor::createDescriptorSet(descriptorSetLayout, descriptorPool,
+                                                                SSBODescr { buffer }) }
     {
     }
 
@@ -44,13 +43,13 @@ public:
         other.descriptorSet       = VK_NULL_HANDLE;
     }
 
-    Buffer                buffer;
+    core::Buffer          buffer;
     VkDescriptorSetLayout descriptorSetLayout;
     VkDescriptorSet       descriptorSet;
 
     ~ShaderStorageBufferObject()
     {
-        context().destroy(descriptorSetLayout);
+        core::context().destroy(descriptorSetLayout);
     }
 };
 
@@ -59,7 +58,7 @@ class Asset
 public:
     std::string           name;
     std::filesystem::path path;
-    shader::Type          shader;
+    core::shader::Type    shader;
 
     std::vector<Texture> textures;
 
@@ -81,11 +80,11 @@ public:
 
     VkDescriptorSetLayout jointMatricesDescriptorSetLayout;
 
-    using SSBODescr = Description<VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, Buffer>;
+    using SSBODescr = core::Description<VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, core::Buffer>;
 
     Asset(Asset&&) = default;
 
-    Asset(const Command& command, const Defaults& defaults, const load::Gltf& gltf)
+    Asset(const core::Command& command, const Defaults& defaults, const load::Gltf& gltf)
         : name { gltf.name }
         , path { gltf.path }
         , shader { gltf.shader() }
@@ -94,7 +93,7 @@ public:
         , materialDescriptorSetLayout { gltf.createMaterialDescriptorSetLayout() }
         , materials { gltf.createMaterials(defaults, descriptorPool, materialDescriptorSetLayout, textures) }
         , meshes { gltf.createMeshes(defaults, materials) }
-        , vertexInputState { createVertexInputState<load::Gltf::Vertex>() }
+        , vertexInputState { core::createVertexInputState<load::Gltf::Vertex>() }
         , model { gltf.createModel(command, meshes) }
         , scenes { gltf.createScenes() }
         , mainSceneIndex { gltf.mainSceneIndex() }
@@ -105,16 +104,16 @@ public:
         assert(scenes.size() > 0);
     }
 
-    Asset(const Command& command, const Defaults& defaults, const load::Obj& obj)
+    Asset(const core::Command& command, const Defaults& defaults, const load::Obj& obj)
         : name { obj.name }
         , path { obj.path }
-        , shader { shader::Type::shader }
+        , shader { core::shader::Type::shader }
         , textures { obj.createTextures(command, defaults) }
         , descriptorPool { obj.createDescriptorPool() }
         , materialDescriptorSetLayout { obj.createMaterialDescriptorSetLayout() }
         , materials { obj.createMaterials(defaults, descriptorPool, materialDescriptorSetLayout, textures) }
         , meshes { obj.createMeshes(defaults, materials) }
-        , vertexInputState { createVertexInputState<load::Obj::Vertex>() }
+        , vertexInputState { core::createVertexInputState<load::Obj::Vertex>() }
         , model { obj.createModel(command, meshes.front()) }
         , scenes { obj.createScene() }
         , mainSceneIndex { 0 }
@@ -129,10 +128,10 @@ public:
     {
         if (jointMatricesDescriptorSetLayout != VK_NULL_HANDLE)
         {
-            context().destroy(jointMatricesDescriptorSetLayout);
+            core::context().destroy(jointMatricesDescriptorSetLayout);
         }
-        context().destroy(materialDescriptorSetLayout);
-        context().destroy(descriptorPool);
+        core::context().destroy(materialDescriptorSetLayout);
+        core::context().destroy(descriptorPool);
     }
 
     const auto& mainScene() const
@@ -146,7 +145,7 @@ public:
 
     static VkDescriptorSetLayout createJointMatricesDescriptorSetLayout(const std::vector<Skin>& skins)
     {
-        return !skins.empty() > 0 ? Descriptor::createDescriptorSetLayout<SSBODescr>(1) :
+        return !skins.empty() > 0 ? core::Descriptor::createDescriptorSetLayout<SSBODescr>(1) :
                                     VkDescriptorSetLayout { VK_NULL_HANDLE };
     }
 };

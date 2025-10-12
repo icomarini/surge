@@ -4,7 +4,7 @@
 
 #include <vector>
 
-namespace surge::utils
+namespace surge::core::utils
 {
 enum class Traversal
 {
@@ -112,4 +112,4 @@ struct Tree
         }
     }
 };
-}  // namespace surge::utils
+}  // namespace surge::core::utils

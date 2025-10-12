@@ -8,7 +8,7 @@
 #include <format>
 #include <cstring>
 
-namespace surge::math
+namespace surge::core::math
 {
 
 template<typename M>
@@ -339,4 +339,4 @@ std::string toString(const StaticMatrix auto& m)
     return toString(fullMatrix(m));
 }
 
-}  // namespace surge::math
+}  // namespace surge::core::math

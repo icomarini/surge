@@ -6,7 +6,7 @@
 #include <filesystem>
 #include <tuple>
 
-namespace surge
+namespace surge::core
 {
 template<Size begin, Size end, typename Operation>
 constexpr void forEach(const Operation& operation)
@@ -91,4 +91,4 @@ struct overload : Ts...
 {
     using Ts::operator()...;
 };
-}  // namespace surge
+}  // namespace surge::core

@@ -104,7 +104,7 @@ public:
     ~LoadedTexture()
     {
         std::visit(
-            overload {
+            core::overload {
                 [](stbi_uc* data) { stbi_image_free(data); },
                 [](ktxTexture* data) { ktxTexture_Destroy(data); },
             },
@@ -115,7 +115,7 @@ public:
     {
         // return static_cast<const void* const>(pData);
         return std::visit(
-            overload {
+            core::overload {
                 [](stbi_uc* data) { return static_cast<const void*>(data); },
                 [](ktxTexture* data) { return static_cast<const void*>(ktxTexture_GetData(data)); },
             },
@@ -130,7 +130,7 @@ public:
     uint64_t memorySize() const
     {
         return std::visit(
-            overload {
+            core::overload {
                 [&](stbi_uc*) { return static_cast<uint64_t>(width * height * 4); },
                 [](ktxTexture* data) { return static_cast<uint64_t>(ktxTexture_GetDataSize(data)); },
             },

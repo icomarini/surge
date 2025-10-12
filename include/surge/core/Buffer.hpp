@@ -2,7 +2,7 @@
 
 #include "surge/core/Descriptor.hpp"
 
-namespace surge
+namespace surge::core
 {
 
 template<VkBufferUsageFlags _bufferUsageFlags, VkMemoryPropertyFlags _memoryPropertyFlags>
@@ -106,4 +106,4 @@ private:
 
 template<VkShaderStageFlags stageFlags>
 using UniformBufferDescription = Description<VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, stageFlags, Buffer>;
-}  // namespace surge
+}  // namespace surge::core

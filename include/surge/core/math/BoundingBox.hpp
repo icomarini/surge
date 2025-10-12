@@ -3,7 +3,7 @@
 #include "surge/core/math/Vector.hpp"
 // #include "glm/glm.hpp"
 
-namespace surge::math
+namespace surge::core::math
 {
 struct BoundingBox
 {
@@ -46,4 +46,4 @@ struct BoundingBox
     //     return BoundingBox(min, max);
     // }
 };
-}  // namespace surge::math
+}  // namespace surge::core::math

@@ -18,8 +18,8 @@ public:
         : assets { assets }
         , physics { physics }
         , camera { 16.0 / 9.0, { 0.0f, 1.0f, 3.0f }, { 0.0f, 0.0f, -1.0f } }
-        , scene { 2 * sizeof(math::Matrix<4, 4>), UniformBufferInfo {} }
-        , descriptor { 1, UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT> { scene } }
+        , scene { 2 * sizeof(core::math::Matrix<4, 4>), core::UniformBufferInfo {} }
+        , descriptor { 1, core::UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT> { scene } }
         , pipelines { createPipelines(assets, descriptor.setLayout) }
     {
     }
@@ -28,8 +28,8 @@ public:
     {
         for (const auto& [name, pipeline] : pipelines)
         {
-            context().destroy(pipeline.first);
-            context().destroy(pipeline.second);
+            core::context().destroy(pipeline.first);
+            core::context().destroy(pipeline.second);
         }
     }
 
@@ -54,9 +54,9 @@ public:
                                 &sceneDescriptor, 0, nullptr);
 
         auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
-            vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
+            vkGetInstanceProcAddr(core::context().instance, "vkCmdSetPolygonModeEXT"));
         assert(setPolygonMode);
-        setPolygonMode(commandBuffer, translate(PolygonMode::point));
+        setPolygonMode(commandBuffer, core::translate(core::PolygonMode::point));
 
         vkCmdSetLineWidth(commandBuffer, 1.0);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -66,7 +66,7 @@ public:
             drawPoint(commandBuffer, pipelineLayout,
                       asset::Point {
                           .p     = particle.position,
-                          .color = colors::green,
+                          .color = core::colors::green,
                       });
         }
         for (const auto& anchor : physics.anchors)
@@ -74,7 +74,7 @@ public:
             drawPoint(commandBuffer, pipelineLayout,
                       asset::Point {
                           .p     = anchor.position,
-                          .color = colors::red,
+                          .color = core::colors::red,
                       });
         }
     }
@@ -92,9 +92,9 @@ public:
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, sceneUniformIndex, 1,
                                 &sceneDescriptor, 0, nullptr);
         auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
-            vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
+            vkGetInstanceProcAddr(core::context().instance, "vkCmdSetPolygonModeEXT"));
         assert(setPolygonMode);
-        setPolygonMode(commandBuffer, translate(PolygonMode::line));
+        setPolygonMode(commandBuffer, core::translate(core::PolygonMode::line));
 
         vkCmdSetLineWidth(commandBuffer, 1.0);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -105,7 +105,7 @@ public:
                      asset::Line {
                          .a     = spring.first.position,
                          .b     = spring.second.position,
-                         .color = colors::white,
+                         .color = core::colors::white,
                      });
         }
         for (const auto& spring : physics.anchoredSprings)
@@ -114,7 +114,7 @@ public:
                      asset::Line {
                          .a     = spring.particle.position,
                          .b     = spring.anchor.position,
-                         .color = colors::white,
+                         .color = core::colors::white,
                      });
         }
     }
@@ -129,18 +129,18 @@ public:
     std::map<std::string, asset::Asset>&                           assets;
     const physics::Physics&                                        physics;
     mutable Camera<true, false>                                    camera;
-    Buffer                                                         scene;
-    Descriptor                                                     descriptor;
+    core::Buffer                                                   scene;
+    core::Descriptor                                               descriptor;
     std::map<std::string, std::pair<VkPipelineLayout, VkPipeline>> pipelines;
 
-    void update(const UserInteraction& ui)
+    void update(const core::UserInteraction& ui)
     {
         camera.update(ui);
         const std::array sceneMatrices {
-            math::fullMatrix(camera.mats.perspective),
-            math::fullMatrix(camera.mats.view),
+            core::math::fullMatrix(camera.mats.perspective),
+            core::math::fullMatrix(camera.mats.view),
         };
-        memcpy(scene.mapped, sceneMatrices.data(), 2 * sizeof(math::Matrix<4, 4>));
+        memcpy(scene.mapped, sceneMatrices.data(), 2 * sizeof(core::math::Matrix<4, 4>));
     }
 
     void draw(const VkCommandBuffer commandBuffer) const
@@ -157,59 +157,61 @@ private:
     {
         std::map<std::string, std::pair<VkPipelineLayout, VkPipeline>> pipelines;
 
-        constexpr VkPipelineVertexInputStateCreateInfo emptyVertexInputState = createVertexInputState();
+        constexpr VkPipelineVertexInputStateCreateInfo emptyVertexInputState = core::createVertexInputState();
         {  // line
             auto& [pipelineLayout, pipeline] = pipelines["line"];
-            pipelineLayout = createPipelineLayout(createPushConstantRange<asset::Line>(VK_SHADER_STAGE_VERTEX_BIT),
-                                                  sceneDescriptorSetLayout);
-            pipeline =
-                createGraphicPipeline(emptyVertexInputState, VK_NULL_HANDLE, pipelineLayout,
-                                      shader::Shader {
-                                          shader::ShaderInfo<shader::Type::line, shader::Stage::vertex> { nullptr },
-                                          shader::ShaderInfo<shader::Type::line, shader::Stage::fragment> { nullptr },
-                                      },
-                                      VkPipelineInputAssemblyStateCreateInfo {
-                                          .sType    = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-                                          .pNext    = nullptr,
-                                          .flags    = {},
-                                          .topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
-                                          .primitiveRestartEnable = VK_FALSE,
-                                      });
+            pipelineLayout                   = core::createPipelineLayout(
+                core::createPushConstantRange<asset::Line>(VK_SHADER_STAGE_VERTEX_BIT), sceneDescriptorSetLayout);
+            pipeline = core::createGraphicPipeline(
+                emptyVertexInputState, VK_NULL_HANDLE, pipelineLayout,
+                core::shader::Shader {
+                    core::shader::ShaderInfo<core::shader::Type::line, core::shader::Stage::vertex> { nullptr },
+                    core::shader::ShaderInfo<core::shader::Type::line, core::shader::Stage::fragment> { nullptr },
+                },
+                VkPipelineInputAssemblyStateCreateInfo {
+                    .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+                    .pNext                  = nullptr,
+                    .flags                  = {},
+                    .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
+                    .primitiveRestartEnable = VK_FALSE,
+                });
         }
 
         {  // point
             auto& [pipelineLayout, pipeline] = pipelines["point"];
-            pipelineLayout = createPipelineLayout(createPushConstantRange<asset::Point>(VK_SHADER_STAGE_VERTEX_BIT),
-                                                  sceneDescriptorSetLayout);
-            pipeline =
-                createGraphicPipeline(emptyVertexInputState, VK_NULL_HANDLE, pipelineLayout,
-                                      shader::Shader {
-                                          shader::ShaderInfo<shader::Type::point, shader::Stage::vertex> { nullptr },
-                                          shader::ShaderInfo<shader::Type::point, shader::Stage::fragment> { nullptr },
-                                      },
-                                      VkPipelineInputAssemblyStateCreateInfo {
-                                          .sType    = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-                                          .pNext    = nullptr,
-                                          .flags    = {},
-                                          .topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST,
-                                          .primitiveRestartEnable = VK_FALSE,
-                                      });
+            pipelineLayout                   = core::createPipelineLayout(
+                core::createPushConstantRange<asset::Point>(VK_SHADER_STAGE_VERTEX_BIT), sceneDescriptorSetLayout);
+            pipeline = core::createGraphicPipeline(
+                emptyVertexInputState, VK_NULL_HANDLE, pipelineLayout,
+                core::shader::Shader {
+                    core::shader::ShaderInfo<core::shader::Type::point, core::shader::Stage::vertex> { nullptr },
+                    core::shader::ShaderInfo<core::shader::Type::point, core::shader::Stage::fragment> { nullptr },
+                },
+                VkPipelineInputAssemblyStateCreateInfo {
+                    .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+                    .pNext                  = nullptr,
+                    .flags                  = {},
+                    .topology               = VK_PRIMITIVE_TOPOLOGY_POINT_LIST,
+                    .primitiveRestartEnable = VK_FALSE,
+                });
         }
 
         // assets
         for (const auto& [name, asset] : assets)
         {
-            constexpr VkPushConstantRange nodePpushConstantRange { createPushConstantRange<entity::Node::PushConstants>(
-                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT) };
+            constexpr VkPushConstantRange nodePpushConstantRange {
+                core::createPushConstantRange<entity::Node::PushConstants>(VK_SHADER_STAGE_VERTEX_BIT |
+                                                                           VK_SHADER_STAGE_FRAGMENT_BIT)
+            };
 
             auto& [pipelineLayout, pipeline] = pipelines[name];
-            pipelineLayout =
-                asset.jointMatricesDescriptorSetLayout != VK_NULL_HANDLE ?
-                    createPipelineLayout(nodePpushConstantRange, sceneDescriptorSetLayout,
-                                         asset.materialDescriptorSetLayout, asset.jointMatricesDescriptorSetLayout) :
-                    createPipelineLayout(nodePpushConstantRange, sceneDescriptorSetLayout,
-                                         asset.materialDescriptorSetLayout);
-            pipeline = createGraphicPipeline(asset.vertexInputState, pipelineLayout, asset.shader);
+            pipelineLayout                   = asset.jointMatricesDescriptorSetLayout != VK_NULL_HANDLE ?
+                                                   core::createPipelineLayout(nodePpushConstantRange, sceneDescriptorSetLayout,
+                                                                              asset.materialDescriptorSetLayout,
+                                                                              asset.jointMatricesDescriptorSetLayout) :
+                                                   core::createPipelineLayout(nodePpushConstantRange, sceneDescriptorSetLayout,
+                                                                              asset.materialDescriptorSetLayout);
+            pipeline = core::createGraphicPipeline(asset.vertexInputState, pipelineLayout, asset.shader);
         }
         return pipelines;
     }

@@ -17,26 +17,27 @@ template<typename>
 struct ElementTraits;
 
 template<>
-struct ElementTraits<surge::math::Vector<2>>
-    : ElementTraitsBase<surge::math::Vector<2>, AccessorType::Vec2, surge::math::Vector<2>::value_type>
+struct ElementTraits<surge::core::math::Vector<2>>
+    : ElementTraitsBase<surge::core::math::Vector<2>, AccessorType::Vec2, surge::core::math::Vector<2>::value_type>
 {
 };
 
 template<>
-struct ElementTraits<surge::math::Vector<3>>
-    : ElementTraitsBase<surge::math::Vector<3>, AccessorType::Vec3, surge::math::Vector<3>::value_type>
+struct ElementTraits<surge::core::math::Vector<3>>
+    : ElementTraitsBase<surge::core::math::Vector<3>, AccessorType::Vec3, surge::core::math::Vector<3>::value_type>
 {
 };
 
 template<>
-struct ElementTraits<surge::math::Vector<4>>
-    : ElementTraitsBase<surge::math::Vector<4>, AccessorType::Vec4, surge::math::Vector<4>::value_type>
+struct ElementTraits<surge::core::math::Vector<4>>
+    : ElementTraitsBase<surge::core::math::Vector<4>, AccessorType::Vec4, surge::core::math::Vector<4>::value_type>
 {
 };
 
 template<>
-struct ElementTraits<surge::math::Matrix<4, 4>>
-    : ElementTraitsBase<surge::math::Matrix<4, 4>, AccessorType::Mat4, surge::math::Matrix<4, 4>::value_type>
+struct ElementTraits<surge::core::math::Matrix<4, 4>>
+    : ElementTraitsBase<surge::core::math::Matrix<4, 4>, AccessorType::Mat4,
+                        surge::core::math::Matrix<4, 4>::value_type>
 {
 };
 }  // namespace fastgltf
@@ -63,14 +64,20 @@ public:
     };
 
     using TextureDescr = asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT>;
-    using Index        = geometry::Index;
-    using Vertex       = geometry::Vertex<
-              geometry::AttributeSlot<geometry::Attribute::position, math::Vector<3>, 3, geometry::Format::sfloat>,
-              geometry::AttributeSlot<geometry::Attribute::color, math::Vector<4>, 4, geometry::Format::sfloat>,
-              geometry::AttributeSlot<geometry::Attribute::normal, math::Vector<3>, 3, geometry::Format::sfloat>,
-              geometry::AttributeSlot<geometry::Attribute::texCoord, math::Vector<2>, 2, geometry::Format::sfloat>,
-              geometry::AttributeSlot<geometry::Attribute::jointIndex, math::Vector<4>, 4, geometry::Format::sfloat>,
-              geometry::AttributeSlot<geometry::Attribute::jointWeight, math::Vector<4>, 4, geometry::Format::sfloat>>;
+    using Index        = core::geometry::Index;
+    using Vertex       = core::geometry::Vertex<  //
+        core::geometry::AttributeSlot<core::geometry::Attribute::position, core::math::Vector<3>, 3,
+                                            core::geometry::Format::sfloat>,
+        core::geometry::AttributeSlot<core::geometry::Attribute::color, core::math::Vector<4>, 4,
+                                            core::geometry::Format::sfloat>,
+        core::geometry::AttributeSlot<core::geometry::Attribute::normal, core::math::Vector<3>, 3,
+                                            core::geometry::Format::sfloat>,
+        core::geometry::AttributeSlot<core::geometry::Attribute::texCoord, core::math::Vector<2>, 2,
+                                            core::geometry::Format::sfloat>,
+        core::geometry::AttributeSlot<core::geometry::Attribute::jointIndex, core::math::Vector<4>, 4,
+                                            core::geometry::Format::sfloat>,
+        core::geometry::AttributeSlot<core::geometry::Attribute::jointWeight, core::math::Vector<4>, 4,
+                                            core::geometry::Format::sfloat>>;
 
     Gltf(const Handle& handle)
         : name { handle.path.filename() }
@@ -85,9 +92,9 @@ public:
     fastgltf::Asset                              asset;
     std::map<TextureType, std::filesystem::path> externalTextures;
 
-    shader::Type shader() const
+    core::shader::Type shader() const
     {
-        return asset.skins.empty() ? shader::Type::gltfStatic : shader::Type::gltfAnimated;
+        return asset.skins.empty() ? core::shader::Type::gltfStatic : core::shader::Type::gltfAnimated;
     }
 
 
@@ -155,7 +162,7 @@ public:
         };
     }
 
-    std::vector<asset::Texture> createTextures(const Command& command, const Defaults& defaults) const
+    std::vector<asset::Texture> createTextures(const core::Command& command, const Defaults& defaults) const
     {
         std::vector<asset::Texture> textures;
         textures.reserve(asset.images.size() + externalTextures.size());
@@ -225,7 +232,7 @@ public:
 
     VkDescriptorPool createDescriptorPool() const
     {
-        return Descriptor::createDescriptorPool(
+        return core::Descriptor::createDescriptorPool(
             asset.materials.size() + asset.meshes.size() + asset.skins.size() + 16,
             std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(5 * asset.materials.size()) },
             std::pair { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, static_cast<uint32_t>(asset.meshes.size()) },
@@ -234,19 +241,19 @@ public:
 
     VkDescriptorSetLayout createMaterialDescriptorSetLayout() const
     {
-        return Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture
-                                                     TextureDescr,  // metallic/rough texture
-                                                     TextureDescr,  // normal texture
-                                                     TextureDescr,  // occlusion texture
-                                                     TextureDescr   // emissive texture
-                                                     >(1);
+        return core::Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture
+                                                           TextureDescr,  // metallic/rough texture
+                                                           TextureDescr,  // normal texture
+                                                           TextureDescr,  // occlusion texture
+                                                           TextureDescr   // emissive texture
+                                                           >(1);
     }
 
     std::map<TextureType, const asset::Texture*>
     createExternalTexturesMap(const std::vector<asset::Texture>& textures) const
     {
         std::map<TextureType, const asset::Texture*> map;
-        Size                                         textureId { asset.images.size() };
+        core::Size                                   textureId { asset.images.size() };
         for (const auto& [textureType, _] : externalTextures)
         {
             map[textureType] = &textures.at(textureId++);
@@ -309,17 +316,17 @@ public:
             using Type = TextureType;
 
             const auto baseColorTexture = extractTexture(Type::baseColorTexture, material.pbrData.baseColorTexture);
-            const math::Vector<4> baseColorFactor { material.pbrData.baseColorFactor[0],
-                                                    material.pbrData.baseColorFactor[1],
-                                                    material.pbrData.baseColorFactor[2],
-                                                    material.pbrData.baseColorFactor[3] };
+            const core::math::Vector<4> baseColorFactor { material.pbrData.baseColorFactor[0],
+                                                          material.pbrData.baseColorFactor[1],
+                                                          material.pbrData.baseColorFactor[2],
+                                                          material.pbrData.baseColorFactor[3] };
 
             const auto metallicRoughnessTexture =
                 extractTexture(Type::metallicRoughnessTexture, material.pbrData.metallicRoughnessTexture);
 
-            const auto            emissiveTexture = extractTexture(Type::emissiveTexture, material.emissiveTexture);
-            const math::Vector<4> emissiveFactor { material.emissiveFactor[0], material.emissiveFactor[1],
-                                                   material.emissiveFactor[2], 1 };
+            const auto emissiveTexture = extractTexture(Type::emissiveTexture, material.emissiveTexture);
+            const core::math::Vector<4> emissiveFactor { material.emissiveFactor[0], material.emissiveFactor[1],
+                                                         material.emissiveFactor[2], 1 };
 
             const auto normalTexture = extractTexture(Type::normalTexture, material.normalTexture);
             const auto normalScale   = material.normalTexture ? material.normalTexture.value().scale : 1.0f;
@@ -346,7 +353,7 @@ public:
                 .normalScale              = normalScale,
                 .occlusionTexture         = occlusionTexture,
                 .occlusionStrength        = occlusionStrength,
-                .descriptorSet            = Descriptor::createDescriptorSet(
+                .descriptorSet            = core::Descriptor::createDescriptorSet(
                     materialDescriptorSetLayout, descriptorPool,  //
                     TextureDescr { *baseColorTexture.texture }, TextureDescr { *metallicRoughnessTexture.texture },
                     TextureDescr { *emissiveTexture.texture }, TextureDescr { *normalTexture.texture },
@@ -378,23 +385,23 @@ public:
 
                 // constexpr auto cast = [](auto t) { return static_cast<Float32>(t); };
 
-                constexpr auto  minValue = std::numeric_limits<math::Vector<3>::value_type>::min();
-                constexpr auto  maxValue = std::numeric_limits<math::Vector<3>::value_type>::min();
-                math::Vector<3> min { maxValue, maxValue, maxValue };
-                math::Vector<3> max { minValue, minValue, minValue };
+                constexpr auto        minValue = std::numeric_limits<core::math::Vector<3>::value_type>::min();
+                constexpr auto        maxValue = std::numeric_limits<core::math::Vector<3>::value_type>::min();
+                core::math::Vector<3> min { maxValue, maxValue, maxValue };
+                core::math::Vector<3> max { minValue, minValue, minValue };
                 using PositionAttribute =
-                    typename Vertex::Attribute<Vertex::attributeIndex<geometry::Attribute::position>()>::Value;
+                    typename Vertex::Attribute<Vertex::attributeIndex<core::geometry::Attribute::position>()>::Value;
                 fastgltf::iterateAccessor<PositionAttribute>(asset, positionAccessor,
                                                              [&](const auto& value)
                                                              {
-                                                                 forEach<0, 3>(
+                                                                 core::forEach<0, 3>(
                                                                      [&]<int i>
                                                                      {
                                                                          get<i>(min) = std::min(get<i>(min), value[i]);
                                                                          get<i>(max) = std::max(get<i>(max), value[i]);
                                                                      });
                                                              });
-                forEach<0, 3>([&]<int i> { assert(get<i>(min) <= get<i>(max)); });
+                core::forEach<0, 3>([&]<int i> { assert(get<i>(min) <= get<i>(max)); });
 
                 const auto& material =
                     primitive.materialIndex ? materials.at(primitive.materialIndex.value()) : defaults.material;
@@ -403,14 +410,14 @@ public:
                 mesh.primitives.emplace_back(
                     partialIndexCount, indexCount, vertexCount, material,
                     asset::Mesh::Primitive::Attributes {
-                        { geometry::Attribute::position, primitive.findAttribute("POSITION") != end },
-                        { geometry::Attribute::color, primitive.findAttribute("COLOR_0") != end },
-                        { geometry::Attribute::normal, primitive.findAttribute("NORMAL") != end },
-                        { geometry::Attribute::texCoord, primitive.findAttribute("TEXCOORD_0") != end },
-                        { geometry::Attribute::jointIndex, primitive.findAttribute("JOINTS_0") != end },
-                        { geometry::Attribute::jointWeight, primitive.findAttribute("WEIGHTS_0") != end },
+                        { core::geometry::Attribute::position, primitive.findAttribute("POSITION") != end },
+                        { core::geometry::Attribute::color, primitive.findAttribute("COLOR_0") != end },
+                        { core::geometry::Attribute::normal, primitive.findAttribute("NORMAL") != end },
+                        { core::geometry::Attribute::texCoord, primitive.findAttribute("TEXCOORD_0") != end },
+                        { core::geometry::Attribute::jointIndex, primitive.findAttribute("JOINTS_0") != end },
+                        { core::geometry::Attribute::jointWeight, primitive.findAttribute("WEIGHTS_0") != end },
                     },
-                    math::BoundingBox { min, max }, asset::Mesh::Primitive::State { false });
+                    core::math::BoundingBox { min, max }, asset::Mesh::Primitive::State { false });
 
                 partialIndexCount += indexCount;
             }
@@ -418,7 +425,7 @@ public:
         return meshes;
     }
 
-    asset::Model createModel(const Command& command, const std::vector<asset::Mesh>& meshes) const
+    asset::Model createModel(const core::Command& command, const std::vector<asset::Mesh>& meshes) const
     {
         const auto [vertexCount, indexCount] = [&]
         {
@@ -449,14 +456,14 @@ public:
                                                          { indices.emplace_back(vertexOffset + index); });
 
                 constexpr std::array attributes {
-                    std::pair { "POSITION", geometry::Attribute::position },
-                    std::pair { "COLOR_0", geometry::Attribute::color },
-                    std::pair { "NORMAL", geometry::Attribute::normal },
-                    std::pair { "TEXCOORD_0", geometry::Attribute::texCoord },
-                    std::pair { "JOINTS_0", geometry::Attribute::jointIndex },
-                    std::pair { "WEIGHTS_0", geometry::Attribute::jointWeight },
+                    std::pair { "POSITION", core::geometry::Attribute::position },
+                    std::pair { "COLOR_0", core::geometry::Attribute::color },
+                    std::pair { "NORMAL", core::geometry::Attribute::normal },
+                    std::pair { "TEXCOORD_0", core::geometry::Attribute::texCoord },
+                    std::pair { "JOINTS_0", core::geometry::Attribute::jointIndex },
+                    std::pair { "WEIGHTS_0", core::geometry::Attribute::jointWeight },
                 };
-                forEach<0, attributes.size()>(
+                core::forEach<0, attributes.size()>(
                     [&]<int i>()
                     {
                         constexpr auto name      = attributes.at(i).first;
@@ -475,7 +482,7 @@ public:
                 vertexOffset += asset.accessors.at(primitive.findAttribute("POSITION")->accessorIndex).count;
             }
         }
-        return asset::Model { command, geometry::Shape { "asset", std::move(vertices), std::move(indices) }, true,
+        return asset::Model { command, core::geometry::Shape { "asset", std::move(vertices), std::move(indices) }, true,
                               asset::SceneModelInfo {} };
     }
 
@@ -520,11 +527,11 @@ public:
     //         });
     // }
 
-    utils::Tree<entity::Node> createTree(const Index sceneIndex) const
+    core::utils::Tree<entity::Node> createTree(const core::Index sceneIndex) const
     {
         auto createNodes = [this]()
         {
-            utils::Tree<entity::Node>::Nodes nodes;
+            core::utils::Tree<entity::Node>::Nodes nodes;
             nodes.reserve(asset.nodes.size());
             for (const auto& gltfNode : asset.nodes)
             {
@@ -539,16 +546,16 @@ public:
                                              std::optional<Index> {},
                         entity::Node::State {
                             .active            = true,
-                            .polygonMode       = PolygonMode::fill,
+                            .polygonMode       = core::PolygonMode::fill,
                             .vertexStageFlag   = 0,
                             .fragmentStageFlag = 0,
                             .translation =
-                                math::Vector<3> { trs.translation.x(), trs.translation.y(), trs.translation.z() },
-                            .rotation     = math::Quaternion<> { trs.rotation.x(), trs.rotation.y(), trs.rotation.z(),
-                                                                 trs.rotation.w() },
-                            .scale        = math::Vector<3> { trs.scale.x(), trs.scale.y(), trs.scale.z() },
-                            .localMatrix  = math::Matrix<4, 4> {},
-                            .globalMatrix = math::Matrix<4, 4> {},
+                                core::math::Vector<3> { trs.translation.x(), trs.translation.y(), trs.translation.z() },
+                            .rotation = core::math::Quaternion<> { trs.rotation.x(), trs.rotation.y(), trs.rotation.z(),
+                                                                   trs.rotation.w() },
+                            .scale    = core::math::Vector<3> { trs.scale.x(), trs.scale.y(), trs.scale.z() },
+                            .localMatrix  = core::math::Matrix<4, 4> {},
+                            .globalMatrix = core::math::Matrix<4, 4> {},
                         } },
                     std::vector<Index> { gltfNode.children.begin(), gltfNode.children.end() });
             }
@@ -559,7 +566,7 @@ public:
             return std::vector<Index> { asset.scenes.at(sceneIndex).nodeIndices.begin(),
                                         asset.scenes.at(sceneIndex).nodeIndices.end() };
         };
-        return utils::Tree<entity::Node> {
+        return core::utils::Tree<entity::Node> {
             .roots = createRoots(),
             .nodes = createNodes(),
         };
@@ -602,8 +609,9 @@ public:
             {
                 assert(fastgltfSkin.inverseBindMatrices);
                 const auto& accessor = asset.accessors.at(fastgltfSkin.inverseBindMatrices.value());
-                skin.joints.emplace_back(joint, math::transpose(fastgltf::getAccessorElement<math::Matrix<4, 4>>(
-                                                    asset, accessor, jointId++)));
+                skin.joints.emplace_back(
+                    joint, core::math::transpose(
+                               fastgltf::getAccessorElement<core::math::Matrix<4, 4>>(asset, accessor, jointId++)));
             }
         }
 
@@ -635,23 +643,23 @@ public:
                 end                   = std::max(end, *max);
 
                 // outputs
-                const auto&                  outputAccessor = asset.accessors.at(fastgltfSampler.outputAccessor);
-                std::vector<math::Vector<4>> outputs;
+                const auto&                        outputAccessor = asset.accessors.at(fastgltfSampler.outputAccessor);
+                std::vector<core::math::Vector<4>> outputs;
                 outputs.reserve(outputAccessor.count);
 
                 switch (outputAccessor.type)
                 {
                 case fastgltf::AccessorType::Vec3:
                 {
-                    fastgltf::iterateAccessor<math::Vector<3>>(
+                    fastgltf::iterateAccessor<core::math::Vector<3>>(
                         asset, outputAccessor, [&](const auto& value)
-                        { outputs.emplace_back(math::Vector<4> { value[0], value[1], value[2], 0.0f }); });
+                        { outputs.emplace_back(core::math::Vector<4> { value[0], value[1], value[2], 0.0f }); });
                     break;
                 }
                 case fastgltf::AccessorType::Vec4:
                 {
-                    fastgltf::iterateAccessor<math::Vector<4>>(asset, outputAccessor,
-                                                               [&](const auto& value) { outputs.emplace_back(value); });
+                    fastgltf::iterateAccessor<core::math::Vector<4>>(asset, outputAccessor, [&](const auto& value)
+                                                                     { outputs.emplace_back(value); });
                     break;
                 }
                 case fastgltf::AccessorType::Invalid:
@@ -698,7 +706,7 @@ public:
 
 private:
     static std::map<TextureType, Index>
-    createExternalTextures(const Size                                          internalTexturesCount,
+    createExternalTextures(const core::Size                                    internalTexturesCount,
                            const std::map<TextureType, std::filesystem::path>& externalTexturePaths)
     {
         std::map<TextureType, Index> map;

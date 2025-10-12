@@ -7,7 +7,7 @@ namespace surge::asset
 {
 struct Scene
 {
-    std::string               name;
-    utils::Tree<entity::Node> treenNodes;
+    std::string                     name;
+    core::utils::Tree<entity::Node> treenNodes;
 };
 }  // namespace surge::asset

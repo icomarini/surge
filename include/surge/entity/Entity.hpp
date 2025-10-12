@@ -9,9 +9,9 @@ struct Entity
     struct Animation
     {
         Animation(const VkDescriptorPool descriptorPool, const std::vector<asset::Skin>& skins)
-            : jointMatricesSSBO { sizeof(math::Matrix<4, 4>) *
+            : jointMatricesSSBO { sizeof(core::math::Matrix<4, 4>) *
                                       std::accumulate(skins.begin(), skins.end(), 0L,
-                                                      [](const Size total, const asset::Skin& skin)
+                                                      [](const core::Size total, const asset::Skin& skin)
                                                       { return total + skin.joints.size(); }),
                                   descriptorPool }
             , state {
@@ -26,28 +26,28 @@ struct Entity
 
         mutable struct State
         {
-            bool                            active { true };
-            float                           progress { 0 };
-            std::vector<math::Matrix<4, 4>> jointMatrices;
+            bool                                  active { true };
+            float                                 progress { 0 };
+            std::vector<core::math::Matrix<4, 4>> jointMatrices;
         } state;
     };
 
 
     struct State
     {
-        bool               active { true };
-        math::Matrix<4, 4> modelMatrix;
+        bool                     active { true };
+        core::math::Matrix<4, 4> modelMatrix;
     };
 
     const asset::Asset&      asset;
-    utils::Tree<Node>        nodes;
+    core::utils::Tree<Node>  nodes;
     VkPipelineLayout         pipelineLayout;
     VkPipeline               pipeline;
     std::optional<Animation> animation;
     mutable State            state;
 
     Entity(const asset::Asset& asset, const VkPipelineLayout pipelineLayout, const VkPipeline pipeline,
-           const Index sceneIndex, const math::StaticMatrix auto& modelMatrix)
+           const core::Index sceneIndex, const core::math::StaticMatrix auto& modelMatrix)
         : asset { asset }
         , nodes { asset.scenes.at(sceneIndex).treenNodes }
         , pipelineLayout { pipelineLayout }
@@ -58,12 +58,12 @@ struct Entity
                           std::optional<entity::Entity::Animation> {} }
         , state { entity::Entity::State {
               .active      = true,
-              .modelMatrix = math::fullMatrix(modelMatrix),
+              .modelMatrix = core::math::fullMatrix(modelMatrix),
           } }
     {
     }
 
-    void update(const Index animationIndex, const float elapsedTime)
+    void update(const core::Index animationIndex, const float elapsedTime)
     {
         if (animation)
         {
@@ -76,11 +76,11 @@ struct Entity
             }
             anim.update(nodes, progress);
         }
-        nodes.traverse<utils::Traversal::depthFirst>(&Node::update, state.modelMatrix);
+        nodes.traverse<core::utils::Traversal::depthFirst>(&Node::update, state.modelMatrix);
         if (animation)
         {
             assert(!asset.skins.empty());
-            nodes.traverse<utils::Traversal::linear>(
+            nodes.traverse<core::utils::Traversal::linear>(
                 [&](const entity::Node& node)
                 {
                     if (node.skinIndex)
@@ -90,7 +90,7 @@ struct Entity
                         auto&       jointMatrices = animation->state.jointMatrices;
                         jointMatrices.clear();
                         jointMatrices.reserve(skin.joints.size());
-                        const auto inverse = math::inverse(node.state.globalMatrix);
+                        const auto inverse = core::math::inverse(node.state.globalMatrix);
                         for (const auto& [jointNodeIndex, inverseBindMatrix] : skin.joints)
                         {
                             jointMatrices.emplace_back(inverse * nodes.get(jointNodeIndex).state.globalMatrix *
@@ -98,7 +98,7 @@ struct Entity
                         }
 
                         memcpy(animation->jointMatricesSSBO.buffer.mapped, jointMatrices.data(),
-                               jointMatrices.size() * sizeof(math::Matrix<4, 4>));
+                               jointMatrices.size() * sizeof(core::math::Matrix<4, 4>));
                     }
                 });
         }
@@ -132,7 +132,7 @@ struct Entity
                                     jointMatricesSSBOIndex, 1, &animation->jointMatricesSSBO.descriptorSet, 0, nullptr);
         }
 
-        nodes.traverse<utils::Traversal::linear>(
+        nodes.traverse<core::utils::Traversal::linear>(
             [&](const Node& node)
             {
                 if (node.meshIndex)

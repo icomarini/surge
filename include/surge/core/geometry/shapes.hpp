@@ -3,7 +3,7 @@
 #include "surge/core/geometry/Shape.hpp"
 #include "surge/core/geometry/Vertex.hpp"
 
-namespace surge::geometry
+namespace surge::core::geometry
 {
 // using PositionAndColor = Vertex<Attribute::position, Attribute::color>;
 using Position = geometry::Vertex<
@@ -70,4 +70,4 @@ static constexpr Shape coordinateSystem { "coord",
                                                        PositionAndColor { { -0.9, -0.9, -0.9 }, { 0, 0, 1, 1 } },
                                                        PositionAndColor { { -0.9, -0.9, 0.1 }, { 0, 0, 1, 1 } } },
                                           std::array { 0, 1, 2, 3, 4, 5 } };
-}  // namespace surge::geometry
+}  // namespace surge::core::geometry

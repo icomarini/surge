@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-namespace surge::geometry
+namespace surge::core::geometry
 {
 template<typename Vertices, typename Indices>
 class Shape
@@ -68,4 +68,4 @@ public:
     Vertices    vertices;
     Indices     indices;
 };
-}  // namespace surge::geometry
+}  // namespace surge::core::geometry

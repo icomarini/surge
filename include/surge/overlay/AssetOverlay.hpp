@@ -12,9 +12,9 @@ namespace surge::overlay
 //                                                     const math::Vector<2>& previousWindowPosition,
 //                                                     const math::Vector<2>& previousWindowSize);
 
-std::pair<math::Vector<2>, math::Vector<2>> overlay(const asset::Asset&    asset,
-                                                    const math::Vector<2>& previousWindowPosition,
-                                                    const math::Vector<2>& previousWindowSize)
+std::pair<core::math::Vector<2>, core::math::Vector<2>> overlay(const asset::Asset&          asset,
+                                                                const core::math::Vector<2>& previousWindowPosition,
+                                                                const core::math::Vector<2>& previousWindowSize)
 {
     constexpr auto to_string   = [](const bool b) { return b ? "true" : "false"; };
     constexpr auto textureName = [](const asset::Material::TextureData& textureData)
@@ -98,16 +98,17 @@ std::pair<math::Vector<2>, math::Vector<2>> overlay(const asset::Asset&    asset
                         ImGui::Text("vertex count: %d", primitive.vertexCount);
                         ImGui::Text("material:     %s", primitive.material.name.c_str());
                         ImGui::Text("position:     %s",
-                                    to_string(primitive.attributes.at(geometry::Attribute::position)));
-                        ImGui::Text("color:        %s", to_string(primitive.attributes.at(geometry::Attribute::color)));
+                                    to_string(primitive.attributes.at(core::geometry::Attribute::position)));
+                        ImGui::Text("color:        %s",
+                                    to_string(primitive.attributes.at(core::geometry::Attribute::color)));
                         ImGui::Text("normal:       %s",
-                                    to_string(primitive.attributes.at(geometry::Attribute::normal)));
+                                    to_string(primitive.attributes.at(core::geometry::Attribute::normal)));
                         ImGui::Text("texCoord:     %s",
-                                    to_string(primitive.attributes.at(geometry::Attribute::texCoord)));
+                                    to_string(primitive.attributes.at(core::geometry::Attribute::texCoord)));
                         ImGui::Text("joints:       %s",
-                                    to_string(primitive.attributes.at(geometry::Attribute::jointIndex)));
+                                    to_string(primitive.attributes.at(core::geometry::Attribute::jointIndex)));
                         ImGui::Text("weights:      %s",
-                                    to_string(primitive.attributes.at(geometry::Attribute::jointWeight)));
+                                    to_string(primitive.attributes.at(core::geometry::Attribute::jointWeight)));
                         ImGui::Checkbox("bbox", &primitive.state.boundingBox);
                         ImGui::Text("bbox min:     %f,%f,%f", primitive.bb.min[0], primitive.bb.min[1],
                                     primitive.bb.min[2]);
@@ -238,7 +239,7 @@ std::pair<math::Vector<2>, math::Vector<2>> overlay(const asset::Asset&    asset
     const auto size = ImGui::GetWindowSize();
     ImGui::End();
 
-    return { math::Vector<2> { pos.x, pos.y }, math::Vector<2> { size.x, size.y } };
+    return { core::math::Vector<2> { pos.x, pos.y }, core::math::Vector<2> { size.x, size.y } };
 }
 
 }  // namespace surge::overlay

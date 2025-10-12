@@ -18,10 +18,10 @@ struct Mesh
         // bool normal;
         // bool texCoord;
 
-        using Attributes = std::map<geometry::Attribute, bool>;
+        using Attributes = std::map<core::geometry::Attribute, bool>;
         const Attributes attributes;
 
-        math::BoundingBox bb;
+        core::math::BoundingBox bb;
 
         struct State
         {

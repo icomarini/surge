@@ -2,7 +2,7 @@
 
 #include "surge/core/Context.hpp"
 
-namespace surge
+namespace surge::core
 {
 template<VkDescriptorType _type, VkShaderStageFlags _stageFlags, typename V>
 struct Description
@@ -73,7 +73,7 @@ public:
     static VkDescriptorSetLayout createDescriptorSetLayout(const uint32_t descriptorCount)
     {
         std::array<VkDescriptorSetLayoutBinding, sizeof...(Descriptions)> bindings;
-        surge::forEach<0, bindings.size()>(
+        forEach<0, bindings.size()>(
             [&]<int binding>()
             {
                 using Description = std::tuple_element_t<binding, std::tuple<Descriptions...>>;
@@ -120,7 +120,7 @@ public:
         const auto descriptorSet = allocateDescriptorSet(descriptorPool, descriptorSetLayout);
 
         std::array<VkWriteDescriptorSet, sizeof...(Descriptions)> descriptorWrites;
-        surge::forEach<0, descriptorWrites.size()>(
+        forEach<0, descriptorWrites.size()>(
             [&]<int binding>()
             {
                 const auto& description =
@@ -146,4 +146,4 @@ public:
     }
 };
 
-}  // namespace surge
+}  // namespace surge::core

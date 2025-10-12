@@ -42,17 +42,17 @@ struct Material
     AlphaMode alphaMode;
     float     alphaCutoff;
 
-    TextureData     baseColorTexture;
-    math::Vector<4> baseColorFactor;
+    TextureData           baseColorTexture;
+    core::math::Vector<4> baseColorFactor;
 
 
     TextureData metallicRoughnessTexture;
     float       metallicFactor;
     float       roughnessFactor;
 
-    TextureData     emissiveTexture;
-    math::Vector<4> emissiveFactor;
-    float           emissiveStrength;
+    TextureData           emissiveTexture;
+    core::math::Vector<4> emissiveFactor;
+    float                 emissiveStrength;
 
     TextureData normalTexture;
     float       normalScale;
@@ -64,10 +64,10 @@ struct Material
 
     struct Extension
     {
-        Texture*        specularGlossinessTexture;
-        Texture*        diffuseTexture;
-        math::Vector<4> diffuseFactor;
-        math::Vector<3> specularFactor;
+        Texture*              specularGlossinessTexture;
+        Texture*              diffuseTexture;
+        core::math::Vector<4> diffuseFactor;
+        core::math::Vector<3> specularFactor;
     } /*extension*/;
 
     struct PbrWorkflows

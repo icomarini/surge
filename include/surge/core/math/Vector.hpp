@@ -9,7 +9,7 @@
 #include <iostream>
 #include <tuple>
 
-namespace surge::math
+namespace surge::core::math
 {
 
 template<typename V>
@@ -104,95 +104,99 @@ constexpr V cross(const V& a, const V& b)
         get<0>(a) * get<1>(b) - get<1>(a) * get<0>(b),
     };
 }
-}  // namespace surge::math
+}  // namespace surge::core::math
 
-template<surge::Size size, typename Type>
-constexpr surge::math::Vector<size, Type> operator+(const surge::math::Vector<size, Type>& a,
-                                                    const surge::math::Vector<size, Type>& b)
+template<surge::core::Size size, typename Type>
+constexpr surge::core::math::Vector<size, Type> operator+(const surge::core::math::Vector<size, Type>& a,
+                                                          const surge::core::math::Vector<size, Type>& b)
 {
-    surge::math::Vector<size, Type> c;
-    surge::forEach<0, size>([&]<int i>() { c[i] = a[i] + b[i]; });
+    surge::core::math::Vector<size, Type> c;
+    surge::core::forEach<0, size>([&]<int i>() { c[i] = a[i] + b[i]; });
     return c;
 }
 
-template<surge::Size size, typename Type>
-constexpr surge::math::Vector<size, Type> operator+(const surge::math::Vector<size, Type>& a)
+template<surge::core::Size size, typename Type>
+constexpr surge::core::math::Vector<size, Type> operator+(const surge::core::math::Vector<size, Type>& a)
 {
     return a;
 }
 
-template<surge::Size size, typename Type>
-constexpr surge::math::Vector<size, Type> operator-(const surge::math::Vector<size, Type>& a,
-                                                    const surge::math::Vector<size, Type>& b)
+template<surge::core::Size size, typename Type>
+constexpr surge::core::math::Vector<size, Type> operator-(const surge::core::math::Vector<size, Type>& a,
+                                                          const surge::core::math::Vector<size, Type>& b)
 {
-    surge::math::Vector<size, Type> c;
-    surge::forEach<0, size>([&]<int i>() { c[i] = a[i] - b[i]; });
+    surge::core::math::Vector<size, Type> c;
+    surge::core::forEach<0, size>([&]<int i>() { c[i] = a[i] - b[i]; });
     return c;
 }
 
-template<surge::Size size, typename Type>
-constexpr surge::math::Vector<size, Type> operator-(const surge::math::Vector<size, Type>& a)
+template<surge::core::Size size, typename Type>
+constexpr surge::core::math::Vector<size, Type> operator-(const surge::core::math::Vector<size, Type>& a)
 {
-    surge::math::Vector<size, Type> c;
-    surge::forEach<0, size>([&]<int i>() { c[i] = -a[i]; });
+    surge::core::math::Vector<size, Type> c;
+    surge::core::forEach<0, size>([&]<int i>() { c[i] = -a[i]; });
     return c;
 }
 
-template<surge::Size size, typename Type>
-constexpr surge::math::Vector<size, Type> operator*(const surge::math::Vector<size, Type>& a,
-                                                    const surge::math::Vector<size, Type>& b)
+template<surge::core::Size size, typename Type>
+constexpr surge::core::math::Vector<size, Type> operator*(const surge::core::math::Vector<size, Type>& a,
+                                                          const surge::core::math::Vector<size, Type>& b)
 {
-    surge::math::Vector<size, Type> c;
-    surge::forEach<0, size>([&]<int i>() { c[i] = a[i] * b[i]; });
+    surge::core::math::Vector<size, Type> c;
+    surge::core::forEach<0, size>([&]<int i>() { c[i] = a[i] * b[i]; });
     return b;
 }
 
-template<surge::Size size, typename Type>
-constexpr surge::math::Vector<size, Type> operator*(const Type& alpha, const surge::math::Vector<size, Type>& a)
+template<surge::core::Size size, typename Type>
+constexpr surge::core::math::Vector<size, Type> operator*(const Type&                                  alpha,
+                                                          const surge::core::math::Vector<size, Type>& a)
 {
-    surge::math::Vector<size, Type> b;
-    surge::forEach<0, size>([&]<int i>() { b[i] = alpha * a[i]; });
+    surge::core::math::Vector<size, Type> b;
+    surge::core::forEach<0, size>([&]<int i>() { b[i] = alpha * a[i]; });
     return b;
 }
 
-template<surge::Size size, typename Type>
-constexpr surge::math::Vector<size, Type> operator*(const surge::math::Vector<size, Type>& a, const Type& alpha)
+template<surge::core::Size size, typename Type>
+constexpr surge::core::math::Vector<size, Type> operator*(const surge::core::math::Vector<size, Type>& a,
+                                                          const Type&                                  alpha)
 {
     return alpha * a;
 }
 
 
-// template<surge::Size size, typename Type>
-// constexpr surge::math::Vector<size, Type> operator/(const Type& alpha, const surge::math::Vector<size, Type>& a)
+// template<surge::core::Size size, typename Type>
+// constexpr surge::core::math::Vector<size, Type> operator/(const Type& alpha, const surge::core::math::Vector<size,
+// Type>& a)
 // {
-//     surge::math::Vector<size, Type> b;
-//     surge::forEach<0, size>([&]<int i>() { b[i] = alpha / a[i]; });
+//     surge::core::math::Vector<size, Type> b;
+//     surge::core::forEach<0, size>([&]<int i>() { b[i] = alpha / a[i]; });
 //     return b;
 // }
 
-template<surge::Size size, typename Type>
-constexpr surge::math::Vector<size, Type> operator/(const surge::math::Vector<size, Type>& a, const Type& alpha)
+template<surge::core::Size size, typename Type>
+constexpr surge::core::math::Vector<size, Type> operator/(const surge::core::math::Vector<size, Type>& a,
+                                                          const Type&                                  alpha)
 {
-    surge::math::Vector<size, Type> b;
-    surge::forEach<0, size>([&]<int i>() { b[i] = a[i] / alpha; });
+    surge::core::math::Vector<size, Type> b;
+    surge::core::forEach<0, size>([&]<int i>() { b[i] = a[i] / alpha; });
     return b;
 }
 
-// template<surge::Size size, typename Type = surge::Float32>
-// std::ostream& operator<<(std::ostream& stream, const surge::math::Vector<size, Type>& vec)
+// template<surge::core::Size size, typename Type = surge::core::Float32>
+// std::ostream& operator<<(std::ostream& stream, const surge::core::math::Vector<size, Type>& vec)
 // {
 //     // stream << "[";
 //     // if constexpr (size > 0)
 //     // {
 //     //     stream << vec[0];
-//     //     surge::forEach<1, size>([&]<int i>() { stream << ", " << vec[i]; });
+//     //     surge::core::forEach<1, size>([&]<int i>() { stream << ", " << vec[i]; });
 //     // }
 //     // stream << "]";
-//     stream << surge::math::toString(vec);
+//     stream << surge::core::math::toString(vec);
 //     return stream;
 // }
 
-namespace surge::math
+namespace surge::core::math
 {
 template<typename V>
 constexpr ValueType<V> norm(const V& v)
@@ -212,15 +216,15 @@ constexpr V normalize(const V& v)
     return v / n;
 }
 
-template<surge::Size size, typename Type = surge::Float32>
-std::string toString(const surge::math::Vector<size, Type>& vec)
+template<Size size, typename Type = Float32>
+std::string toString(const Vector<size, Type>& vec)
 {
     std::stringstream stream;
     stream << "[";
     if constexpr (size > 0)
     {
         stream << vec[0];
-        surge::forEach<1, size>([&]<int i>() { stream << ", " << vec[i]; });
+        forEach<1, size>([&]<int i>() { stream << ", " << vec[i]; });
     }
     stream << "]";
     return stream.str();
@@ -233,4 +237,4 @@ constexpr bool equal(const Vector<size, Type>& a, const Vector<size, Type>& b, c
     forEach<0, size>([&]<Size index>() { result = result && equal(get<index>(a), get<index>(b), tolerance); });
     return result;
 }
-}  // namespace surge::math
+}  // namespace surge::core::math

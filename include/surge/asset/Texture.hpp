@@ -14,7 +14,7 @@ struct TextureInfo
     static constexpr auto imageLayout = _imageLayout;
 };
 
-using SceneTextureInfo = TextureInfo<SceneImageInfo, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>;
+using SceneTextureInfo = TextureInfo<core::SceneImageInfo, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>;
 
 struct Sampler
 {
@@ -30,7 +30,7 @@ class Texture
 {
 public:
     template<typename LoadedTexture, typename Info>
-    Texture(const Command& command, const LoadedTexture& loadedTexture, const Sampler& sampler, Info)
+    Texture(const core::Command& command, const LoadedTexture& loadedTexture, const Sampler& sampler, Info)
         : name { loadedTexture.name }
         , image { loadedTexture, typename Info::ImageInfo {} }
         , sampler { createSampler(sampler) }
@@ -40,7 +40,7 @@ public:
     }
 
     template<typename LoadedTexture, typename Info>
-    Texture(const Command& command, const LoadedTexture& loadedTexture, Info)
+    Texture(const core::Command& command, const LoadedTexture& loadedTexture, Info)
         : name { loadedTexture.name }
         , image { loadedTexture, typename Info::ImageInfo {} }
         , sampler { createSampler() }
@@ -61,19 +61,19 @@ public:
 
     ~Texture()
     {
-        context().destroy(sampler);
+        core::context().destroy(sampler);
     }
 
 public:
     const std::string           name;
-    const Image                 image;
+    const core::Image           image;
     const VkSampler             sampler;
     const VkDescriptorImageInfo info;
 
 private:
     static VkSampler createSampler()
     {
-        return context().create(VkSamplerCreateInfo {
+        return core::context().create(VkSamplerCreateInfo {
             .sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
             .pNext                   = nullptr,
             .flags                   = {},
@@ -85,7 +85,7 @@ private:
             .addressModeW            = VK_SAMPLER_ADDRESS_MODE_REPEAT,
             .mipLodBias              = 0.0f,
             .anisotropyEnable        = VK_TRUE,
-            .maxAnisotropy           = context().physicalDevice.maxSamplerAnisotropy,
+            .maxAnisotropy           = core::context().physicalDevice.maxSamplerAnisotropy,
             .compareEnable           = false,
             .compareOp               = {},
             .minLod                  = 0.0f,
@@ -97,7 +97,7 @@ private:
 
     static VkSampler createSampler(const Sampler& sampler)
     {
-        return context().create(VkSamplerCreateInfo {
+        return core::context().create(VkSamplerCreateInfo {
             .sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
             .pNext                   = nullptr,
             .flags                   = {},
@@ -109,7 +109,7 @@ private:
             .addressModeW            = sampler.addressModeW,
             .mipLodBias              = 0.0f,
             .anisotropyEnable        = VK_TRUE,
-            .maxAnisotropy           = context().physicalDevice.maxSamplerAnisotropy,
+            .maxAnisotropy           = core::context().physicalDevice.maxSamplerAnisotropy,
             .compareEnable           = false,
             .compareOp               = {},
             .minLod                  = 0.0f,
@@ -121,6 +121,6 @@ private:
 };
 
 template<VkShaderStageFlags stageFlags>
-using TextureDescription = Description<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stageFlags, Texture>;
+using TextureDescription = core::Description<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stageFlags, Texture>;
 
 }  // namespace surge::asset

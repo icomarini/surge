@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-namespace surge
+namespace surge::core
 {
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(const VkDebugUtilsMessageSeverityFlagBitsEXT /*messageSeverity*/,
@@ -70,4 +70,4 @@ void destroyDebugMessenger(const VkInstance instance, VkDebugUtilsMessengerEXT d
     }
 }
 
-}  // namespace surge
+}  // namespace surge::core

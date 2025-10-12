@@ -7,10 +7,10 @@ namespace surge::physics
 
 using Time         = float;
 using Mass         = float;
-using Position     = math::Vector<3>;
-using Velocity     = math::Vector<3>;
-using Acceleration = math::Vector<3>;
-using Force        = math::Vector<3>;
+using Position     = core::math::Vector<3>;
+using Velocity     = core::math::Vector<3>;
+using Acceleration = core::math::Vector<3>;
+using Force        = core::math::Vector<3>;
 using Scalar       = float;
 
 class Anchor

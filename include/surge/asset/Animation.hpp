@@ -17,9 +17,9 @@ public:
             step,
             cubicspline
         };
-        Interpolation                interpolation;
-        std::vector<float>           inputs;
-        std::vector<math::Vector<4>> outputs;
+        Interpolation                      interpolation;
+        std::vector<float>                 inputs;
+        std::vector<core::math::Vector<4>> outputs;
     };
 
     struct Channel
@@ -31,9 +31,9 @@ public:
             scale,
             weights
         };
-        Path                 path;
-        std::optional<Index> nodeIndex;
-        Index                samplerIndex;
+        Path                       path;
+        std::optional<core::Index> nodeIndex;
+        core::Index                samplerIndex;
 
         void update(entity::Node& node, const Sampler& sampler, const float progress) const
         {
@@ -52,23 +52,23 @@ public:
             {
             case Channel::Path::translation:
             {
-                const math::Vector<3> x { x4.at(0), x4.at(1), x4.at(2) };
-                const math::Vector<3> y { y4.at(0), y4.at(1), y4.at(2) };
-                node.state.translation = math::lerp(x, y, a);
+                const core::math::Vector<3> x { x4.at(0), x4.at(1), x4.at(2) };
+                const core::math::Vector<3> y { y4.at(0), y4.at(1), y4.at(2) };
+                node.state.translation = core::math::lerp(x, y, a);
                 break;
             }
             case Channel::Path::rotation:
             {
-                const math::Quaternion x { x4 };
-                const math::Quaternion y { y4 };
-                node.state.rotation = math::normalize(math::slerp(x, y, a));
+                const core::math::Quaternion x { x4 };
+                const core::math::Quaternion y { y4 };
+                node.state.rotation = core::math::normalize(core::math::slerp(x, y, a));
                 break;
             }
             case Channel::Path::scale:
             {
-                const math::Vector<3> x { x4.at(0), x4.at(1), x4.at(2) };
-                const math::Vector<3> y { y4.at(0), y4.at(1), y4.at(2) };
-                node.state.scale = math::lerp(x, y, a);
+                const core::math::Vector<3> x { x4.at(0), x4.at(1), x4.at(2) };
+                const core::math::Vector<3> y { y4.at(0), y4.at(1), y4.at(2) };
+                node.state.scale = core::math::lerp(x, y, a);
                 break;
             }
             case Channel::Path::weights:
@@ -93,7 +93,7 @@ public:
     };
     mutable State state;
 
-    void update(utils::Tree<entity::Node>& nodes, const float progress) const
+    void update(core::utils::Tree<entity::Node>& nodes, const float progress) const
     {
         for (const auto& channel : channels)
         {

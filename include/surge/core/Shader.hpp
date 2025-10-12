@@ -6,7 +6,7 @@
 #include <filesystem>
 #include <fstream>
 
-namespace surge::shader
+namespace surge::core::shader
 {
 constexpr VkShaderStageFlagBits translate(const Stage stage)
 {
@@ -140,7 +140,7 @@ public:
     {
         constexpr auto                                    size = sizeof...(SI);
         std::array<VkPipelineShaderStageCreateInfo, size> stages;
-        surge::forEach<0, size>(
+        forEach<0, size>(
             [&]<int index>()
             {
                 using ShaderInfo                = std::tuple_element_t<index, std::tuple<SI...>>;
@@ -151,4 +151,4 @@ public:
     }
 };
 
-}  // namespace surge::shader
+}  // namespace surge::core::shader

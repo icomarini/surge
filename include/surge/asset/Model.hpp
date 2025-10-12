@@ -21,12 +21,13 @@ class Model
 {
 public:
     template<VkBufferUsageFlags bufferUsageFlags, VkMemoryPropertyFlags memoryPropertyFlags>
-    using VertexBufferInfo = BufferInfo<bufferUsageFlags | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, memoryPropertyFlags>;
+    using VertexBufferInfo =
+        core::BufferInfo<bufferUsageFlags | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, memoryPropertyFlags>;
     template<VkBufferUsageFlags bufferUsageFlags, VkMemoryPropertyFlags memoryPropertyFlags>
-    using IndexBufferInfo = BufferInfo<bufferUsageFlags | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, memoryPropertyFlags>;
+    using IndexBufferInfo = core::BufferInfo<bufferUsageFlags | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, memoryPropertyFlags>;
 
     template<typename LoadedModel, typename Info>
-    Model(const Command& command, const LoadedModel& loadedModel, const bool transfer, Info)
+    Model(const core::Command& command, const LoadedModel& loadedModel, const bool transfer, Info)
         : name { loadedModel.name }
         , vertexBuffer { loadedModel.vertexBufferSize(),
                          VertexBufferInfo<Info::bufferUsageFlags, Info::memoryPropertyFlags> {} }
@@ -68,7 +69,7 @@ public:
             .offset = 0,
             .size   = VK_WHOLE_SIZE,
         };
-        if (vkFlushMappedMemoryRanges(context().device, 1, &vertexMappedRange) != VK_SUCCESS)
+        if (vkFlushMappedMemoryRanges(core::context().device, 1, &vertexMappedRange) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to flush vertex model!");
         }
@@ -80,18 +81,18 @@ public:
             .offset = 0,
             .size   = VK_WHOLE_SIZE,
         };
-        if (vkFlushMappedMemoryRanges(context().device, 1, &indexMappedRange) != VK_SUCCESS)
+        if (vkFlushMappedMemoryRanges(core::context().device, 1, &indexMappedRange) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to flush index model!");
         }
     }
 
 public:
-    std::string name;
-    Buffer      vertexBuffer;
-    uint32_t    vertexCount;
-    Buffer      indexBuffer;
-    uint32_t    indexCount;
+    std::string  name;
+    core::Buffer vertexBuffer;
+    uint32_t     vertexCount;
+    core::Buffer indexBuffer;
+    uint32_t     indexCount;
 };
 
 }  // namespace surge::asset

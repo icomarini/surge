@@ -8,7 +8,7 @@
 #include <format>
 #include <numbers>
 
-namespace surge::math
+namespace surge::core::math
 {
 template<typename T>
 static constexpr T zero { 0 };
@@ -77,4 +77,4 @@ std::string toString(const std::floating_point auto x)
     }
     return std::format("{:>9}    ", std::format("{:3.3f}", x));
 }
-}  // namespace surge::math
+}  // namespace surge::core::math

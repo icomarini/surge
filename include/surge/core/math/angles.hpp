@@ -5,7 +5,7 @@
 #include <numbers>
 #include <algorithm>
 
-namespace surge::math
+namespace surge::core::math
 {
 
 template<typename Type = float>
@@ -141,4 +141,4 @@ constexpr Quaternion<Type> slerp(const Quaternion<Type>& x, const Quaternion<Typ
     }
 }
 
-}  // namespace surge::math
+}  // namespace surge::core::math

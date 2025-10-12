@@ -58,8 +58,8 @@ public:
     virtual void updateForce(Particle& particle, const Time)
     {
         const auto force     = particle.position - other.position;
-        const auto intensity = math::norm(force);
-        if (math::equal(intensity, 0.0, 1e-6))
+        const auto intensity = core::math::norm(force);
+        if (core::math::equal(intensity, 0.0, 1e-6))
         {
             return;
         }
@@ -94,8 +94,8 @@ public:
     virtual void updateForce(Particle&, const Time)
     {
         const auto distance  = first.position - second.position;
-        const auto intensity = math::norm(distance);
-        if (math::equal(intensity, 0.0, 1e-6))
+        const auto intensity = core::math::norm(distance);
+        if (core::math::equal(intensity, 0.0, 1e-6))
         {
             return;
         }
@@ -120,8 +120,8 @@ public:
     virtual void updateForce(Particle& particle, const Time)
     {
         const auto force     = particle.position - anchor.position;
-        const auto intensity = math::norm(force);
-        if (math::equal(intensity, 0.0, 1e-6))
+        const auto intensity = core::math::norm(force);
+        if (core::math::equal(intensity, 0.0, 1e-6))
         {
             return;
         }
@@ -151,8 +151,8 @@ public:
     virtual void updateForce(Particle& particle, const Time) override
     {
         const auto force     = particle.position - anchor.position;
-        const auto intensity = math::norm(force);
-        if (math::equal(intensity, 0.0, 1e-6))
+        const auto intensity = core::math::norm(force);
+        if (core::math::equal(intensity, 0.0, 1e-6))
         {
             return;
         }

@@ -22,23 +22,24 @@ public:
 
     struct PushConstBlock
     {
-        math::Vector<2> scale;
-        math::Vector<2> translate;
+        core::math::Vector<2> scale;
+        core::math::Vector<2> translate;
     };
 
 
-    Overlay(const Command& command, UserInteraction&, const std::map<std::string, asset::Asset>& assets)
+    Overlay(const core::Command& command, core::UserInteraction&, const std::map<std::string, asset::Asset>& assets)
         : imGuiContext { 1 }
         , fontTexture { command, Font {}, asset::SceneTextureInfo {} }
         , model {}
         , descriptor { 1, asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT> { fontTexture } }
         , graphicsQueue { command.graphicsQueue }
-        , pipelineLayout { createPipelineLayout(createPushConstantRange<PushConstBlock>(VK_SHADER_STAGE_VERTEX_BIT),
-                                                descriptor.setLayout) }
-        , pipeline { createGraphicPipeline(
-              createVertexInputState<LoadedOverlay::Vertex>(), VK_NULL_HANDLE, pipelineLayout,
-              shader::Shader { shader::ShaderInfo<shader::Type::ui, shader::Stage::vertex> { nullptr },
-                               shader::ShaderInfo<shader::Type::ui, shader::Stage::fragment> { nullptr } },
+        , pipelineLayout { core::createPipelineLayout(
+              core::createPushConstantRange<PushConstBlock>(VK_SHADER_STAGE_VERTEX_BIT), descriptor.setLayout) }
+        , pipeline { core::createGraphicPipeline(
+              core::createVertexInputState<LoadedOverlay::Vertex>(), VK_NULL_HANDLE, pipelineLayout,
+              core::shader::Shader {
+                  core::shader::ShaderInfo<core::shader::Type::ui, core::shader::Stage::vertex> { nullptr },
+                  core::shader::ShaderInfo<core::shader::Type::ui, core::shader::Stage::fragment> { nullptr } },
               VkPipelineRasterizationStateCreateInfo {
                   .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
                   .pNext                   = nullptr,
@@ -85,7 +86,7 @@ public:
 
 
     static void newFrame(const VkExtent2D extent, const float scale, std::array<float, 50>& frameTimes,
-                         const UserInteraction& ui, const std::map<std::string, asset::Asset>& assets)
+                         const core::UserInteraction& ui, const std::map<std::string, asset::Asset>& assets)
     {
         ImGuiIO& io                = ImGui::GetIO();
         io.DisplaySize             = ImVec2(extent.width, extent.height);
@@ -97,11 +98,11 @@ public:
                             scaling * static_cast<float>(ui.mouse.position.at(1)));
         io.AddMouseWheelEvent(ui.mouse.wheel.at(0), ui.mouse.wheel.at(1));
 
-        if (ui.mouse.left == UserInteraction::KeyState::press)
+        if (ui.mouse.left == core::UserInteraction::KeyState::press)
         {
             io.AddMouseButtonEvent(0, true);
         }
-        if (ui.mouse.left == UserInteraction::KeyState::release)
+        if (ui.mouse.left == core::UserInteraction::KeyState::release)
         {
             io.AddMouseButtonEvent(0, false);
         }
@@ -157,8 +158,8 @@ public:
         const auto size = ImGui::GetWindowSize();
         ImGui::End();
 
-        math::Vector<2> previousWindowPosition { pos.x, pos.y };
-        math::Vector<2> previousWindowSize { size.x, size.y };
+        core::math::Vector<2> previousWindowPosition { pos.x, pos.y };
+        core::math::Vector<2> previousWindowSize { size.x, size.y };
         for (const auto& [name, asset] : assets)
         {
             const auto [pos, size] = overlay(asset, previousWindowPosition, previousWindowSize);
@@ -197,7 +198,7 @@ public:
         model->transfer(loadedOverlay);
     }
 
-    void update(const VkExtent2D extent, const UserInteraction& userInteraction) const
+    void update(const VkExtent2D extent, const core::UserInteraction& userInteraction) const
     {
         newFrame(extent, imGuiContext.scale, frameTimes, userInteraction, assets);
         updateBuffers(graphicsQueue, model);
@@ -222,7 +223,7 @@ public:
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
         auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
-            vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
+            vkGetInstanceProcAddr(core::context().instance, "vkCmdSetPolygonModeEXT"));
         assert(setPolygonMode);
         setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
 
@@ -238,8 +239,8 @@ public:
 
         // UI scale and translate via push constants
         const PushConstBlock pushConstBlock {
-            .scale     = math::Vector<2> { 2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y },
-            .translate = math::Vector<2> { -1.0f, -1.0f },
+            .scale     = core::math::Vector<2> { 2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y },
+            .translate = core::math::Vector<2> { -1.0f, -1.0f },
         };
         vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock),
                            &pushConstBlock);
@@ -287,8 +288,8 @@ public:
     ~Overlay()
     {
         // ImGui::DestroyContext();
-        context().destroy(pipeline);
-        context().destroy(pipelineLayout);
+        core::context().destroy(pipeline);
+        core::context().destroy(pipelineLayout);
     }
 
 private:
@@ -319,7 +320,7 @@ private:
 
     asset::Texture                      fontTexture;
     mutable std::optional<asset::Model> model;
-    const Descriptor                    descriptor;
+    const core::Descriptor              descriptor;
 
     VkQueue graphicsQueue;
 

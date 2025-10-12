@@ -9,25 +9,26 @@ namespace surge
 class Skybox
 {
     using CubeImageInfo =
-        ImageInfo<VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, VK_FORMAT_R8G8B8A8_SRGB,
-                  VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                  VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_CUBE>;
+        core::ImageInfo<VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, VK_FORMAT_R8G8B8A8_SRGB,
+                        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_CUBE>;
     using CubeTextureInfo = asset::TextureInfo<CubeImageInfo, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>;
 
 public:
-    Skybox(const Command& command, const std::filesystem::path& loadedTexture)
+    Skybox(const core::Command& command, const std::filesystem::path& loadedTexture)
         : camera { 16.0 / 9.0, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } }
-        , uniformBuffer { sizeof(math::Matrix<4, 4>), UniformBufferInfo {} }
+        , uniformBuffer { sizeof(core::math::Matrix<4, 4>), core::UniformBufferInfo {} }
         , texture { command, load::LoadedTexture { loadedTexture }, CubeTextureInfo {} }
-        , model { command, geometry::cubeFill, true, asset::SceneModelInfo {} }
-        , descriptor { 1, UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT> { uniformBuffer },
-                       Description<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT,
-                                   asset::Texture> { texture } }
-        , pipelineLayout { createPipelineLayout(descriptor.setLayout) }
-        , pipeline { createGraphicPipeline(
-              createVertexInputState<geometry::Position>(), VK_NULL_HANDLE, pipelineLayout,
-              shader::Shader { shader::ShaderInfo<shader::Type::skybox, shader::Stage::vertex> { nullptr },
-                               shader::ShaderInfo<shader::Type::skybox, shader::Stage::fragment> { nullptr } },
+        , model { command, core::geometry::cubeFill, true, asset::SceneModelInfo {} }
+        , descriptor { 1, core::UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT> { uniformBuffer },
+                       core::Description<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT,
+                                         asset::Texture> { texture } }
+        , pipelineLayout { core::createPipelineLayout(descriptor.setLayout) }
+        , pipeline { core::createGraphicPipeline(
+              core::createVertexInputState<core::geometry::Position>(), VK_NULL_HANDLE, pipelineLayout,
+              core::shader::Shader {
+                  core::shader::ShaderInfo<core::shader::Type::skybox, core::shader::Stage::vertex> { nullptr },
+                  core::shader::ShaderInfo<core::shader::Type::skybox, core::shader::Stage::fragment> { nullptr } },
               VkPipelineRasterizationStateCreateInfo {
                   .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
                   .pNext                   = nullptr,
@@ -60,16 +61,16 @@ public:
     {
     }
 
-    void update(const VkExtent2D, const UserInteraction& ui) const
+    void update(const VkExtent2D, const core::UserInteraction& ui) const
     {
         update({}, ui);
     }
 
-    void update(const UserInteraction& ui) const
+    void update(const core::UserInteraction& ui) const
     {
         camera.update(ui);
         const auto viewProjection = camera.mats.perspective * camera.mats.view;
-        memcpy(uniformBuffer.mapped, &viewProjection, sizeof(math::Matrix<4, 4>));
+        memcpy(uniformBuffer.mapped, &viewProjection, sizeof(core::math::Matrix<4, 4>));
     }
 
     void drawOffscreen(const VkCommandBuffer) const
@@ -88,7 +89,7 @@ public:
                                 0, nullptr);
 
         auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
-            vkGetInstanceProcAddr(context().instance, "vkCmdSetPolygonModeEXT"));
+            vkGetInstanceProcAddr(core::context().instance, "vkCmdSetPolygonModeEXT"));
         assert(setPolygonMode);
         setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
 
@@ -98,16 +99,16 @@ public:
 
     ~Skybox()
     {
-        context().destroy(pipeline);
-        context().destroy(pipelineLayout);
+        core::context().destroy(pipeline);
+        core::context().destroy(pipelineLayout);
     }
 
 private:
     mutable Camera<false, true> camera;
-    const Buffer                uniformBuffer;
+    const core::Buffer          uniformBuffer;
     const asset::Texture        texture;
     const asset::Model          model;
-    const Descriptor            descriptor;
+    const core::Descriptor      descriptor;
 
     VkPipelineLayout pipelineLayout;
     VkPipeline       pipeline;

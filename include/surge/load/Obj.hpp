@@ -23,12 +23,16 @@ public:
     };
 
     using TextureDescr = asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT>;
-    using Index        = geometry::Index;
-    using Vertex       = geometry::Vertex<
-              geometry::AttributeSlot<geometry::Attribute::position, math::Vector<3>, 3, geometry::Format::sfloat>,
-              geometry::AttributeSlot<geometry::Attribute::color, math::Vector<4>, 4, geometry::Format::sfloat>,
-              geometry::AttributeSlot<geometry::Attribute::normal, math::Vector<3>, 3, geometry::Format::sfloat>,
-              geometry::AttributeSlot<geometry::Attribute::texCoord, math::Vector<2>, 2, geometry::Format::sfloat>>;
+    using Index        = core::geometry::Index;
+    using Vertex       = core::geometry::Vertex<  //
+        core::geometry::AttributeSlot<core::geometry::Attribute::position, core::math::Vector<3>, 3,
+                                            core::geometry::Format::sfloat>,
+        core::geometry::AttributeSlot<core::geometry::Attribute::color, core::math::Vector<4>, 4,
+                                            core::geometry::Format::sfloat>,
+        core::geometry::AttributeSlot<core::geometry::Attribute::normal, core::math::Vector<3>, 3,
+                                            core::geometry::Format::sfloat>,
+        core::geometry::AttributeSlot<core::geometry::Attribute::texCoord, core::math::Vector<2>, 2,
+                                            core::geometry::Format::sfloat>>;
 
     Obj(const Handle& handle)
         : name { handle.meshPath.filename() }
@@ -48,7 +52,7 @@ public:
         }
     }
 
-    std::vector<asset::Texture> createTextures(const Command& command, const Defaults& defaults) const
+    std::vector<asset::Texture> createTextures(const core::Command& command, const Defaults& defaults) const
     {
         std::vector<asset::Texture> textures;
         if (texture)
@@ -60,18 +64,18 @@ public:
 
     VkDescriptorPool createDescriptorPool() const
     {
-        return Descriptor::createDescriptorPool(6U, std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U },
-                                                std::pair { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1U });
+        return core::Descriptor::createDescriptorPool(6U, std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U },
+                                                      std::pair { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1U });
     }
 
     VkDescriptorSetLayout createMaterialDescriptorSetLayout() const
     {
-        return Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture
-                                                     TextureDescr,  // metallic/rough texture
-                                                     TextureDescr,  // normal texture
-                                                     TextureDescr,  // occlusion texture
-                                                     TextureDescr   // emissive texture
-                                                     >(1);
+        return core::Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture
+                                                           TextureDescr,  // metallic/rough texture
+                                                           TextureDescr,  // normal texture
+                                                           TextureDescr,  // occlusion texture
+                                                           TextureDescr   // emissive texture
+                                                           >(1);
     }
 
     std::vector<asset::Material> createMaterials(const Defaults& defaults, const VkDescriptorPool descriptorPool,
@@ -101,7 +105,7 @@ public:
                                    .normalScale              = 1,
                                    .occlusionTexture         = TextureData { &defaults.texture, 0 },
                                    .occlusionStrength        = 1,
-                                   .descriptorSet            = Descriptor::createDescriptorSet(
+                                   .descriptorSet            = core::Descriptor::createDescriptorSet(
                                        materialDescriptorSetLayout, descriptorPool,  //
                                        TextureDescr { textures.front() }, TextureDescr { defaults.texture },
                                        TextureDescr { defaults.texture }, TextureDescr { defaults.texture },
@@ -110,7 +114,7 @@ public:
 
     std::vector<asset::Mesh> createMeshes(const Defaults& defaults, const std::vector<asset::Material>& materials) const
     {
-        Size indexCount {};
+        core::Size indexCount {};
         for (const auto& shape : shapes)
         {
             indexCount += shape.mesh.indices.size();
@@ -118,14 +122,14 @@ public:
 
         const auto& material = materials.size() > 0 ? materials.front() : defaults.material;
 
-        math::Vector<3> min {};
-        math::Vector<3> max {};
+        core::math::Vector<3> min {};
+        core::math::Vector<3> max {};
         for (const auto& shape : shapes)
         {
             for (const auto& index : shape.mesh.indices)
             {
                 const auto vertexIdx = 3 * index.vertex_index;
-                forEach<0, 3>(
+                core::forEach<0, 3>(
                     [&]<int index>()
                     {
                         const auto v = attrib.vertices.at(vertexIdx + index);
@@ -137,25 +141,25 @@ public:
         // constexpr bool          color    = false;
         // constexpr bool          normal   = false;
         // const bool              texCoord = materials.size() > 0;
-        const math::BoundingBox bbox { .min = min, .max = max };
+        const core::math::BoundingBox bbox { .min = min, .max = max };
 
         std::vector<asset::Mesh> meshes;
         auto&                    mesh = meshes.emplace_back(baptize<This::mesh>(0));
         mesh.primitives.emplace_back(0, indexCount, indexCount, material,
                                      asset::Mesh::Primitive::Attributes {
-                                         { geometry::Attribute::position, true },
-                                         { geometry::Attribute::color, false },
-                                         { geometry::Attribute::normal, false },
-                                         { geometry::Attribute::texCoord, materials.size() > 0 },
-                                         { geometry::Attribute::jointIndex, false },
-                                         { geometry::Attribute::jointWeight, false },
+                                         { core::geometry::Attribute::position, true },
+                                         { core::geometry::Attribute::color, false },
+                                         { core::geometry::Attribute::normal, false },
+                                         { core::geometry::Attribute::texCoord, materials.size() > 0 },
+                                         { core::geometry::Attribute::jointIndex, false },
+                                         { core::geometry::Attribute::jointWeight, false },
                                      },
                                      bbox, asset::Mesh::Primitive::State { false });
 
         return meshes;
     }
 
-    asset::Model createModel(const Command& command, const asset::Mesh& mesh) const
+    asset::Model createModel(const core::Command& command, const asset::Mesh& mesh) const
     {
         assert(mesh.primitives.size() == 1);
 
@@ -173,19 +177,19 @@ public:
                 const auto texCoordIdx = 2 * index.texcoord_index;
 
                 vertices.emplace_back(
-                    Vertex::Attribute<Vertex::attributeIndex<geometry::Attribute::position>()>::Value {
+                    Vertex::Attribute<Vertex::attributeIndex<core::geometry::Attribute::position>()>::Value {
                         attrib.vertices.at(vertexIdx + 0),
                         attrib.vertices.at(vertexIdx + 1),
                         attrib.vertices.at(vertexIdx + 2),
                     },
-                    Vertex::Attribute<Vertex::attributeIndex<geometry::Attribute::color>()>::Value { 1.0f, 1.0f, 1.0f,
-                                                                                                     1.0f },
-                    Vertex::Attribute<Vertex::attributeIndex<geometry::Attribute::normal>()>::Value {
+                    Vertex::Attribute<Vertex::attributeIndex<core::geometry::Attribute::color>()>::Value { 1.0f, 1.0f,
+                                                                                                           1.0f, 1.0f },
+                    Vertex::Attribute<Vertex::attributeIndex<core::geometry::Attribute::normal>()>::Value {
                         attrib.normals.at(normalIdx + 0),
                         attrib.normals.at(normalIdx + 1),
                         attrib.normals.at(normalIdx + 2),
                     },
-                    Vertex::Attribute<Vertex::attributeIndex<geometry::Attribute::texCoord>()>::Value {
+                    Vertex::Attribute<Vertex::attributeIndex<core::geometry::Attribute::texCoord>()>::Value {
                         attrib.texcoords.at(texCoordIdx + 0),
                         1.0f - attrib.texcoords.at(texCoordIdx + 1),
                     });
@@ -195,35 +199,35 @@ public:
         std::vector<Index> indices(vertexCount);
         std::iota(indices.begin(), indices.end(), 0);
 
-        return asset::Model { command, geometry::Shape { "asset", std::move(vertices), std::move(indices) }, true,
+        return asset::Model { command, core::geometry::Shape { "asset", std::move(vertices), std::move(indices) }, true,
                               asset::SceneModelInfo {} };
     }
 
-    utils::Tree<entity::Node> createTree() const
+    core::utils::Tree<entity::Node> createTree() const
     {
         auto createNode = [this]()
         {
-            utils::Tree<entity::Node>::Nodes nodes;
+            core::utils::Tree<entity::Node>::Nodes nodes;
             nodes.reserve(1);
             nodes.emplace_back(
                 entity::Node {
-                    std::optional<Index> { 0 },
-                    std::optional<Index> {},
+                    std::optional<core::Index> { 0 },
+                    std::optional<core::Index> {},
                     entity::Node::State {
                         .active            = true,
-                        .polygonMode       = PolygonMode::fill,
+                        .polygonMode       = core::PolygonMode::fill,
                         .vertexStageFlag   = 0,
                         .fragmentStageFlag = 0,
                         .translation       = { 0, 0, 0 },
                         .scale             = { 1, 1, 1 },
-                        .localMatrix       = math::Matrix<4, 4> {},
-                        .globalMatrix      = math::Matrix<4, 4> {},
+                        .localMatrix       = core::math::Matrix<4, 4> {},
+                        .globalMatrix      = core::math::Matrix<4, 4> {},
                     },
                 },
-                std::vector<Index> {});
+                std::vector<core::Index> {});
             return nodes;
         };
-        return utils::Tree<entity::Node> {
+        return core::utils::Tree<entity::Node> {
             .roots = std::vector<Index> { 0 },
             .nodes = createNode(),
         };

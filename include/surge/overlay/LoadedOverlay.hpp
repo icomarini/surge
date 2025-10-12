@@ -11,12 +11,13 @@ namespace surge
 class LoadedOverlay
 {
 public:
-    using Position =
-        geometry::AttributeSlot<geometry::Attribute::position, math::Vector<2>, 2, geometry::Format::sfloat>;
-    using TexCoord =
-        geometry::AttributeSlot<geometry::Attribute::texCoord, math::Vector<2>, 2, geometry::Format::sfloat>;
-    using Color  = geometry::AttributeSlot<geometry::Attribute::color, UInt32, 4, geometry::Format::unorm>;
-    using Vertex = geometry::Vertex<Position, TexCoord, Color>;
+    using Position = core::geometry::AttributeSlot<core::geometry::Attribute::position, core::math::Vector<2>, 2,
+                                                   core::geometry::Format::sfloat>;
+    using TexCoord = core::geometry::AttributeSlot<core::geometry::Attribute::texCoord, core::math::Vector<2>, 2,
+                                                   core::geometry::Format::sfloat>;
+    using Color =
+        core::geometry::AttributeSlot<core::geometry::Attribute::color, core::UInt32, 4, core::geometry::Format::unorm>;
+    using Vertex = core::geometry::Vertex<Position, TexCoord, Color>;
 
     using Index = ImDrawIdx;
 

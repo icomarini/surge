@@ -23,8 +23,8 @@ void createRope(physics::Physics& physics, const physics::Position& first, const
     auto& secondAnchor = physics.addAnchor(second);
 
     const auto trajectory = second - first;
-    const auto distance   = math::norm(trajectory);
-    const auto direction  = math::normalize(trajectory);
+    const auto distance   = core::math::norm(trajectory);
+    const auto direction  = core::math::normalize(trajectory);
 
     std::vector<physics::Particle*> particles;
     particles.reserve(size - 2);
@@ -118,7 +118,7 @@ public:
         std::vector<entity::Entity> entities;
         constexpr float             stepX = 2;
         constexpr float             stepY = 2;
-        constexpr Size              sizeY = 3;
+        constexpr core::Size        sizeY = 3;
         entities.reserve(assets.size() * sizeY);
         float offsetX = 0;
         for (const auto& [name, asset] : assets)
@@ -128,8 +128,9 @@ public:
             float offsetY = 0;
             for (float y = 0; y < sizeY; ++y)
             {
-                auto& entity = entities.emplace_back(asset, pipelineLayout, pipeline, 0,
-                                                     math::Translation { math::Vector<3> { offsetX, 0, offsetY } });
+                auto& entity =
+                    entities.emplace_back(asset, pipelineLayout, pipeline, 0,
+                                          core::math::Translation { core::math::Vector<3> { offsetX, 0, offsetY } });
                 if (entity.animation)
                 {
                     entity.animation->state.progress += 0.5 * y;
@@ -141,15 +142,15 @@ public:
 
         VkExtent2D extent { WIDTH, HEIGHT };
 
-        while (!context().exit())
+        while (!core::context().exit())
         {
             if (elapsedTime > 1.0 / 144.0)
             {
                 userInteraction.reset();
-                context().pollEvents();
+                core::context().pollEvents();
 
                 // === physics playground ===
-                using KeyState = UserInteraction::KeyState;
+                using KeyState = core::UserInteraction::KeyState;
                 if (!physicsActive && userInteraction.mouse.left == KeyState::press)
                 {
                     physicsActive = true;
@@ -202,14 +203,14 @@ public:
             elapsedTime     = 1e-3 * std::chrono::duration<double, std::milli>(stop - start).count();
             ++ticCount;
         }
-        vkDeviceWaitIdle(context().device);
+        vkDeviceWaitIdle(core::context().device);
     }
 
 private:
-    mutable UserInteraction             userInteraction;
-    const Context&                      ctx;
-    const Command                       command;
-    Presenter                           presenter;
+    mutable core::UserInteraction       userInteraction;
+    const core::Context&                ctx;
+    const core::Command                 command;
+    core::Presenter                     presenter;
     const Defaults                      defaults;
     Skybox                              skybox;
     physics::Physics                    physics;
@@ -219,14 +220,14 @@ private:
 
 
     static std::map<std::string, asset::Asset>
-    createAssets(const Command& command, const Defaults& defaults,
+    createAssets(const core::Command& command, const Defaults& defaults,
                  const std::map<std::string, asset::AssetHandle>& assetHandles)
     {
         std::map<std::string, asset::Asset> assets;
         for (const auto& [name, assetHandle] : assetHandles)
         {
             std::visit(
-                overload {
+                core::overload {
                     [&](const auto&) {},
                     [&](const load::Gltf::Handle& handle)
                     {

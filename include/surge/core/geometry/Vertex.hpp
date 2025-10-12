@@ -1,6 +1,6 @@
 #pragma once
 
-namespace surge::geometry
+namespace surge::core::geometry
 {
 using Index = UInt32;
 
@@ -134,4 +134,4 @@ private:
         return index;
     }
 };
-}  // namespace surge::geometry
+}  // namespace surge::core::geometry

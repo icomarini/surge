@@ -9,7 +9,7 @@
 #include <memory>
 #include <set>
 
-namespace surge
+namespace surge::core
 {
 class Window
 {
@@ -207,4 +207,4 @@ private:
     GLFWwindow* glfwWindow;
 };
 
-}  // namespace surge
+}  // namespace surge::core

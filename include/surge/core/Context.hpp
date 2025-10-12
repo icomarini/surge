@@ -18,7 +18,7 @@
 #include <set>
 #include <vector>
 
-namespace surge
+namespace surge::core
 {
 constexpr VkPolygonMode translate(const PolygonMode polygonMode)
 {
@@ -748,4 +748,4 @@ static const Context& context()
     return createContext("", "", 0, 0, nullptr);
 };
 
-}  // namespace surge
+}  // namespace surge::core

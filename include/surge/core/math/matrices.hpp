@@ -5,7 +5,7 @@
 
 #include <sstream>
 
-namespace surge::math
+namespace surge::core::math
 {
 // implementation: Identity
 template<Size s, typename T = Float32>
@@ -349,4 +349,4 @@ constexpr auto& get(const View<T>& t)
     }
 }
 
-}  // namespace surge::math
+}  // namespace surge::core::math

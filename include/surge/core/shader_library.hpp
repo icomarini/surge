@@ -3,7 +3,7 @@
 #include <array>
 #include <string_view>
 
-namespace surge::shader
+namespace surge::core::shader
 {
 
 enum class Stage
@@ -139,4 +139,4 @@ constexpr Entry get(const Type type, const Stage stage)
     return requested;
 }
 
-}  // namespace surge::shader
+}  // namespace surge::core::shader

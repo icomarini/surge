@@ -7,7 +7,7 @@
 #include <chrono>
 #include <cstdint>
 
-namespace surge
+namespace surge::core
 {
 
 struct UserInteraction
@@ -111,4 +111,4 @@ struct UserInteraction
     }
 };
 
-}  // namespace surge
+}  // namespace surge::core

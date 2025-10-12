@@ -2,7 +2,7 @@
 
 #include "surge/core/Context.hpp"
 
-namespace surge
+namespace surge::core
 {
 
 template<VkImageCreateFlags    _imageCreateFlags,     //
@@ -126,4 +126,4 @@ private:
     }
 };
 
-}  // namespace surge
+}  // namespace surge::core

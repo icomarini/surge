@@ -2,7 +2,7 @@
 
 #include "surge/core/Image.hpp"
 
-namespace surge
+namespace surge::core
 {
 
 class Swapchain
@@ -139,4 +139,4 @@ private:
     }
 };
 
-}  // namespace surge
+}  // namespace surge::core

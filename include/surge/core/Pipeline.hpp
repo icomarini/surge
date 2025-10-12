@@ -6,7 +6,7 @@
 #include <filesystem>
 #include <fstream>
 
-namespace surge
+namespace surge::core
 {
 template<Size size, geometry::Format format>
 constexpr VkFormat extractFormat()
@@ -422,4 +422,4 @@ VkPipeline createGraphicPipeline(const VkPipelineCache pipelineCache, const VkPi
 }
 
 
-}  // namespace surge
+}  // namespace surge::core

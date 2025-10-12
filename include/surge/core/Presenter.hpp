@@ -4,7 +4,7 @@
 #include "surge/core/Swapchain.hpp"
 #include "surge/core/utils/Cycle.hpp"
 
-namespace surge
+namespace surge::core
 {
 
 class Presenter
@@ -338,4 +338,4 @@ private:
     }
 };
 
-}  // namespace surge
+}  // namespace surge::core

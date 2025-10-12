@@ -15,14 +15,14 @@ static constexpr std::array uv   = { 'u', 'v' };
 static constexpr std::array xyzw = { 'x', 'y', 'z', 'w' };
 static constexpr std::array ypr  = { 'y', 'p', 'r' };
 
-template<Size size, typename AxisLabels>
-void slider(const std::string& name, const std::string& nodeName, math::Vector<size>& vector, const AxisLabels labels,
-            const float min = -5.0f, const float max = 5.0f)
+template<core::Size size, typename AxisLabels>
+void slider(const std::string& name, const std::string& nodeName, core::math::Vector<size>& vector,
+            const AxisLabels labels, const float min = -5.0f, const float max = 5.0f)
 {
     // static_assert(vector.size() <= labels.size());
     ImGui::PushItemWidth(80);
     ImGui::Text("%s", name.c_str());
-    forEach<0, size>(
+    core::forEach<0, size>(
         [&]<int index>()
         {
             ImGui::SameLine();
@@ -46,7 +46,7 @@ static void overlay(const entity::Node& node, uint32_t& nodeId)
 
             {
                 std::array<const char*, 3> items { "point", "line", "fill" };
-                const char*                currentItem = items.at(static_cast<UInt8>(node.state.polygonMode));
+                const char*                currentItem = items.at(static_cast<core::UInt8>(node.state.polygonMode));
                 if (ImGui::BeginCombo("mode", currentItem))
                 {
                     uint32_t itemId = 0;
@@ -55,7 +55,7 @@ static void overlay(const entity::Node& node, uint32_t& nodeId)
                         const bool selected = (currentItem == item);
                         if (ImGui::Selectable(item, selected))
                         {
-                            node.state.polygonMode = static_cast<PolygonMode>(itemId);
+                            node.state.polygonMode = static_cast<core::PolygonMode>(itemId);
                         }
                         if (selected)
                         {

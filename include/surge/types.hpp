@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace surge
+namespace surge::core
 {
 
 using Int8  = char;
@@ -35,4 +35,4 @@ bool operator<(const PolygonMode a, const PolygonMode b)
     return static_cast<UInt8>(a) < static_cast<UInt8>(b);
 }
 
-}  // namespace surge
+}  // namespace surge::core
