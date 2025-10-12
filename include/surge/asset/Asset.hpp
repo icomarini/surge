@@ -2,8 +2,7 @@
 
 #include "surge/Defaults.hpp"
 
-#include "surge/Pipeline.hpp"
-#include "surge/shader_library.hpp"
+// #include "surge/Pipeline.hpp"
 #include "surge/asset/Animation.hpp"
 #include "surge/load/Gltf.hpp"
 #include "surge/load/Obj.hpp"
@@ -13,8 +12,8 @@
 #include "surge/asset/Scene.hpp"
 #include "surge/asset/Skin.hpp"
 
-#include "surge/geometry/Shape.hpp"
-#include "surge/geometry/Vertex.hpp"
+// #include "surge/geometry/Shape.hpp"
+// #include "surge/geometry/Vertex.hpp"
 
 #include <numeric>
 

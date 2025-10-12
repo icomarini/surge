@@ -1,10 +1,7 @@
 #pragma once
 
-#include "surge/shader_library.hpp"
 #include "surge/asset/Scene.hpp"
 #include "surge/asset/Skin.hpp"
-#include "surge/geometry/Shape.hpp"
-#include "surge/geometry/Vertex.hpp"
 
 #include "fastgltf/core.hpp"
 #include "fastgltf/tools.hpp"

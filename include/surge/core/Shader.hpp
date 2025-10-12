@@ -1,13 +1,26 @@
 #pragma once
 
 #include "surge/core/Context.hpp"
-#include "surge/shader_library.hpp"
+#include "surge/core/shader_library.hpp"
 
 #include <filesystem>
 #include <fstream>
 
 namespace surge::shader
 {
+constexpr VkShaderStageFlagBits translate(const Stage stage)
+{
+    switch (stage)
+    {
+    case Stage::vertex:
+        return VK_SHADER_STAGE_VERTEX_BIT;
+    case Stage::fragment:
+        return VK_SHADER_STAGE_FRAGMENT_BIT;
+    default:
+        throw;
+    }
+}
+
 template<Type _type, Stage _stage, typename _Entry = void*>
 struct ShaderInfo
 {

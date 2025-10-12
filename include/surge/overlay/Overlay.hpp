@@ -2,7 +2,7 @@
 
 #include "surge/core/Command.hpp"
 
-#include "surge/Pipeline.hpp"
+#include "surge/core/Pipeline.hpp"
 #include "surge/asset/Asset.hpp"
 
 #include "surge/overlay/Font.hpp"

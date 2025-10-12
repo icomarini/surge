@@ -1,13 +1,13 @@
 #pragma once
 
 #include "surge/core/Command.hpp"
+#include "surge/core/geometry/shapes.hpp"
 #include "surge/core/math/matrices.hpp"
-#include "surge/Pipeline.hpp"
+#include "surge/core/Pipeline.hpp"
 #include "surge/asset/Texture.hpp"
 #include "surge/asset/Material.hpp"
 #include "surge/asset/Model.hpp"
 #include "surge/load/LoadedTexture.hpp"
-#include "surge/geometry/shapes.hpp"
 
 namespace surge
 {

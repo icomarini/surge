@@ -1,17 +1,13 @@
 #pragma once
 
-#include "surge/Shader.hpp"
-#include "surge/geometry/Vertex.hpp"
+#include "surge/core/Shader.hpp"
+#include "surge/core/geometry/Vertex.hpp"
 
 #include <filesystem>
 #include <fstream>
 
 namespace surge
 {
-
-namespace detail
-{
-
 template<Size size, geometry::Format format>
 constexpr VkFormat extractFormat()
 {
@@ -38,6 +34,7 @@ constexpr VkFormat extractFormat()
         });
     return result;
 };
+
 template<typename... Attributes>
 static constexpr auto createAttributeDescriptions(geometry::Vertex<Attributes...>)
 {
@@ -56,7 +53,6 @@ static constexpr auto createAttributeDescriptions(geometry::Vertex<Attributes...
         });
     return attributeDescriptions;
 }
-}  // namespace detail
 
 template<typename Vertex>
 VkPipelineVertexInputStateCreateInfo createVertexInputState()
@@ -67,7 +63,7 @@ VkPipelineVertexInputStateCreateInfo createVertexInputState()
         .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
 
     };
-    static constexpr auto attributeDescriptions = detail::createAttributeDescriptions(Vertex {});
+    static constexpr auto attributeDescriptions = createAttributeDescriptions(Vertex {});
 
     static constexpr VkPipelineVertexInputStateCreateInfo vertexInputState {
         .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,

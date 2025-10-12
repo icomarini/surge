@@ -1,7 +1,7 @@
 #pragma once
 
-#include "surge/geometry/Shape.hpp"
-#include "surge/geometry/Vertex.hpp"
+#include "surge/core/geometry/Shape.hpp"
+#include "surge/core/geometry/Vertex.hpp"
 
 namespace surge::geometry
 {

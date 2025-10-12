@@ -24,18 +24,6 @@ enum class Type
     ui,
 };
 
-constexpr VkShaderStageFlagBits translate(const Stage stage)
-{
-    switch (stage)
-    {
-    case Stage::vertex:
-        return VK_SHADER_STAGE_VERTEX_BIT;
-    case Stage::fragment:
-        return VK_SHADER_STAGE_FRAGMENT_BIT;
-    default:
-        throw;
-    }
-}
 
 struct Entry
 {
