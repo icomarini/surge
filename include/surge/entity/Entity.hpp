@@ -79,7 +79,7 @@ struct Entity
                         jointMatrices.clear();
                         jointMatrices.reserve(skin.joints.size());
                         const auto inverse = math::inverse(node.state.globalMatrix);
-                        for (const auto& [jointNode, jointNodeIndex, inverseBindMatrix] : skin.joints)
+                        for (const auto& [jointNodeIndex, inverseBindMatrix] : skin.joints)
                         {
                             jointMatrices.emplace_back(inverse * nodes.get(jointNodeIndex).state.globalMatrix *
                                                        inverseBindMatrix);

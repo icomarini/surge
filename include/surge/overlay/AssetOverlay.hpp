@@ -146,7 +146,7 @@ std::pair<math::Vector<2>, math::Vector<2>> overlay(const asset::Asset&    asset
         {
             if (ImGui::TreeNode(idName(skinId++, skin.name).c_str()))
             {
-                ImGui::Text("skeleton:   %s", skin.skeleton ? "yes" : "none");
+                // ImGui::Text("skeleton:   %s", skin.skeleton ? "yes" : "none");
                 if (ImGui::TreeNode(("joints:     " + std::to_string(skin.joints.size())).c_str()))
                 {
                     uint32_t jointId = 0;

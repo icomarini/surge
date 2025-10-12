@@ -14,14 +14,10 @@ struct Skin
 {
     struct Joint
     {
-        const Node&        node;
         const Index        nodeIndex;
         math::Matrix<4, 4> inverseBindMatrix;
     };
-
-
     std::string          name;
-    Node* const          skeleton;
     std::optional<Index> skeletonIndex;
     std::vector<Joint>   joints;
 };

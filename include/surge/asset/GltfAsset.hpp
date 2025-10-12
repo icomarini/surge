@@ -640,20 +640,18 @@ public:
 
         for (const fastgltf::Skin& fastgltfSkin : asset.skins)
         {
-            const auto skeleton      = fastgltfSkin.skeleton ? nodesLut.at(fastgltfSkin.skeleton.value()) : nullptr;
             const auto skeletonIndex = fastgltfSkin.skeleton ?
                                            std::optional<Index> { static_cast<Index>(fastgltfSkin.skeleton.value()) } :
                                            std::optional<Index> {};
-            auto& skin = skins.emplace_back(baptize<This::skin>(fastgltfSkin.name, skinId++), skeleton, skeletonIndex);
+            auto&      skin = skins.emplace_back(baptize<This::skin>(fastgltfSkin.name, skinId++), skeletonIndex);
             skin.joints.reserve(fastgltfSkin.joints.size());
             std::size_t jointId { 0 };
             for (const auto joint : fastgltfSkin.joints)
             {
                 assert(fastgltfSkin.inverseBindMatrices);
                 const auto& accessor = asset.accessors.at(fastgltfSkin.inverseBindMatrices.value());
-                skin.joints.emplace_back(
-                    *nodesLut.at(joint), joint,
-                    math::transpose(fastgltf::getAccessorElement<math::Matrix<4, 4>>(asset, accessor, jointId++)));
+                skin.joints.emplace_back(joint, math::transpose(fastgltf::getAccessorElement<math::Matrix<4, 4>>(
+                                                    asset, accessor, jointId++)));
             }
         }
 
@@ -732,8 +730,7 @@ public:
                     { fastgltf::AnimationPath::Scale, Animation::Channel::Path::scale },
                     { fastgltf::AnimationPath::Weights, Animation::Channel::Path::weights },
                 };
-                const auto node = fastgltfChannel.nodeIndex ? nodesLut.at(fastgltfChannel.nodeIndex.value()) : nullptr;
-                channels.emplace_back(convert.at(fastgltfChannel.path), node,
+                channels.emplace_back(convert.at(fastgltfChannel.path),
                                       fastgltfChannel.nodeIndex ? std::optional<Index> { static_cast<Index>(
                                                                       fastgltfChannel.nodeIndex.value()) } :
                                                                   std::optional<Index> {},

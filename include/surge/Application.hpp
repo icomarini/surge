@@ -66,14 +66,10 @@ public:
         , skybox { command, resources.at("skyboxTexture") }
         , physics { physics::earthGravity }
         , assets { createAssets(command, resources) }
-        , entities {}
-        , renderer { assets, physics /*, lines, points*/ }
+        , renderer { assets, physics }
         , overlay { command, userInteraction, assets }
         , forceRegistry {}
     {
-        // preallocation
-        // lines.reserve(256);
-        // points.reserve(256);
         resetPhysics();
 
         std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge started" << std::endl;
@@ -187,11 +183,8 @@ public:
                 entity4.draw(inFlight.commandBuffer, renderer.descriptor.set);
                 overlay.draw(inFlight.commandBuffer);
 
-                // presenter.record(inFlight, skybox, renderer, overlay);
-
                 presenter.present(command, userInteraction.framebufferResized);
-
-                // render(presenter, userInteraction, skybox, renderer, overlay);
+                // === rendering ===
 
                 start = std::chrono::high_resolution_clock::now();
             }
@@ -227,10 +220,10 @@ private:
     Skybox                              skybox;
     physics::Physics                    physics;
     std::map<std::string, asset::Asset> assets;
-    std::vector<entity::Entity>         entities;
-    Renderer                            renderer;
-    overlay::Overlay                    overlay;
-    physics::ForceRegistry              forceRegistry;
+    // std::vector<entity::Entity>         entities;
+    Renderer               renderer;
+    overlay::Overlay       overlay;
+    physics::ForceRegistry forceRegistry;
 
     std::map<std::string, asset::Asset> createAssets(const Command&                                      command,
                                                      const std::map<std::string, std::filesystem::path>& resources)

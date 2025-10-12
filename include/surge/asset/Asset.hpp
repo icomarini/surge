@@ -82,11 +82,6 @@ public:
     std::vector<Skin>      skins;
     std::vector<Animation> animations;
 
-    VkPipelineLayout pipelineLayout;
-    VkPipeline       pipeline;
-
-    std::optional<ShaderStorageBufferObject> jointMatricesSSBO;
-
     VkDescriptorSetLayout jointMatricesDescriptorSetLayout;
 
     struct State
@@ -96,8 +91,6 @@ public:
         std::vector<math::Matrix<4, 4>> jointMatrices;
     };
     mutable State state;
-
-    // entity::Entity entity;
 
     static constexpr auto pushConstantRange =
         createPushConstantRange<entity::Node::PushConstants>(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -123,7 +116,7 @@ public:
         , mainSceneIndex { gltf.mainSceneIndex() }
         , skins { gltf.createSkins(scenes.front().nodesLut) }
         , animations { gltf.createAnimations(scenes.front().nodesLut) }
-        , jointMatricesSSBO { createJointMatricesSSBO(descriptorPool, skins) }
+        // , jointMatricesSSBO { createJointMatricesSSBO(descriptorPool, skins) }
         , jointMatricesDescriptorSetLayout { createJointMatricesDescriptorSetLayout(skins) }
         , state { false, modelMatrix, std::vector<math::Matrix<4, 4>> {} }
     {
@@ -145,8 +138,7 @@ public:
         , scenes { obj.createScene(meshes.front()) }
         , mainSceneIndex { 0 }
         , skins {}
-        , animations {}
-        , jointMatricesSSBO {}
+        , animations {}  // , jointMatricesSSBO {}
         , jointMatricesDescriptorSetLayout { VK_NULL_HANDLE }
         , state { false, modelMatrix, std::vector<math::Matrix<4, 4>> {} }
     {
@@ -163,58 +155,6 @@ public:
         context().destroy(descriptorPool);
     }
 
-    void update(const double elapsedTime)
-    {
-        for (auto& animation : animations)
-        {
-            animation.update(elapsedTime);
-        }
-
-        for (const auto& scene : scenes)
-        {
-            for (const auto& node : scene.nodes)
-            {
-                node.update(math::identity<4>);
-            }
-        }
-
-        for (const auto& scene : scenes)
-        {
-            for (const auto& node : scene.nodes)
-            {
-                updateJoints(node);
-            }
-        }
-
-        // entity.update(skins, animations.front(), elapsedTime);
-    }
-
-    void updateJoints(const Node& node)
-    {
-        if (node.skinIndex)
-        {
-            const auto& skin = skins.at(node.skinIndex.value());
-            state.jointMatrices.clear();
-            state.jointMatrices.reserve(skin.joints.size());
-
-            const auto inverse = math::inverse(node.state.globalMatrix);
-
-            for (const auto& [jointNode, jointNodeIndex, inverseBindMatrix] : skin.joints)
-            {
-                state.jointMatrices.emplace_back(inverse * jointNode.state.globalMatrix * inverseBindMatrix);
-            }
-
-            assert(jointMatricesSSBO);
-            memcpy(jointMatricesSSBO->buffer.mapped, state.jointMatrices.data(),
-                   state.jointMatrices.size() * sizeof(math::Matrix<4, 4>));
-        }
-
-        for (const auto& child : node.children)
-        {
-            updateJoints(child);
-        }
-    }
-
     const auto& mainScene() const
     {
         return scenes.at(mainSceneIndex);
@@ -228,17 +168,6 @@ public:
     {
         return !skins.empty() > 0 ? Descriptor::createDescriptorSetLayout<SSBODescr>(1) :
                                     VkDescriptorSetLayout { VK_NULL_HANDLE };
-    }
-
-    static std::optional<ShaderStorageBufferObject> createJointMatricesSSBO(const VkDescriptorPool   descriptorPool,
-                                                                            const std::vector<Skin>& skins)
-    {
-        const auto size { sizeof(math::Matrix<4, 4>) * std::accumulate(skins.begin(), skins.end(), 0,
-                                                                       [](const Size total, const Skin& skin)
-                                                                       { return total + skin.joints.size(); }) };
-
-        return size > 0 ? std::optional<ShaderStorageBufferObject> { std::in_place, size, descriptorPool } :
-                          std::optional<ShaderStorageBufferObject> {};
     }
 };
 
