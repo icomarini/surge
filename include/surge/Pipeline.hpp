@@ -1,7 +1,7 @@
 #pragma once
 
 #include "surge/Shader.hpp"
-#include "surge/utils.hpp"
+#include "surge/utils/utils.hpp"
 #include "surge/geometry/Vertex.hpp"
 
 #include <filesystem>

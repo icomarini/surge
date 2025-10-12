@@ -1,6 +1,6 @@
 #pragma once
 
-#include "surge/Tree.hpp"
+#include "surge/utils/Tree.hpp"
 #include "surge/entity/Node.hpp"
 
 namespace surge::asset
@@ -93,7 +93,7 @@ public:
     };
     mutable State state;
 
-    void update(Tree<entity::Node>& nodes, const float progress) const
+    void update(utils::Tree<entity::Node>& nodes, const float progress) const
     {
         for (const auto& channel : channels)
         {

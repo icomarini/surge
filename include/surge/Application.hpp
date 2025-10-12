@@ -238,14 +238,12 @@ private:
                     [&](const load::Gltf::Handle& handle)
                     {
                         assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
-                                       std::forward_as_tuple(command, defaults,
-                                                             load::Gltf { name, handle.path, handle.externalPaths }));
+                                       std::forward_as_tuple(command, defaults, load::Gltf { handle }));
                     },
                     [&](const load::Obj::Handle& handle)
                     {
                         assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
-                                       std::forward_as_tuple(command, defaults,
-                                                             load::Obj { name, handle.meshPath, handle.texturePath }));
+                                       std::forward_as_tuple(command, defaults, load::Obj { handle }));
                     },
                 },
                 assetHandle);

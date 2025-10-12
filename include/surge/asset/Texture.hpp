@@ -5,7 +5,7 @@
 #include "surge/Descriptor.hpp"
 #include "surge/Image.hpp"
 
-namespace surge
+namespace surge::asset
 {
 
 template<typename _ImageInfo, VkImageLayout _imageLayout>
@@ -124,4 +124,4 @@ private:
 template<VkShaderStageFlags stageFlags>
 using TextureDescription = Description<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stageFlags, Texture>;
 
-}  // namespace surge
+}  // namespace surge::asset

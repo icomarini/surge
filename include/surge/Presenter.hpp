@@ -2,9 +2,9 @@
 
 #include "surge/Context.hpp"
 #include "surge/Command.hpp"
-#include "surge/Cycle.hpp"
 #include "surge/Swapchain.hpp"
 #include "surge/Image.hpp"
+#include "surge/utils/Cycle.hpp"
 
 namespace surge
 {
@@ -295,14 +295,14 @@ private:
     };
 
     std::optional<Swapchain> swapchain;
-    Cycle<Semaphores>        semaphores;
-    Cycle<Frame>             frames;
+    utils::Cycle<Semaphores> semaphores;
+    utils::Cycle<Frame>      frames;
     uint32_t                 imageIndex;
 
 private:
-    static Cycle<Semaphores> createSemaphores(const uint32_t count)
+    static utils::Cycle<Semaphores> createSemaphores(const uint32_t count)
     {
-        Cycle<Semaphores> semaphores { count };
+        utils::Cycle<Semaphores> semaphores { count };
         for (uint32_t i = 0; i < count; ++i)
         {
             constexpr VkSemaphoreCreateInfo semaphoreInfo {
@@ -316,11 +316,11 @@ private:
         return semaphores;
     }
 
-    static Cycle<Frame> createFrames(const Command& command)
+    static utils::Cycle<Frame> createFrames(const Command& command)
     {
         const auto frameCount = context().frameBufferCount();
 
-        Cycle<Frame> frames { frameCount };
+        utils::Cycle<Frame> frames { frameCount };
         for (uint32_t i = 0; i < frameCount; ++i)
         {
             frames.set(i, Frame { .fence         = context().create(VkFenceCreateInfo {

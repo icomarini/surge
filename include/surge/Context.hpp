@@ -1,6 +1,6 @@
 #pragma once
 
-#include "surge/utils.hpp"
+#include "surge/utils/utils.hpp"
 
 #include "surge/Window.hpp"
 #ifndef NDEBUG

@@ -1,6 +1,5 @@
 
 #include "surge/Application.hpp"
-#include "surge/utils.hpp"
 
 int main()
 {

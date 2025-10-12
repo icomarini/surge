@@ -1,8 +1,7 @@
 #pragma once
 
-#include "surge/utils.hpp"
+#include "surge/utils/utils.hpp"
 #include "surge/types.hpp"
-// #include "surge/math/math.hpp"
 
 #include <array>
 #include <cassert>

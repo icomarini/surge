@@ -66,7 +66,7 @@ public:
         std::map<TextureType, std::filesystem::path> externalPaths {};
     };
 
-    using TextureDescr = TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT>;
+    using TextureDescr = asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT>;
     using Index        = geometry::Index;
     using Vertex       = geometry::Vertex<
               geometry::AttributeSlot<geometry::Attribute::position, math::Vector<3>, 3, geometry::Format::sfloat>,
@@ -76,20 +76,11 @@ public:
               geometry::AttributeSlot<geometry::Attribute::jointIndex, math::Vector<4>, 4, geometry::Format::sfloat>,
               geometry::AttributeSlot<geometry::Attribute::jointWeight, math::Vector<4>, 4, geometry::Format::sfloat>>;
 
-    Gltf(const std::string& name, const std::filesystem::path& path)
-        : name { name }
-        , path { path }
+    Gltf(const Handle& handle)
+        : name { handle.path.filename() }
+        , path { handle.path }
         , asset { createAsset(path) }
-        , externalTextures {}
-    {
-    }
-
-    Gltf(const std::string& name, const std::filesystem::path& path,
-         const std::map<TextureType, std::filesystem::path>& externalTextures)
-        : name { name }
-        , path { path }
-        , asset { createAsset(path) }
-        , externalTextures { externalTextures }
+        , externalTextures { handle.externalPaths }
     {
     }
 
@@ -104,7 +95,7 @@ public:
     }
 
 
-    Sampler createSampler(const uint32_t samplerIndex) const
+    asset::Sampler createSampler(const uint32_t samplerIndex) const
     {
         constexpr auto extractFilter = [](const fastgltf::Filter filter)
         {
@@ -158,7 +149,7 @@ public:
         assert(samplerIndex < asset.samplers.size());
         const auto& sampler = asset.samplers.at(samplerIndex);
 
-        return Sampler {
+        return asset::Sampler {
             .magFilter    = extractFilter(sampler.magFilter.value_or(fastgltf::Filter::Nearest)),
             .minFilter    = extractFilter(sampler.minFilter.value_or(fastgltf::Filter::Nearest)),
             .mipmapMode   = extractMipmap(sampler.magFilter.value_or(fastgltf::Filter::LinearMipMapLinear)),
@@ -168,9 +159,9 @@ public:
         };
     }
 
-    std::vector<Texture> createTextures(const Command& command, const Defaults& defaults) const
+    std::vector<asset::Texture> createTextures(const Command& command, const Defaults& defaults) const
     {
-        std::vector<Texture> textures;
+        std::vector<asset::Texture> textures;
         textures.reserve(asset.images.size() + externalTextures.size());
         Index textureId = 0;
 
@@ -223,13 +214,14 @@ public:
 
             const auto sampler = texture.samplerIndex ? createSampler(texture.samplerIndex.value()) : defaults.sampler;
 
-            textures.emplace_back(command, std::visit(visitor, image.data), sampler, SceneTextureInfo {});
+            textures.emplace_back(command, std::visit(visitor, image.data), sampler, asset::SceneTextureInfo {});
         }
 
         // external textures
         for (const auto& [textureType, path] : externalTextures)
         {
-            textures.emplace_back(command, LoadedTexture(path.stem(), path), defaults.sampler, SceneTextureInfo {});
+            textures.emplace_back(command, LoadedTexture(path.stem(), path), defaults.sampler,
+                                  asset::SceneTextureInfo {});
         }
 
         return textures;
@@ -254,10 +246,11 @@ public:
                                                      >(1);
     }
 
-    std::map<TextureType, const Texture*> createExternalTexturesMap(const std::vector<Texture>& textures) const
+    std::map<TextureType, const asset::Texture*>
+    createExternalTexturesMap(const std::vector<asset::Texture>& textures) const
     {
-        std::map<TextureType, const Texture*> map;
-        Size                                  textureId { asset.images.size() };
+        std::map<TextureType, const asset::Texture*> map;
+        Size                                         textureId { asset.images.size() };
         for (const auto& [textureType, _] : externalTextures)
         {
             map[textureType] = &textures.at(textureId++);
@@ -266,8 +259,8 @@ public:
     }
 
     std::vector<asset::Material> createMaterials(const Defaults& defaults, const VkDescriptorPool descriptorPool,
-                                                 const VkDescriptorSetLayout materialDescriptorSetLayout,
-                                                 const std::vector<Texture>& textures) const
+                                                 const VkDescriptorSetLayout        materialDescriptorSetLayout,
+                                                 const std::vector<asset::Texture>& textures) const
     {
         constexpr auto extractAlphaMode = [](const fastgltf::AlphaMode alphaMode)
         {
@@ -429,7 +422,7 @@ public:
         return meshes;
     }
 
-    Model createModel(const Command& command, const std::vector<asset::Mesh>& meshes) const
+    asset::Model createModel(const Command& command, const std::vector<asset::Mesh>& meshes) const
     {
         const auto [vertexCount, indexCount] = [&]
         {
@@ -486,8 +479,8 @@ public:
                 vertexOffset += asset.accessors.at(primitive.findAttribute("POSITION")->accessorIndex).count;
             }
         }
-        return Model { command, geometry::Shape { "asset", std::move(vertices), std::move(indices) }, true,
-                       SceneModelInfo {} };
+        return asset::Model { command, geometry::Shape { "asset", std::move(vertices), std::move(indices) }, true,
+                              asset::SceneModelInfo {} };
     }
 
     // static auto decomposeMatrix(const fastgltf::math::fmat4x4& matrix)
@@ -531,11 +524,11 @@ public:
     //         });
     // }
 
-    Tree<entity::Node> createTree(const Index sceneIndex) const
+    utils::Tree<entity::Node> createTree(const Index sceneIndex) const
     {
         auto createNodes = [this]()
         {
-            Tree<entity::Node>::Nodes nodes;
+            utils::Tree<entity::Node>::Nodes nodes;
             nodes.reserve(asset.nodes.size());
             for (const auto& gltfNode : asset.nodes)
             {
@@ -570,7 +563,7 @@ public:
             return std::vector<Index> { asset.scenes.at(sceneIndex).nodeIndices.begin(),
                                         asset.scenes.at(sceneIndex).nodeIndices.end() };
         };
-        return Tree<entity::Node> {
+        return utils::Tree<entity::Node> {
             .roots = createRoots(),
             .nodes = createNodes(),
         };

@@ -4,7 +4,6 @@
 #include "surge/Command.hpp"
 
 #include "surge/Pipeline.hpp"
-#include "surge/Model.hpp"
 #include "surge/Descriptor.hpp"
 #include "surge/asset/Asset.hpp"
 
@@ -21,7 +20,7 @@ namespace surge::overlay
 class Overlay
 {
 public:
-    using ImGuiModelInfo = ModelInfo<VkBufferUsageFlags {}, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT>;
+    using ImGuiModelInfo = asset::ModelInfo<VkBufferUsageFlags {}, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT>;
 
     struct PushConstBlock
     {
@@ -32,9 +31,9 @@ public:
 
     Overlay(const Command& command, UserInteraction&, const std::map<std::string, asset::Asset>& assets)
         : imGuiContext { 1 }
-        , fontTexture { command, Font {}, SceneTextureInfo {} }
+        , fontTexture { command, Font {}, asset::SceneTextureInfo {} }
         , model {}
-        , descriptor { 1, TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT> { fontTexture } }
+        , descriptor { 1, asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT> { fontTexture } }
         , graphicsQueue { command.graphicsQueue }
         , pipelineLayout { createPipelineLayout(createPushConstantRange<PushConstBlock>(VK_SHADER_STAGE_VERTEX_BIT),
                                                 descriptor.setLayout) }
@@ -162,9 +161,9 @@ public:
 
         math::Vector<2> previousWindowPosition { pos.x, pos.y };
         math::Vector<2> previousWindowSize { size.x, size.y };
-        for (const auto& asset : assets)
+        for (const auto& [name, asset] : assets)
         {
-            const auto [pos, size] = overlay(asset.second, previousWindowPosition, previousWindowSize);
+            const auto [pos, size] = overlay(asset, previousWindowPosition, previousWindowSize);
             previousWindowPosition = pos;
             previousWindowSize     = size;
         }
@@ -172,7 +171,7 @@ public:
         ImGui::Render();
     }
 
-    static void updateBuffers(const VkQueue graphicsQueue, std::optional<Model>& model)
+    static void updateBuffers(const VkQueue graphicsQueue, std::optional<asset::Model>& model)
     {
         const ImDrawData* const imDrawData = ImGui::GetDrawData();
         if (imDrawData == nullptr)
@@ -320,9 +319,9 @@ private:
     ImGuiContext                  imGuiContext;
     mutable std::array<float, 50> frameTimes;
 
-    Texture                      fontTexture;
-    mutable std::optional<Model> model;
-    const Descriptor             descriptor;
+    asset::Texture                      fontTexture;
+    mutable std::optional<asset::Model> model;
+    const Descriptor                    descriptor;
 
     VkQueue graphicsQueue;
 

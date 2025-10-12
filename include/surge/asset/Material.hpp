@@ -1,6 +1,6 @@
 #pragma once
 
-#include "surge/Texture.hpp"
+#include "surge/asset/Texture.hpp"
 
 namespace surge::asset
 {

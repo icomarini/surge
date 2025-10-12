@@ -22,7 +22,7 @@ public:
         std::optional<std::filesystem::path> texturePath;
     };
 
-    using TextureDescr = TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT>;
+    using TextureDescr = asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT>;
     using Index        = geometry::Index;
     using Vertex       = geometry::Vertex<
               geometry::AttributeSlot<geometry::Attribute::position, math::Vector<3>, 3, geometry::Format::sfloat>,
@@ -30,31 +30,30 @@ public:
               geometry::AttributeSlot<geometry::Attribute::normal, math::Vector<3>, 3, geometry::Format::sfloat>,
               geometry::AttributeSlot<geometry::Attribute::texCoord, math::Vector<2>, 2, geometry::Format::sfloat>>;
 
-    Obj(const std::string& name, const std::filesystem::path& modelPath,
-        const std::optional<std::filesystem::path>& texturePath)
-        : name { name }
-        , path { modelPath }
+    Obj(const Handle& handle)
+        : name { handle.meshPath.filename() }
+        , path { handle.meshPath }
         , texture {}
     {
-        if (texturePath)
+        if (handle.texturePath)
         {
-            texture.emplace(texturePath.value());
+            texture.emplace(handle.texturePath.value());
         }
 
         std::string warn, err;
 
-        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, modelPath.string().c_str()))
+        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str()))
         {
             throw std::runtime_error(warn + err);
         }
     }
 
-    std::vector<Texture> createTextures(const Command& command, const Defaults& defaults) const
+    std::vector<asset::Texture> createTextures(const Command& command, const Defaults& defaults) const
     {
-        std::vector<Texture> textures;
+        std::vector<asset::Texture> textures;
         if (texture)
         {
-            textures.emplace_back(command, texture.value(), defaults.sampler, SceneTextureInfo {});
+            textures.emplace_back(command, texture.value(), defaults.sampler, asset::SceneTextureInfo {});
         }
         return textures;
     }
@@ -76,8 +75,8 @@ public:
     }
 
     std::vector<asset::Material> createMaterials(const Defaults& defaults, const VkDescriptorPool descriptorPool,
-                                                 const VkDescriptorSetLayout materialDescriptorSetLayout,
-                                                 const std::vector<Texture>& textures) const
+                                                 const VkDescriptorSetLayout        materialDescriptorSetLayout,
+                                                 const std::vector<asset::Texture>& textures) const
     {
         if (textures.empty())
         {
@@ -156,7 +155,7 @@ public:
         return meshes;
     }
 
-    Model createModel(const Command& command, const asset::Mesh& mesh) const
+    asset::Model createModel(const Command& command, const asset::Mesh& mesh) const
     {
         assert(mesh.primitives.size() == 1);
 
@@ -196,15 +195,15 @@ public:
         std::vector<Index> indices(vertexCount);
         std::iota(indices.begin(), indices.end(), 0);
 
-        return Model { command, geometry::Shape { "asset", std::move(vertices), std::move(indices) }, true,
-                       SceneModelInfo {} };
+        return asset::Model { command, geometry::Shape { "asset", std::move(vertices), std::move(indices) }, true,
+                              asset::SceneModelInfo {} };
     }
 
-    Tree<entity::Node> createTree() const
+    utils::Tree<entity::Node> createTree() const
     {
         auto createNode = [this]()
         {
-            Tree<entity::Node>::Nodes nodes;
+            utils::Tree<entity::Node>::Nodes nodes;
             nodes.reserve(1);
             nodes.emplace_back(
                 entity::Node {
@@ -224,12 +223,7 @@ public:
                 std::vector<Index> {});
             return nodes;
         };
-        // auto createRoots = [&]()
-        // {
-        //     return std::vector<Index> { asset.scenes.at(sceneIndex).nodeIndices.begin(),
-        //                                 asset.scenes.at(sceneIndex).nodeIndices.end() };
-        // };
-        return Tree<entity::Node> {
+        return utils::Tree<entity::Node> {
             .roots = std::vector<Index> { 0 },
             .nodes = createNode(),
         };

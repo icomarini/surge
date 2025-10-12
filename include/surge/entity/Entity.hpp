@@ -1,14 +1,9 @@
 #pragma once
 
-// #include "surge/Tree.hpp"
-// #include "surge/entity/Node.hpp"
-// #include "surge/math/angles.hpp"
 #include "surge/asset/Asset.hpp"
 
 namespace surge::entity
 {
-
-
 struct Entity
 {
     struct Animation
@@ -45,7 +40,7 @@ struct Entity
     };
 
     const asset::Asset&      asset;
-    Tree<Node>               nodes;
+    utils::Tree<Node>        nodes;
     VkPipelineLayout         pipelineLayout;
     VkPipeline               pipeline;
     std::optional<Animation> animation;
@@ -81,11 +76,11 @@ struct Entity
             }
             anim.update(nodes, progress);
         }
-        nodes.traverse<Traversal::depthFirst>(&Node::update, state.modelMatrix);
+        nodes.traverse<utils::Traversal::depthFirst>(&Node::update, state.modelMatrix);
         if (animation)
         {
             assert(!asset.skins.empty());
-            nodes.traverse<Traversal::linear>(
+            nodes.traverse<utils::Traversal::linear>(
                 [&](const entity::Node& node)
                 {
                     if (node.skinIndex)
@@ -137,7 +132,7 @@ struct Entity
                                     jointMatricesSSBOIndex, 1, &animation->jointMatricesSSBO.descriptorSet, 0, nullptr);
         }
 
-        nodes.traverse<Traversal::linear>(
+        nodes.traverse<utils::Traversal::linear>(
             [&](const Node& node)
             {
                 if (node.meshIndex)

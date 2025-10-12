@@ -7,7 +7,7 @@
 #include <filesystem>
 #include <vector>
 
-namespace surge
+namespace surge::asset
 {
 
 template<VkBufferUsageFlags _bufferUsageFlags, VkMemoryPropertyFlags _memoryPropertyFlags>
@@ -96,4 +96,4 @@ public:
     uint32_t    indexCount;
 };
 
-}  // namespace surge
+}  // namespace surge::asset

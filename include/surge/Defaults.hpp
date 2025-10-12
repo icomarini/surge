@@ -1,10 +1,10 @@
 #pragma once
 
 #include "surge/Descriptor.hpp"
-#include "surge/Model.hpp"
 #include "surge/Pipeline.hpp"
-#include "surge/Texture.hpp"
+#include "surge/asset/Texture.hpp"
 #include "surge/asset/Material.hpp"
+#include "surge/asset/Model.hpp"
 #include "surge/load/LoadedTexture.hpp"
 #include "surge/geometry/shapes.hpp"
 #include "surge/math/matrices.hpp"
@@ -49,7 +49,7 @@ std::string baptize(const String& name, const uint32_t id)
 class Defaults
 {
 public:
-    static constexpr Sampler sampler {
+    static constexpr asset::Sampler sampler {
         .magFilter    = VK_FILTER_LINEAR,
         .minFilter    = VK_FILTER_LINEAR,
         .mipmapMode   = VK_SAMPLER_MIPMAP_MODE_LINEAR,
@@ -58,7 +58,7 @@ public:
         .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
     };
 
-    Texture               texture;
+    asset::Texture        texture;
     VkDescriptorPool      descriptorPool;
     VkDescriptorSetLayout descriptorSetLayout;
     asset::Material       material;
@@ -66,9 +66,9 @@ public:
     VkPipelineLayout descriptorlessPipelineLayout;
     VkPipeline       descriptorlessPipeline;
 
-    Model coordinateSystem;
+    asset::Model coordinateSystem;
 
-    using TextureDescr = TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT>;
+    using TextureDescr = asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT>;
 
     struct NodePushBlock
     {
@@ -78,7 +78,8 @@ public:
     };
 
     Defaults(const Command& command, const std::filesystem::path& defaultTexturePath)
-        : texture { command, load::LoadedTexture { baptize<This::texture>(), defaultTexturePath }, SceneTextureInfo {} }
+        : texture { command, load::LoadedTexture { baptize<This::texture>(), defaultTexturePath },
+                    asset::SceneTextureInfo {} }
         , descriptorPool { Descriptor::createDescriptorPool(
               5U, std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U }) }
         , descriptorSetLayout { Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture
@@ -123,7 +124,7 @@ public:
                   .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
                   .primitiveRestartEnable = VK_FALSE,
               }) }
-        , coordinateSystem { command, geometry::coordinateSystem, true, SceneModelInfo {} }
+        , coordinateSystem { command, geometry::coordinateSystem, true, asset::SceneModelInfo {} }
     {
     }
 

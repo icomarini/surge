@@ -2,8 +2,7 @@
 
 #include "surge/Context.hpp"
 #include "surge/Descriptor.hpp"
-#include "surge/Texture.hpp"
-// #include "surge/asset/LoadedSkybox.hpp"
+#include "surge/asset/Texture.hpp"
 #include "surge/Pipeline.hpp"
 #include "surge/geometry/shapes.hpp"
 
@@ -16,17 +15,17 @@ class Skybox
         ImageInfo<VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, VK_FORMAT_R8G8B8A8_SRGB,
                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                   VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_CUBE>;
-    using CubeTextureInfo = TextureInfo<CubeImageInfo, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>;
+    using CubeTextureInfo = asset::TextureInfo<CubeImageInfo, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>;
 
 public:
     Skybox(const Command& command, const std::filesystem::path& loadedTexture)
         : camera { 16.0 / 9.0, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } }
         , uniformBuffer { sizeof(math::Matrix<4, 4>), UniformBufferInfo {} }
         , texture { command, load::LoadedTexture { loadedTexture }, CubeTextureInfo {} }
-        , model { command, geometry::cubeFill, true, SceneModelInfo {} }
+        , model { command, geometry::cubeFill, true, asset::SceneModelInfo {} }
         , descriptor { 1, UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT> { uniformBuffer },
-                       Description<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, Texture> {
-                           texture } }
+                       Description<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT,
+                                   asset::Texture> { texture } }
         , pipelineLayout { createPipelineLayout(descriptor.setLayout) }
         , pipeline { createGraphicPipeline(
               geometry::createVertexInputState<geometry::Position>(), VK_NULL_HANDLE, pipelineLayout,
@@ -109,8 +108,8 @@ public:
 private:
     mutable Camera<false, true> camera;
     const Buffer                uniformBuffer;
-    const Texture               texture;
-    const Model                 model;
+    const asset::Texture        texture;
+    const asset::Model          model;
     const Descriptor            descriptor;
 
     VkPipelineLayout pipelineLayout;

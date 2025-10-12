@@ -2,7 +2,7 @@
 
 #include <vector>
 
-namespace surge
+namespace surge::utils
 {
 template<typename T>
 class Cycle
@@ -39,4 +39,4 @@ private:
     uint32_t       currentIndex;
 };
 
-}  // namespace surge
+}  // namespace surge::utils
