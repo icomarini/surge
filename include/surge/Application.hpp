@@ -74,7 +74,7 @@ public:
     {
         resetPhysics();
 
-        std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge started" << std::endl;
+        // std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge started" << std::endl;
     }
 
     void resetPhysics()

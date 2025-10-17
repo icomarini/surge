@@ -30,6 +30,7 @@ public:
 
     Overlay(const core::Command& command, UserInteraction&, const std::map<std::string, asset::Asset>& assets)
         : imGuiContext { 1 }
+        , frameTimes {}
         , fontTexture { command, Font {}, asset::SceneTextureInfo {} }
         , model {}
         , descriptor { 1, asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT> { fontTexture } }
