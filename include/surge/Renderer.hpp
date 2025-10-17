@@ -132,7 +132,7 @@ public:
     core::Descriptor                                               descriptor;
     std::map<std::string, std::pair<VkPipelineLayout, VkPipeline>> pipelines;
 
-    void update(const core::UserInteraction& ui)
+    void update(const UserInteraction& ui)
     {
         camera.update(ui);
         const std::array sceneMatrices {

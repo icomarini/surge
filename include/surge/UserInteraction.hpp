@@ -1,6 +1,7 @@
 #pragma once
 
 #include "surge/core/math/math.hpp"
+#include "surge/core/input/input.hpp"
 #include "surge/core/Window.hpp"
 
 #include <map>
@@ -8,14 +9,14 @@
 #include <chrono>
 #include <cstdint>
 
-namespace surge::core
+namespace surge
 {
 struct UserInteraction
 {
     struct Mouse
     {
-        using Position = math::Vector<2, double>;
-        using Offset   = math::Vector<2, double>;
+        using Position = core::math::Vector<2, double>;
+        using Offset   = core::math::Vector<2, double>;
 
         Position            position { 0.0, 0.0 };
         Offset              offset { 0.0, 0.0 };
@@ -64,7 +65,7 @@ struct UserInteraction
 
     bool shadowMap;
 
-    math::Vector<3> lightPos;
+    core::math::Vector<3> lightPos;
 
     bool wireframe;
 
@@ -89,13 +90,13 @@ struct UserInteraction
         framebufferResized = false;
 
         lightPos = {
-            std::cos(math::deg2rad(timer * 90.0f)) * 10.0f,
-            10.0f + std::sin(math::deg2rad(timer * 90.0f)) * 5.0f,
-            -5.0f + std::sin(math::deg2rad(timer * 90.0f)) * 1.0f,
+            std::cos(core::math::deg2rad(timer * 90.0f)) * 10.0f,
+            10.0f + std::sin(core::math::deg2rad(timer * 90.0f)) * 5.0f,
+            -5.0f + std::sin(core::math::deg2rad(timer * 90.0f)) * 1.0f,
         };
     }
 
-    static void framebufferCallback(Window& window, int width, int height)
+    static void framebufferCallback(core::Window& window, int width, int height)
     {
         auto& userInteraction              = window.getUserInteraction<UserInteraction>();
         userInteraction.width              = static_cast<uint32_t>(width);
@@ -103,10 +104,10 @@ struct UserInteraction
         userInteraction.framebufferResized = true;
     }
 
-    static void keyboardCallback(Window& window, int rawKey, int rawAction)
+    static void keyboardCallback(core::Window& window, int rawKey, int rawAction)
     {
         auto&      userInteraction = window.getUserInteraction<UserInteraction>();
-        const auto key             = static_cast<input::Key>(rawKey);
+        const auto key             = static_cast<core::input::Key>(rawKey);
         const auto action          = core::input::map.at(rawAction);
 
         if (key == core::input::Key::escape && action == core::input::Action::press)
@@ -146,7 +147,7 @@ struct UserInteraction
         }
     }
 
-    static void mousePositionCallback(Window& window, double x, double y)
+    static void mousePositionCallback(core::Window& window, double x, double y)
     {
         auto&                 userInteraction = window.getUserInteraction<UserInteraction>();
         const Mouse::Position position { x, y };
@@ -154,7 +155,7 @@ struct UserInteraction
         userInteraction.mouse.position = position;
     }
 
-    static void mouseButtonCallback(Window& window, int button, int rawAction)
+    static void mouseButtonCallback(core::Window& window, int button, int rawAction)
     {
         auto&      userInteraction = window.getUserInteraction<UserInteraction>();
         const auto action          = core::input::map.at(rawAction);
@@ -178,11 +179,11 @@ struct UserInteraction
         }
     }
 
-    static void mouseWheelCallback(Window& window, double xoffset, double yoffset)
+    static void mouseWheelCallback(core::Window& window, double xoffset, double yoffset)
     {
         auto& userInteraction       = window.getUserInteraction<UserInteraction>();
         userInteraction.mouse.wheel = UserInteraction::Mouse::Offset { xoffset, yoffset };
     }
 };
 
-}  // namespace surge::core
+}  // namespace surge

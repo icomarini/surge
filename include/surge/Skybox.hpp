@@ -1,6 +1,7 @@
 #pragma once
 
 #include "surge/asset/Texture.hpp"
+#include "surge/core/input/input.hpp"
 #include "surge/core/Pipeline.hpp"
 
 namespace surge
@@ -61,12 +62,12 @@ public:
     {
     }
 
-    void update(const VkExtent2D, const core::UserInteraction& ui) const
+    void update(const VkExtent2D, const UserInteraction& ui) const
     {
         update({}, ui);
     }
 
-    void update(const core::UserInteraction& ui) const
+    void update(const UserInteraction& ui) const
     {
         camera.update(ui);
         const auto viewProjection = camera.mats.perspective * camera.mats.view;

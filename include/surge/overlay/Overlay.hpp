@@ -1,6 +1,6 @@
 #pragma once
 
-#include "surge/core/UserInteraction.hpp"
+#include "surge/UserInteraction.hpp"
 #include "surge/core/Command.hpp"
 
 #include "surge/core/Pipeline.hpp"
@@ -28,7 +28,7 @@ public:
     };
 
 
-    Overlay(const core::Command& command, core::UserInteraction&, const std::map<std::string, asset::Asset>& assets)
+    Overlay(const core::Command& command, UserInteraction&, const std::map<std::string, asset::Asset>& assets)
         : imGuiContext { 1 }
         , fontTexture { command, Font {}, asset::SceneTextureInfo {} }
         , model {}
@@ -87,7 +87,7 @@ public:
 
 
     static void newFrame(const VkExtent2D extent, const float scale, std::array<float, 50>& frameTimes,
-                         const core::UserInteraction& ui, const std::map<std::string, asset::Asset>& assets)
+                         const UserInteraction& ui, const std::map<std::string, asset::Asset>& assets)
     {
         ImGuiIO& io                = ImGui::GetIO();
         io.DisplaySize             = ImVec2(extent.width, extent.height);
@@ -199,7 +199,7 @@ public:
         model->transfer(loadedOverlay);
     }
 
-    void update(const VkExtent2D extent, const core::UserInteraction& userInteraction) const
+    void update(const VkExtent2D extent, const UserInteraction& userInteraction) const
     {
         newFrame(extent, imGuiContext.scale, frameTimes, userInteraction, assets);
         updateBuffers(graphicsQueue, model);

@@ -1,17 +1,26 @@
 #pragma once
 
 #include "surge/core/colors.hpp"
-#include "surge/Defaults.hpp"
 #include "surge/overlay/Overlay.hpp"
 #include "surge/core/Presenter.hpp"
 #include "surge/Renderer.hpp"
 #include "surge/Skybox.hpp"
 
-#include "surge/asset/AssetHandle.hpp"
+#include "surge/load/AssetHandle.hpp"
 
 #include "surge/physics/Physics.hpp"
 
 #include "surge/entity/Entity.hpp"
+
+/**
+ * types utils
+ * math
+ * geomtry
+ *
+ *
+ *
+ *
+ * */
 
 namespace surge
 {
@@ -207,7 +216,7 @@ public:
     }
 
 private:
-    mutable core::UserInteraction       userInteraction;
+    mutable UserInteraction             userInteraction;
     const core::Context&                context;
     const core::Command                 command;
     core::Presenter                     presenter;
@@ -219,15 +228,15 @@ private:
     overlay::Overlay                    overlay;
 
 
-    static core::Window::Callback createCallback(core::UserInteraction* userInteraction)
+    static core::Window::Callback createCallback(UserInteraction* userInteraction)
     {
         return core::Window::Callback {
             .opaquePtr     = userInteraction,
-            .framebuffer   = core::UserInteraction::framebufferCallback,
-            .keyboard      = core::UserInteraction::keyboardCallback,
-            .mousePosition = core::UserInteraction::mousePositionCallback,
-            .mouseButton   = core::UserInteraction::mouseButtonCallback,
-            .mouseWheel    = core::UserInteraction::mouseWheelCallback,
+            .framebuffer   = UserInteraction::framebufferCallback,
+            .keyboard      = UserInteraction::keyboardCallback,
+            .mousePosition = UserInteraction::mousePositionCallback,
+            .mouseButton   = UserInteraction::mouseButtonCallback,
+            .mouseWheel    = UserInteraction::mouseWheelCallback,
         };
     }
 

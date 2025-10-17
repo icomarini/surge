@@ -1,6 +1,6 @@
 #pragma once
 
-#include "surge/core/UserInteraction.hpp"
+#include "surge/UserInteraction.hpp"
 #include "surge/core/math/matrices.hpp"
 
 #include <algorithm>
@@ -50,7 +50,7 @@ public:
         core::math::View<>             view;
     } mats;
 
-    void update(const core::UserInteraction& ui)
+    void update(const UserInteraction& ui)
     {
         if (ui.framebufferResized)
         {

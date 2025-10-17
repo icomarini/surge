@@ -140,14 +140,6 @@ struct Entity
                     node.draw(commandBuffer, asset.meshes.at(node.meshIndex.value()), pipelineLayout);
                 }
             });
-        // for (const auto& node : asset.mainScene().nodes)
-        // {
-        //     drawNode(asset, commandBuffer, node, asset.state.modelMatrix);
-        // }
-        // for (const auto& node : nodes)
-        // {
-        //     drawNode(asset, commandBuffer, node, asset.state.modelMatrix * math::Translation({ 1, 0, 0 }));
-        // }
     }
 };
 }  // namespace surge::entity

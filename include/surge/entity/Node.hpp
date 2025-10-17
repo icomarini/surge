@@ -1,6 +1,7 @@
 #pragma once
 
 #include "surge/asset/Mesh.hpp"
+#include "surge/core/math/matrices.hpp"
 
 #include <optional>
 

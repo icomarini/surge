@@ -1,7 +1,9 @@
 #pragma once
 
+#include "surge/asset/Mesh.hpp"
 #include "surge/asset/Scene.hpp"
 #include "surge/asset/Skin.hpp"
+#include "surge/Defaults.hpp"
 
 #include "fastgltf/core.hpp"
 #include "fastgltf/tools.hpp"
@@ -618,7 +620,7 @@ public:
         return skins;
     }
 
-    std::vector<asset::Animation> createAnimations(/*const std::vector<Node*>& nodesLut*/) const
+    std::vector<asset::Animation> createAnimations() const
     {
         std::vector<asset::Animation> animations;
         animations.reserve(asset.skins.size());

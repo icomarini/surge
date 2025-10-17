@@ -1,14 +1,12 @@
 #pragma once
 
-#include "surge/Defaults.hpp"
-#include "surge/asset/Animation.hpp"
-#include "surge/load/Gltf.hpp"
 #include "surge/load/Obj.hpp"
-#include "surge/load/LoadedTexture.hpp"
+#include "surge/load/Gltf.hpp"
+#include "surge/asset/Animation.hpp"
 #include "surge/asset/Model.hpp"
 #include "surge/asset/Mesh.hpp"
-#include "surge/asset/Scene.hpp"
-#include "surge/asset/Skin.hpp"
+// #include "surge/asset/Scene.hpp"
+// #include "surge/asset/Skin.hpp"
 
 #include <numeric>
 

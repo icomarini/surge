@@ -1,6 +1,11 @@
 #pragma once
 
+#include "surge/asset/Animation.hpp"
+#include "surge/asset/Mesh.hpp"
+#include "surge/asset/Scene.hpp"
+#include "surge/asset/Skin.hpp"
 #include "surge/load/LoadedTexture.hpp"
+#include "surge/Defaults.hpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
@@ -238,6 +243,16 @@ public:
         scenes.reserve(1);
         scenes.emplace_back(baptize<This::scene>(0), createTree());
         return scenes;
+    }
+
+    std::vector<asset::Skin> createSkins() const
+    {
+        return {};
+    }
+
+    std::vector<asset::Animation> createAnimations() const
+    {
+        return {};
     }
 
     std::string                      name;
