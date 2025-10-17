@@ -150,8 +150,8 @@ public:
                 core::context().pollEvents();
 
                 // === physics playground ===
-                using KeyState = core::UserInteraction::KeyState;
-                if (!physicsActive && userInteraction.mouse.left == KeyState::press)
+                using Action = core::input::Action;
+                if (!physicsActive && userInteraction.mouse.left == Action::press)
                 {
                     physicsActive = true;
                 }
@@ -162,7 +162,7 @@ public:
 
                     physics.update(duration);
 
-                    if (userInteraction.mouse.right == KeyState::press)
+                    if (userInteraction.mouse.right == Action::press)
                     {
                         resetPhysics();
                         physicsActive = false;
@@ -219,16 +219,15 @@ private:
     overlay::Overlay                    overlay;
 
 
-    template<typename UI>
-    static core::Window::Callback createCallback(UI* userInteraction)
+    static core::Window::Callback createCallback(core::UserInteraction* userInteraction)
     {
         return core::Window::Callback {
             .opaquePtr     = userInteraction,
-            .framebuffer   = UI::template framebufferCallback<core::Window>,
-            .keyboard      = UI::template keyboardCallback<core::Window>,
-            .mousePosition = UI::template mousePositionCallback<core::Window>,
-            .mouseButton   = UI::template mouseButtonCallback<core::Window>,
-            .mouseWheel    = UI::template mouseWheelCallback<core::Window>,
+            .framebuffer   = core::UserInteraction::framebufferCallback,
+            .keyboard      = core::UserInteraction::keyboardCallback,
+            .mousePosition = core::UserInteraction::mousePositionCallback,
+            .mouseButton   = core::UserInteraction::mouseButtonCallback,
+            .mouseWheel    = core::UserInteraction::mouseWheelCallback,
         };
     }
 

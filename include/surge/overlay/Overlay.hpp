@@ -99,11 +99,11 @@ public:
                             scaling * static_cast<float>(ui.mouse.position.at(1)));
         io.AddMouseWheelEvent(ui.mouse.wheel.at(0), ui.mouse.wheel.at(1));
 
-        if (ui.mouse.left == core::UserInteraction::KeyState::press)
+        if (ui.mouse.left == core::input::Action::press)
         {
             io.AddMouseButtonEvent(0, true);
         }
-        if (ui.mouse.left == core::UserInteraction::KeyState::release)
+        if (ui.mouse.left == core::input::Action::release)
         {
             io.AddMouseButtonEvent(0, false);
         }

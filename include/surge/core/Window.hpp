@@ -1,6 +1,6 @@
 #pragma once
 
-// #include "surge/core/UserInteraction.hpp"
+#include "surge/core/input/input.hpp"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -12,28 +12,6 @@
 
 namespace surge::core
 {
-
-// template<typename T>
-// concept HasFramebufferCallabck =
-//     requires(GLFWwindow* window, int width, int height) { T::framebuffer(window, width, height); };
-
-// template<typename T>
-// concept HasKeyboardCallback = requires(GLFWwindow* window, int key, int scancode, int action, int mods) {
-//     T::keyboard(window, key, scancode, action, mods);
-// };
-
-// template<typename T>
-// concept HasMousePositionCallback = requires(GLFWwindow* window, double x, double y) { T::mousePosition(window, x, y);
-// };
-
-// template<typename T>
-// concept HasMouseButtonCallback =
-//     requires(GLFWwindow* window, int button, int action, int mods) { T::mouseButton(window, button, action, mods); };
-
-// template<typename T>
-// concept HasMouseWheelCallback =
-//     requires(GLFWwindow* window, double xoffset, double yoffset) { T::mouseButton(window, xoffset, yoffset); };
-
 
 class Window
 {

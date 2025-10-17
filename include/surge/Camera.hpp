@@ -71,7 +71,7 @@ public:
 
             if constexpr (!fixed)
             {
-                using State        = core::UserInteraction::KeyState;
+                using State        = core::input::Action;
                 const auto forward = ui.keyboard.w == State::press || ui.keyboard.w == State::repeat;
                 const auto back    = ui.keyboard.s == State::press || ui.keyboard.s == State::repeat;
                 const auto left    = ui.keyboard.a == State::press || ui.keyboard.a == State::repeat;
