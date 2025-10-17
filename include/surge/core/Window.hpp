@@ -11,6 +11,28 @@
 
 namespace surge::core
 {
+
+template<typename T>
+concept HasFramebufferCallabck =
+    requires(GLFWwindow* window, int width, int height) { T::framebuffer(window, width, height); };
+
+template<typename T>
+concept HasKeyboardCallback = requires(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    T::keyboard(window, key, scancode, action, mods);
+};
+
+template<typename T>
+concept HasMousePositionCallback = requires(GLFWwindow* window, double x, double y) { T::mousePosition(window, x, y); };
+
+template<typename T>
+concept HasMouseButtonCallback =
+    requires(GLFWwindow* window, int button, int action, int mods) { T::mouseButton(window, button, action, mods); };
+
+template<typename T>
+concept HasMouseWheelCallback =
+    requires(GLFWwindow* window, double xoffset, double yoffset) { T::mouseButton(window, xoffset, yoffset); };
+
+
 class Window
 {
 public:
@@ -19,11 +41,32 @@ public:
         , glfwWindow { glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr) }
     {
         glfwSetWindowUserPointer(glfwWindow, &userInteraction);
-        glfwSetFramebufferSizeCallback(glfwWindow, Callback::framebuffer);
-        glfwSetKeyCallback(glfwWindow, Callback::keyboard);
-        glfwSetCursorPosCallback(glfwWindow, Callback::mousePosition);
-        glfwSetMouseButtonCallback(glfwWindow, Callback::mouseButton);
-        glfwSetScrollCallback(glfwWindow, Callback::mouseWheel);
+        glfwSetErrorCallback(error);
+        if constexpr (HasFramebufferCallabck<Callback>)
+        {
+            glfwSetFramebufferSizeCallback(glfwWindow, Callback::framebuffer);
+        }
+        if constexpr (HasKeyboardCallback<Callback>)
+        {
+            glfwSetKeyCallback(glfwWindow, Callback::keyboard);
+        }
+        if constexpr (HasMousePositionCallback<Callback>)
+        {
+            glfwSetCursorPosCallback(glfwWindow, Callback::mousePosition);
+        }
+        if constexpr (HasMouseButtonCallback<Callback>)
+        {
+            glfwSetMouseButtonCallback(glfwWindow, Callback::mouseButton);
+        }
+        if constexpr (HasMouseWheelCallback<Callback>)
+        {
+            glfwSetScrollCallback(glfwWindow, Callback::mouseWheel);
+        }
+    }
+
+    static void error(int error, const char* description)
+    {
+        throw std::runtime_error("GLFW error " + std::to_string(error) + ": " + description);
     }
 
     std::vector<const char*> extensions() const
@@ -82,14 +125,6 @@ private:
         static UserInteraction& getUserInteraction(GLFWwindow* const window)
         {
             return *reinterpret_cast<UserInteraction*>(glfwGetWindowUserPointer(window));
-        }
-
-        static void error(int error, const char* description)
-        {
-            fprintf(stderr, "GLFW Error %d: %s\n", error, description);
-            std::cerr << std::endl;
-            std::cerr << "=============================================" << std::endl;
-            std::cerr << description << std::endl;
         }
 
         static void framebuffer(GLFWwindow* window, int width, int height)

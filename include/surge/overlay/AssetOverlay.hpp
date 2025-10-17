@@ -7,11 +7,6 @@
 
 namespace surge::overlay
 {
-
-// std::pair<math::Vector<2>, math::Vector<2>> overlay(const asset::Asset&    asset,
-//                                                     const math::Vector<2>& previousWindowPosition,
-//                                                     const math::Vector<2>& previousWindowSize);
-
 std::pair<core::math::Vector<2>, core::math::Vector<2>> overlay(const asset::Asset&          asset,
                                                                 const core::math::Vector<2>& previousWindowPosition,
                                                                 const core::math::Vector<2>& previousWindowSize)

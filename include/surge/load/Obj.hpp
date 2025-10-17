@@ -64,8 +64,7 @@ public:
 
     VkDescriptorPool createDescriptorPool() const
     {
-        return core::Descriptor::createDescriptorPool(6U, std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U },
-                                                      std::pair { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1U });
+        return core::Descriptor::createDescriptorPool(5U, std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U });
     }
 
     VkDescriptorSetLayout createMaterialDescriptorSetLayout() const

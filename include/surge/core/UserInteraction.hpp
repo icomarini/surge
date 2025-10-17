@@ -109,6 +109,13 @@ struct UserInteraction
             -5.0f + std::sin(math::deg2rad(timer * 90.0f)) * 1.0f,
         };
     }
+
+    static void mousePosition(UserInteraction& userInteraction, double x, double y)
+    {
+        const Mouse::Position position { x, y };
+        userInteraction.mouse.offset   = position - userInteraction.mouse.position;
+        userInteraction.mouse.position = position;
+    }
 };
 
 }  // namespace surge::core

@@ -10,9 +10,6 @@
 #include "surge/asset/Scene.hpp"
 #include "surge/asset/Skin.hpp"
 
-// #include "surge/geometry/Shape.hpp"
-// #include "surge/geometry/Vertex.hpp"
-
 #include <numeric>
 
 
