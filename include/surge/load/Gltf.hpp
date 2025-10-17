@@ -3,7 +3,7 @@
 #include "surge/asset/Mesh.hpp"
 #include "surge/asset/Scene.hpp"
 #include "surge/asset/Skin.hpp"
-#include "surge/Defaults.hpp"
+#include "surge/load/Defaults.hpp"
 
 #include "fastgltf/core.hpp"
 #include "fastgltf/tools.hpp"
@@ -62,7 +62,7 @@ public:
     struct Handle
     {
         std::filesystem::path                        path;
-        std::map<TextureType, std::filesystem::path> externalPaths {};
+        std::map<TextureType, std::filesystem::path> externalTextures {};
     };
 
     using TextureDescr = asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT>;
@@ -81,16 +81,18 @@ public:
         core::geometry::AttributeSlot<core::geometry::Attribute::jointWeight, core::math::Vector<4>, 4,
                                             core::geometry::Format::sfloat>>;
 
-    Gltf(const Handle& handle)
+    Gltf(const Handle& handle, const Defaults& defaults)
         : name { handle.path.filename() }
         , path { handle.path }
+        , defaults { defaults }
         , asset { createAsset(path) }
-        , externalTextures { handle.externalPaths }
+        , externalTextures { handle.externalTextures }
     {
     }
 
     std::string                                  name;
     std::filesystem::path                        path;
+    const Defaults&                              defaults;
     fastgltf::Asset                              asset;
     std::map<TextureType, std::filesystem::path> externalTextures;
 
@@ -164,7 +166,7 @@ public:
         };
     }
 
-    std::vector<asset::Texture> createTextures(const core::Command& command, const Defaults& defaults) const
+    std::vector<asset::Texture> createTextures(const core::Command& command) const
     {
         std::vector<asset::Texture> textures;
         textures.reserve(asset.images.size() + externalTextures.size());
@@ -263,7 +265,7 @@ public:
         return map;
     }
 
-    std::vector<asset::Material> createMaterials(const Defaults& defaults, const VkDescriptorPool descriptorPool,
+    std::vector<asset::Material> createMaterials(const VkDescriptorPool             descriptorPool,
                                                  const VkDescriptorSetLayout        materialDescriptorSetLayout,
                                                  const std::vector<asset::Texture>& textures) const
     {
@@ -282,8 +284,7 @@ public:
         };
 
         const auto externalTexturesMap = createExternalTexturesMap(textures);
-        const auto extractTexture =
-            [&textures, &externalTexturesMap, &defaults](const TextureType textureType, const auto& textureInfo)
+        const auto extractTexture      = [&](const TextureType textureType, const auto& textureInfo)
         {
             if (textureInfo)
             {
@@ -366,7 +367,7 @@ public:
         return materials;
     }
 
-    std::vector<asset::Mesh> createMeshes(const Defaults& defaults, const std::vector<asset::Material>& materials) const
+    std::vector<asset::Mesh> createMeshes(const std::vector<asset::Material>& materials) const
     {
         uint32_t partialIndexCount { 0 };
 
@@ -529,11 +530,11 @@ public:
     //         });
     // }
 
-    core::utils::Tree<entity::Node> createTree(const core::Index sceneIndex) const
+    core::utils::Tree<asset::Node> createTree(const core::Index sceneIndex) const
     {
         auto createNodes = [this]()
         {
-            core::utils::Tree<entity::Node>::Nodes nodes;
+            core::utils::Tree<asset::Node>::Nodes nodes;
             nodes.reserve(asset.nodes.size());
             for (const auto& gltfNode : asset.nodes)
             {
@@ -541,12 +542,12 @@ public:
                 const auto& trs = std::get<fastgltf::TRS>(gltfNode.transform);
 
                 nodes.emplace_back(
-                    entity::Node {
+                    asset::Node {
                         gltfNode.meshIndex ? std::optional<Index> { static_cast<Index>(gltfNode.meshIndex.value()) } :
                                              std::optional<Index> {},
                         gltfNode.skinIndex ? std::optional<Index> { static_cast<Index>(gltfNode.skinIndex.value()) } :
                                              std::optional<Index> {},
-                        entity::Node::State {
+                        asset::Node::State {
                             .active            = true,
                             .polygonMode       = core::PolygonMode::fill,
                             .vertexStageFlag   = 0,
@@ -568,7 +569,7 @@ public:
             return std::vector<Index> { asset.scenes.at(sceneIndex).nodeIndices.begin(),
                                         asset.scenes.at(sceneIndex).nodeIndices.end() };
         };
-        return core::utils::Tree<entity::Node> {
+        return core::utils::Tree<asset::Node> {
             .roots = createRoots(),
             .nodes = createNodes(),
         };

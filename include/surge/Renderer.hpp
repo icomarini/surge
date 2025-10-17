@@ -199,8 +199,8 @@ private:
         for (const auto& [name, asset] : assets)
         {
             constexpr VkPushConstantRange nodePpushConstantRange {
-                core::createPushConstantRange<entity::Node::PushConstants>(VK_SHADER_STAGE_VERTEX_BIT |
-                                                                           VK_SHADER_STAGE_FRAGMENT_BIT)
+                core::createPushConstantRange<asset::Node::PushConstants>(VK_SHADER_STAGE_VERTEX_BIT |
+                                                                          VK_SHADER_STAGE_FRAGMENT_BIT)
             };
 
             auto& [pipelineLayout, pipeline] = pipelines[name];

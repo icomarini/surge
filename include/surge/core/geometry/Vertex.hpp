@@ -1,5 +1,10 @@
 #pragma once
 
+#include "surge/core/utils/types.hpp"
+#include "surge/core/utils/utils.hpp"
+
+#include <tuple>
+
 namespace surge::core::geometry
 {
 using Index = UInt32;

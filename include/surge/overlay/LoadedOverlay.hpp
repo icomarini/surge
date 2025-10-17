@@ -1,9 +1,14 @@
 #pragma once
 
+#include "surge/core/geometry/Vertex.hpp"
+#include "surge/core/math/Vector.hpp"
+
 #include <imgui.h>
 
+#include <cstring>
 #include <filesystem>
 #include <vector>
+#include <memory>
 
 namespace surge
 {
@@ -24,15 +29,15 @@ public:
 
     LoadedOverlay()
         : name { "imgui" }
-        , verSize { static_cast<VkDeviceSize>(ImGui::GetDrawData()->TotalVtxCount) }
-        , indSize { static_cast<VkDeviceSize>(ImGui::GetDrawData()->TotalIdxCount) }
+        , verSize { ImGui::GetDrawData()->TotalVtxCount }
+        , indSize { ImGui::GetDrawData()->TotalIdxCount }
     {
     }
 
-    static constexpr auto copyVertex = [](void* const mapped, const Vertex* const vertex, const VkDeviceSize size)
+    static constexpr auto copyVertex = [](void* const mapped, const Vertex* const vertex, const std::size_t size)
     {
         const ImDrawData* const imDrawData = ImGui::GetDrawData();
-        if (size != static_cast<VkDeviceSize>(imDrawData->TotalVtxCount) || vertex != nullptr)
+        if (size != static_cast<std::size_t>(imDrawData->TotalVtxCount) || vertex != nullptr)
         {
             throw std::runtime_error("Corrupted ImGui vertex data!");
         }
@@ -45,10 +50,10 @@ public:
         }
     };
 
-    static constexpr auto copyIndex = [](void* const mapped, const Index* const index, const VkDeviceSize size)
+    static constexpr auto copyIndex = [](void* const mapped, const Index* const index, const std::size_t size)
     {
         const ImDrawData* const imDrawData = ImGui::GetDrawData();
-        if (size != static_cast<VkDeviceSize>(imDrawData->TotalIdxCount) || index != nullptr)
+        if (size != static_cast<std::size_t>(imDrawData->TotalIdxCount) || index != nullptr)
         {
             throw std::runtime_error("Corrupted ImGui index data!");
         }
@@ -61,13 +66,13 @@ public:
         }
     };
 
-    VkDeviceSize vertexSize() const
+    std::size_t vertexSize() const
     {
         return verSize;
     }
-    VkDeviceSize vertexBufferSize() const
+    std::size_t vertexBufferSize() const
     {
-        return static_cast<VkDeviceSize>(sizeof(Vertex) * verSize);
+        return static_cast<std::size_t>(sizeof(Vertex) * verSize);
     }
     const Vertex* vertexData() const
     {
@@ -75,22 +80,22 @@ public:
     }
 
 
-    VkDeviceSize indexSize() const
+    std::size_t indexSize() const
     {
         return indSize;
     }
-    VkDeviceSize indexBufferSize() const
+    std::size_t indexBufferSize() const
     {
-        return static_cast<VkDeviceSize>(sizeof(Index) * indSize);
+        return static_cast<std::size_t>(sizeof(Index) * indSize);
     }
     const Index* indexData() const
     {
         return nullptr;
     }
 
-    std::string  name;
-    VkDeviceSize verSize;
-    VkDeviceSize indSize;
+    std::string name;
+    std::size_t verSize;
+    std::size_t indSize;
 };
 
 }  // namespace surge

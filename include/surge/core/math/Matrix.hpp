@@ -7,7 +7,6 @@
 
 #include <concepts>
 #include <format>
-#include <cstring>
 
 namespace surge::core::math
 {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "surge/core/utils/Tree.hpp"
-#include "surge/entity/Node.hpp"
+#include "surge/asset/Node.hpp"
 
 namespace surge::asset
 {
@@ -35,7 +35,7 @@ public:
         std::optional<core::Index> nodeIndex;
         core::Index                samplerIndex;
 
-        void update(entity::Node& node, const Sampler& sampler, const float progress) const
+        void update(Node& node, const Sampler& sampler, const float progress) const
         {
             const auto lowerBound = std::lower_bound(sampler.inputs.begin(), sampler.inputs.end(), progress);
             const auto index      = std::distance(sampler.inputs.begin(), lowerBound - 1);
@@ -93,7 +93,7 @@ public:
     };
     mutable State state;
 
-    void update(core::utils::Tree<entity::Node>& nodes, const float progress) const
+    void update(core::utils::Tree<Node>& nodes, const float progress) const
     {
         for (const auto& channel : channels)
         {

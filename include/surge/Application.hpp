@@ -1,15 +1,13 @@
 #pragma once
 
-#include "surge/core/colors.hpp"
 #include "surge/overlay/Overlay.hpp"
+#include "surge/core/colors.hpp"
 #include "surge/core/Presenter.hpp"
 #include "surge/Renderer.hpp"
 #include "surge/Skybox.hpp"
 
 #include "surge/load/AssetHandle.hpp"
-
 #include "surge/physics/Physics.hpp"
-
 #include "surge/entity/Entity.hpp"
 
 /**
@@ -63,7 +61,7 @@ public:
     const std::string appName    = "surge-app";
     const std::string engineName = "surge";
 
-    Application(const std::map<std::string, asset::AssetHandle>& assetHandles)
+    Application(const std::map<std::string, load::AssetHandle>& assetHandles)
         : userInteraction { WIDTH, HEIGHT }
         , context { core::createContext(appName, engineName, WIDTH, HEIGHT, createCallback(&userInteraction)) }
         , command {}
@@ -242,7 +240,7 @@ private:
 
     static std::map<std::string, asset::Asset>
     createAssets(const core::Command& command, const Defaults& defaults,
-                 const std::map<std::string, asset::AssetHandle>& assetHandles)
+                 const std::map<std::string, load::AssetHandle>& assetHandles)
     {
         std::map<std::string, asset::Asset> assets;
         for (const auto& [name, assetHandle] : assetHandles)
@@ -253,12 +251,12 @@ private:
                     [&](const load::Gltf::Handle& handle)
                     {
                         assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
-                                       std::forward_as_tuple(command, defaults, load::Gltf { handle }));
+                                       std::forward_as_tuple(command, load::Gltf { handle, defaults }));
                     },
                     [&](const load::Obj::Handle& handle)
                     {
                         assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
-                                       std::forward_as_tuple(command, defaults, load::Obj { handle }));
+                                       std::forward_as_tuple(command, load::Obj { handle, defaults }));
                     },
                 },
                 assetHandle);

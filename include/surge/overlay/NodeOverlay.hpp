@@ -1,6 +1,6 @@
 #pragma once
 
-#include "surge/entity/Node.hpp"
+#include "surge/asset/Node.hpp"
 
 #include <imgui.h>
 
@@ -35,7 +35,7 @@ void slider(const std::string& name, const std::string& nodeName, core::math::Ve
     ImGui::PopItemWidth();
 }
 
-static void overlay(const entity::Node& node, uint32_t& nodeId)
+static void overlay(const asset::Node& node, uint32_t& nodeId)
 {
     const auto nodeName = idName(nodeId++, "");
     if (ImGui::TreeNode(nodeName.c_str()))

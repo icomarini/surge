@@ -14,8 +14,8 @@ int main()
         //     { "simple", "/home/ico/projects/surge/models/skinning_example.gltf" },
         // };
 
-        const std::filesystem::path                      home { "/home/ico/projects/" };
-        std::map<std::string, surge::asset::AssetHandle> assetHandles {
+        const std::filesystem::path                     home { "/home/ico/projects/" };
+        std::map<std::string, surge::load::AssetHandle> assetHandles {
             { "default", surge::load::LoadedTexture::Handle { home / "surge/textures/default.png" } },
             { "skybox", surge::load::LoadedTexture::Handle { home / "surge/textures/skybox.ktx" } },
             { "oaktree", surge::load::Gltf::Handle { home / "surge/models/oaktree.gltf" } },

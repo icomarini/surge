@@ -4,8 +4,7 @@
 #include "surge/asset/Mesh.hpp"
 #include "surge/asset/Scene.hpp"
 #include "surge/asset/Skin.hpp"
-#include "surge/load/LoadedTexture.hpp"
-#include "surge/Defaults.hpp"
+#include "surge/load/Defaults.hpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
@@ -39,9 +38,10 @@ public:
         core::geometry::AttributeSlot<core::geometry::Attribute::texCoord, core::math::Vector<2>, 2,
                                             core::geometry::Format::sfloat>>;
 
-    Obj(const Handle& handle)
+    Obj(const Handle& handle, const Defaults& defaults)
         : name { handle.meshPath.filename() }
         , path { handle.meshPath }
+        , defaults { defaults }
         , texture {}
     {
         if (handle.texturePath)
@@ -57,7 +57,12 @@ public:
         }
     }
 
-    std::vector<asset::Texture> createTextures(const core::Command& command, const Defaults& defaults) const
+    core::shader::Type shader() const
+    {
+        return core::shader::Type::shader;
+    }
+
+    std::vector<asset::Texture> createTextures(const core::Command& command) const
     {
         std::vector<asset::Texture> textures;
         if (texture)
@@ -82,7 +87,7 @@ public:
                                                            >(1);
     }
 
-    std::vector<asset::Material> createMaterials(const Defaults& defaults, const VkDescriptorPool descriptorPool,
+    std::vector<asset::Material> createMaterials(const VkDescriptorPool             descriptorPool,
                                                  const VkDescriptorSetLayout        materialDescriptorSetLayout,
                                                  const std::vector<asset::Texture>& textures) const
     {
@@ -116,7 +121,7 @@ public:
                                        TextureDescr { defaults.texture }) } };
     }
 
-    std::vector<asset::Mesh> createMeshes(const Defaults& defaults, const std::vector<asset::Material>& materials) const
+    std::vector<asset::Mesh> createMeshes(const std::vector<asset::Material>& materials) const
     {
         core::Size indexCount {};
         for (const auto& shape : shapes)
@@ -163,11 +168,12 @@ public:
         return meshes;
     }
 
-    asset::Model createModel(const core::Command& command, const asset::Mesh& mesh) const
+    asset::Model createModel(const core::Command& command, const std::vector<asset::Mesh>& meshes) const
     {
-        assert(mesh.primitives.size() == 1);
+        assert(meshes.size() == 1);
+        assert(meshes.front().primitives.size() == 1);
 
-        const auto vertexCount = mesh.primitives.front().vertexCount;
+        const auto vertexCount = meshes.front().primitives.front().vertexCount;
         // const auto indexCount  = meshes.front().primitives.front().indexCount;
 
         std::vector<Vertex> vertices;
@@ -207,17 +213,17 @@ public:
                               asset::SceneModelInfo {} };
     }
 
-    core::utils::Tree<entity::Node> createTree() const
+    core::utils::Tree<asset::Node> createTree() const
     {
         auto createNode = [this]()
         {
-            core::utils::Tree<entity::Node>::Nodes nodes;
+            core::utils::Tree<asset::Node>::Nodes nodes;
             nodes.reserve(1);
             nodes.emplace_back(
-                entity::Node {
+                asset::Node {
                     std::optional<core::Index> { 0 },
                     std::optional<core::Index> {},
-                    entity::Node::State {
+                    asset::Node::State {
                         .active            = true,
                         .polygonMode       = core::PolygonMode::fill,
                         .vertexStageFlag   = 0,
@@ -231,18 +237,23 @@ public:
                 std::vector<core::Index> {});
             return nodes;
         };
-        return core::utils::Tree<entity::Node> {
+        return core::utils::Tree<asset::Node> {
             .roots = std::vector<Index> { 0 },
             .nodes = createNode(),
         };
     }
 
-    std::vector<asset::Scene> createScene() const
+    std::vector<asset::Scene> createScenes() const
     {
         std::vector<asset::Scene> scenes;
         scenes.reserve(1);
         scenes.emplace_back(baptize<This::scene>(0), createTree());
         return scenes;
+    }
+
+    std::size_t mainSceneIndex() const
+    {
+        return 0;
     }
 
     std::vector<asset::Skin> createSkins() const
@@ -257,6 +268,7 @@ public:
 
     std::string                      name;
     std::filesystem::path            path;
+    const Defaults&                  defaults;
     tinyobj::attrib_t                attrib;
     std::vector<tinyobj::shape_t>    shapes;
     std::vector<tinyobj::material_t> materials;

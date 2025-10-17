@@ -39,12 +39,12 @@ struct Entity
         core::math::Matrix<4, 4> modelMatrix;
     };
 
-    const asset::Asset&      asset;
-    core::utils::Tree<Node>  nodes;
-    VkPipelineLayout         pipelineLayout;
-    VkPipeline               pipeline;
-    std::optional<Animation> animation;
-    mutable State            state;
+    const asset::Asset&            asset;
+    core::utils::Tree<asset::Node> nodes;
+    VkPipelineLayout               pipelineLayout;
+    VkPipeline                     pipeline;
+    std::optional<Animation>       animation;
+    mutable State                  state;
 
     Entity(const asset::Asset& asset, const VkPipelineLayout pipelineLayout, const VkPipeline pipeline,
            const core::Index sceneIndex, const core::math::StaticMatrix auto& modelMatrix)
@@ -76,12 +76,12 @@ struct Entity
             }
             anim.update(nodes, progress);
         }
-        nodes.traverse<core::utils::Traversal::depthFirst>(&Node::update, state.modelMatrix);
+        nodes.traverse<core::utils::Traversal::depthFirst>(&asset::Node::update, state.modelMatrix);
         if (animation)
         {
             assert(!asset.skins.empty());
             nodes.traverse<core::utils::Traversal::linear>(
-                [&](const entity::Node& node)
+                [&](const asset::Node& node)
                 {
                     if (node.skinIndex)
                     {
@@ -133,7 +133,7 @@ struct Entity
         }
 
         nodes.traverse<core::utils::Traversal::linear>(
-            [&](const Node& node)
+            [&](const asset::Node& node)
             {
                 if (node.meshIndex)
                 {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "surge/overlay/LoadedOverlay.hpp"
 #include "surge/UserInteraction.hpp"
 #include "surge/core/Command.hpp"
 
@@ -7,12 +8,11 @@
 #include "surge/asset/Asset.hpp"
 
 #include "surge/overlay/Font.hpp"
-#include "surge/overlay/LoadedOverlay.hpp"
 #include "surge/overlay/AssetOverlay.hpp"
 
 #include <imgui.h>
 
-#include <optional>
+// #include <optional>
 
 namespace surge::overlay
 {
@@ -180,8 +180,8 @@ public:
         }
 
         // Note: Alignment is done inside buffer creation
-        const VkDeviceSize vertexCount = imDrawData->TotalVtxCount;
-        const VkDeviceSize indexCount  = imDrawData->TotalIdxCount;
+        const auto vertexCount = imDrawData->TotalVtxCount;
+        const auto indexCount  = imDrawData->TotalIdxCount;
 
         if ((vertexCount == 0) || (indexCount == 0))
         {

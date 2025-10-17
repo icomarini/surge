@@ -5,7 +5,7 @@
 
 #include <optional>
 
-namespace surge::entity
+namespace surge::asset
 {
 struct Node
 {
@@ -75,4 +75,4 @@ struct Node
         }
     }
 };
-}  // namespace surge::entity
+}  // namespace surge::asset

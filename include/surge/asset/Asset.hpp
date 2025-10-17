@@ -1,12 +1,13 @@
 #pragma once
 
-#include "surge/load/Obj.hpp"
-#include "surge/load/Gltf.hpp"
+// #include "surge/load/Obj.hpp"
+// #include "surge/load/Gltf.hpp"
 #include "surge/asset/Animation.hpp"
 #include "surge/asset/Model.hpp"
 #include "surge/asset/Mesh.hpp"
-// #include "surge/asset/Scene.hpp"
-// #include "surge/asset/Skin.hpp"
+#include "surge/asset/Scene.hpp"
+#include "surge/asset/Skin.hpp"
+// #include "surge/load/Defaults.hpp"
 
 #include <numeric>
 
@@ -79,42 +80,23 @@ public:
 
     Asset(Asset&&) = default;
 
-    Asset(const core::Command& command, const Defaults& defaults, const load::Gltf& gltf)
-        : name { gltf.name }
-        , path { gltf.path }
-        , shader { gltf.shader() }
-        , textures { gltf.createTextures(command, defaults) }
-        , descriptorPool { gltf.createDescriptorPool() }
-        , materialDescriptorSetLayout { gltf.createMaterialDescriptorSetLayout() }
-        , materials { gltf.createMaterials(defaults, descriptorPool, materialDescriptorSetLayout, textures) }
-        , meshes { gltf.createMeshes(defaults, materials) }
-        , vertexInputState { core::createVertexInputState<load::Gltf::Vertex>() }
-        , model { gltf.createModel(command, meshes) }
-        , scenes { gltf.createScenes() }
-        , mainSceneIndex { gltf.mainSceneIndex() }
-        , skins { gltf.createSkins() }
-        , animations { gltf.createAnimations() }
+    template<typename LoadedAsset>
+    Asset(const core::Command& command, const LoadedAsset& loadedAsset)
+        : name { loadedAsset.name }
+        , path { loadedAsset.path }
+        , shader { loadedAsset.shader() }
+        , textures { loadedAsset.createTextures(command) }
+        , descriptorPool { loadedAsset.createDescriptorPool() }
+        , materialDescriptorSetLayout { loadedAsset.createMaterialDescriptorSetLayout() }
+        , materials { loadedAsset.createMaterials(descriptorPool, materialDescriptorSetLayout, textures) }
+        , meshes { loadedAsset.createMeshes(materials) }
+        , vertexInputState { core::createVertexInputState<typename LoadedAsset::Vertex>() }
+        , model { loadedAsset.createModel(command, meshes) }
+        , scenes { loadedAsset.createScenes() }
+        , mainSceneIndex { loadedAsset.mainSceneIndex() }
+        , skins { loadedAsset.createSkins() }
+        , animations { loadedAsset.createAnimations() }
         , jointMatricesDescriptorSetLayout { createJointMatricesDescriptorSetLayout(skins) }
-    {
-        assert(scenes.size() > 0);
-    }
-
-    Asset(const core::Command& command, const Defaults& defaults, const load::Obj& obj)
-        : name { obj.name }
-        , path { obj.path }
-        , shader { core::shader::Type::shader }
-        , textures { obj.createTextures(command, defaults) }
-        , descriptorPool { obj.createDescriptorPool() }
-        , materialDescriptorSetLayout { obj.createMaterialDescriptorSetLayout() }
-        , materials { obj.createMaterials(defaults, descriptorPool, materialDescriptorSetLayout, textures) }
-        , meshes { obj.createMeshes(defaults, materials) }
-        , vertexInputState { core::createVertexInputState<load::Obj::Vertex>() }
-        , model { obj.createModel(command, meshes.front()) }
-        , scenes { obj.createScene() }
-        , mainSceneIndex { 0 }
-        , skins {}
-        , animations {}
-        , jointMatricesDescriptorSetLayout { VK_NULL_HANDLE }
     {
         assert(scenes.size() > 0);
     }

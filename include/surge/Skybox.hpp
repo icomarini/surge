@@ -1,8 +1,11 @@
 #pragma once
 
 #include "surge/asset/Texture.hpp"
+#include "surge/asset/Model.hpp"
+#include "surge/core/geometry/shapes.hpp"
 #include "surge/core/input/input.hpp"
 #include "surge/core/Pipeline.hpp"
+#include "surge/load/LoadedTexture.hpp"
 
 namespace surge
 {
