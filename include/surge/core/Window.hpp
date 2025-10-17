@@ -1,11 +1,12 @@
 #pragma once
 
-#include "surge/core/UserInteraction.hpp"
+// #include "surge/core/UserInteraction.hpp"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
 #include <iostream>
+#include <functional>
 #include <memory>
 #include <set>
 
@@ -36,32 +37,55 @@ concept HasMouseWheelCallback =
 class Window
 {
 public:
-    Window(const std::string& windowName, const uint32_t width, const uint32_t height, UserInteraction& userInteraction)
+    struct Callback
+    {
+        void*                                        opaquePtr;
+        std::function<void(Window&, int, int)>       framebuffer;
+        std::function<void(Window&, int, int)>       keyboard;
+        std::function<void(Window&, double, double)> mousePosition;
+        std::function<void(Window&, int, int)>       mouseButton;
+        std::function<void(Window&, double, double)> mouseWheel;
+    };
+
+    Window(const std::string& windowName, const uint32_t width, const uint32_t height, const Callback& callback)
         : glfwContext {}
         , glfwWindow { glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr) }
+        , callback { callback }
+    // , userInteraction { userInteraction }
+    // , framebufferCallback { UserInteraction::framebufferCallback<Window> }
+    // , keyboardCallback { UserInteraction::keyboardCallback<Window> }
+    // , mousePositionCallback { UserInteraction::mousePositionCallback<Window> }
+    // , mouseButtonCallback { UserInteraction::mouseButtonCallback<Window> }
+    // , mouseWheelCallback { UserInteraction::mouseWheelCallback<Window> }
     {
-        glfwSetWindowUserPointer(glfwWindow, &userInteraction);
         glfwSetErrorCallback(error);
-        if constexpr (HasFramebufferCallabck<Callback>)
-        {
-            glfwSetFramebufferSizeCallback(glfwWindow, Callback::framebuffer);
-        }
-        if constexpr (HasKeyboardCallback<Callback>)
-        {
-            glfwSetKeyCallback(glfwWindow, Callback::keyboard);
-        }
-        if constexpr (HasMousePositionCallback<Callback>)
-        {
-            glfwSetCursorPosCallback(glfwWindow, Callback::mousePosition);
-        }
-        if constexpr (HasMouseButtonCallback<Callback>)
-        {
-            glfwSetMouseButtonCallback(glfwWindow, Callback::mouseButton);
-        }
-        if constexpr (HasMouseWheelCallback<Callback>)
-        {
-            glfwSetScrollCallback(glfwWindow, Callback::mouseWheel);
-        }
+        glfwSetWindowUserPointer(glfwWindow, this);
+        glfwSetFramebufferSizeCallback(glfwWindow, GlfwCallback::framebuffer);
+        glfwSetKeyCallback(glfwWindow, GlfwCallback::keyboard);
+        glfwSetCursorPosCallback(glfwWindow, GlfwCallback::mousePosition);
+        glfwSetMouseButtonCallback(glfwWindow, GlfwCallback::mouseButton);
+        glfwSetScrollCallback(glfwWindow, GlfwCallback::mouseWheel);
+        // mousePositionCallback = UserInteraction::mousePosition<Window>;
+        // if constexpr (HasFramebufferCallabck<Callback>)
+        // {
+        //     glfwSetFramebufferSizeCallback(glfwWindow, Callback::framebuffer);
+        // }
+        // if constexpr (HasKeyboardCallback<Callback>)
+        // {
+        //     glfwSetKeyCallback(glfwWindow, Callback::keyboard);
+        // }
+        // if constexpr (HasMousePositionCallback<Callback>)
+        // {
+        //     glfwSetCursorPosCallback(glfwWindow, Callback::mousePosition);
+        // }
+        // if constexpr (HasMouseButtonCallback<Callback>)
+        // {
+        //     glfwSetMouseButtonCallback(glfwWindow, Callback::mouseButton);
+        // }
+        // if constexpr (HasMouseWheelCallback<Callback>)
+        // {
+        //     glfwSetScrollCallback(glfwWindow, Callback::mouseWheel);
+        // }
     }
 
     static void error(int error, const char* description)
@@ -103,9 +127,32 @@ public:
         glfwPollEvents();
     }
 
-    bool exit() const
+    bool proceed() const
     {
-        return glfwWindowShouldClose(glfwWindow);
+        return !glfwWindowShouldClose(glfwWindow);
+    }
+
+    void activateCursor()
+    {
+        glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        glfwSetInputMode(glfwWindow, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
+    }
+
+    void deactivateCursor()
+    {
+        glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        glfwSetInputMode(glfwWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+    }
+
+    void exit() const
+    {
+        glfwSetWindowShouldClose(glfwWindow, GL_TRUE);
+    }
+
+    template<typename UI>
+    UI& getUserInteraction() const
+    {
+        return *reinterpret_cast<UI*>(callback.opaquePtr);
     }
 
     ~Window()
@@ -114,110 +161,140 @@ public:
     }
 
 private:
-    struct Callback
+    struct GlfwCallback
     {
-        static constexpr std::array<UserInteraction::KeyState, 3> map {
-            UserInteraction::KeyState::release,
-            UserInteraction::KeyState::press,
-            UserInteraction::KeyState::repeat,
-        };
+        // static constexpr std::array<UserInteraction::KeyState, 3> map {
+        //     UserInteraction::KeyState::release,
+        //     UserInteraction::KeyState::press,
+        //     UserInteraction::KeyState::repeat,
+        // };
 
-        static UserInteraction& getUserInteraction(GLFWwindow* const window)
+        // static UserInteraction& getUserInteraction(GLFWwindow* const window)
+        // {
+        //     return *reinterpret_cast<UserInteraction*>(glfwGetWindowUserPointer(window));
+        // }
+
+        static Window& self(GLFWwindow* window)
         {
-            return *reinterpret_cast<UserInteraction*>(glfwGetWindowUserPointer(window));
+            return *reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
         }
 
-        static void framebuffer(GLFWwindow* window, int width, int height)
+        static void framebuffer(GLFWwindow* glfwWindow, int width, int height)
         {
-            auto& ui              = getUserInteraction(window);
-            ui.width              = static_cast<uint32_t>(width);
-            ui.height             = static_cast<uint32_t>(height);
-            ui.framebufferResized = true;
+            auto& window = self(glfwWindow);
+            window.callback.keyboard(window, width, height);
         }
 
-        static void keyboard(GLFWwindow* window, int key, int /*scancode*/, int action, int /*mods*/)
+        static void keyboard(GLFWwindow* glfwWindow, int key, int /*scancode*/, int action, int /*mods*/)
         {
-            auto& ui = getUserInteraction(window);
-            if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-            {
-                glfwSetWindowShouldClose(window, GL_TRUE);
-            }
-
-            if (key == GLFW_KEY_G && action == GLFW_PRESS)
-            {
-                if (ui.mouseActive)
-                {
-                    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-                    glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-                    ui.mouseActive = false;
-                }
-                else
-                {
-                    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-                    glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
-                    ui.mouseActive = true;
-                }
-            }
-
-            if (key == GLFW_KEY_H && action == GLFW_PRESS)
-            {
-                ui.shadowMap = !ui.shadowMap;
-            }
-
-            if (key == GLFW_KEY_W)
-            {
-                ui.keyboard.w = map.at(action);
-            }
-            if (key == GLFW_KEY_S)
-            {
-                ui.keyboard.s = map.at(action);
-            }
-            if (key == GLFW_KEY_A)
-            {
-                ui.keyboard.a = map.at(action);
-            }
-            if (key == GLFW_KEY_D)
-            {
-                ui.keyboard.d = map.at(action);
-            }
+            auto& window = self(glfwWindow);
+            window.callback.keyboard(window, key, action);
         }
 
-        static void mousePosition(GLFWwindow* window, double x, double y)
+        static void mousePosition(GLFWwindow* glfwWindow, double x, double y)
         {
-            auto&                                  ui = getUserInteraction(window);
-            const UserInteraction::Mouse::Position position { x, y };
-            ui.mouse.offset   = position - ui.mouse.position;
-            ui.mouse.position = position;
+            auto& window = self(glfwWindow);
+            window.callback.mousePosition(window, x, y);
         }
 
-        static void mouseButton(GLFWwindow* window, int button, int action, int /*mods*/)
+        static void mouseButton(GLFWwindow* glfwWindow, int button, int action, int /*mods*/)
         {
-            auto& ui = getUserInteraction(window);
-            switch (button)
-            {
-            case 0:
-            {
-                ui.mouse.left = map.at(action);
-                break;
-            }
-            case 1:
-            {
-                ui.mouse.right = map.at(action);
-                break;
-            }
-            case 2:
-            {
-                ui.mouse.middle = map.at(action);
-                break;
-            }
-            }
+            auto& window = self(glfwWindow);
+            window.callback.mouseButton(window, button, action);
         }
 
-        static void mouseWheel(GLFWwindow* window, double xoffset, double yoffset)
+        static void mouseWheel(GLFWwindow* glfwWindow, double xoffset, double yoffset)
         {
-            auto& ui       = getUserInteraction(window);
-            ui.mouse.wheel = UserInteraction::Mouse::Offset { xoffset, yoffset };
+            auto& window = self(glfwWindow);
+            window.callback.mouseWheel(window, xoffset, yoffset);
         }
+
+        // static void framebuffer(GLFWwindow* window, int width, int height)
+        // {
+        //     auto& ui              = getUserInteraction(window);
+        //     ui.width              = static_cast<uint32_t>(width);
+        //     ui.height             = static_cast<uint32_t>(height);
+        //     ui.framebufferResized = true;
+        // }
+
+        // static void keyboard(GLFWwindow* window, int key, int /*scancode*/, int action, int /*mods*/)
+        // {
+        //     auto& ui = getUserInteraction(window);
+        //     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+        //     {
+        //         glfwSetWindowShouldClose(window, GL_TRUE);
+        //     }
+
+        //     if (key == GLFW_KEY_G && action == GLFW_PRESS)
+        //     {
+        //         if (ui.mouseActive)
+        //         {
+        //             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        //             glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+        //             ui.mouseActive = false;
+        //         }
+        //         else
+        //         {
+        //             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        //             glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
+        //             ui.mouseActive = true;
+        //         }
+        //     }
+
+        //     if (key == GLFW_KEY_W)
+        //     {
+        //         ui.keyboard.w = map.at(action);
+        //     }
+        //     if (key == GLFW_KEY_S)
+        //     {
+        //         ui.keyboard.s = map.at(action);
+        //     }
+        //     if (key == GLFW_KEY_A)
+        //     {
+        //         ui.keyboard.a = map.at(action);
+        //     }
+        //     if (key == GLFW_KEY_D)
+        //     {
+        //         ui.keyboard.d = map.at(action);
+        //     }
+        // }
+
+        // static void mousePosition(GLFWwindow* window, double x, double y)
+        // {
+        //     auto&                                  ui = getUserInteraction(window);
+        //     const UserInteraction::Mouse::Position position { x, y };
+        //     ui.mouse.offset   = position - ui.mouse.position;
+        //     ui.mouse.position = position;
+        // }
+
+        // static void mouseButton(GLFWwindow* window, int button, int action, int /*mods*/)
+        // {
+        //     auto& ui = getUserInteraction(window);
+        //     switch (button)
+        //     {
+        //     case 0:
+        //     {
+        //         ui.mouse.left = map.at(action);
+        //         break;
+        //     }
+        //     case 1:
+        //     {
+        //         ui.mouse.right = map.at(action);
+        //         break;
+        //     }
+        //     case 2:
+        //     {
+        //         ui.mouse.middle = map.at(action);
+        //         break;
+        //     }
+        //     }
+        // }
+
+        // static void mouseWheel(GLFWwindow* window, double xoffset, double yoffset)
+        // {
+        //     auto& ui       = getUserInteraction(window);
+        //     ui.mouse.wheel = UserInteraction::Mouse::Offset { xoffset, yoffset };
+        // }
     };
 
     class GlfwContext
@@ -238,8 +315,16 @@ private:
         }
     };
 
+
     GlfwContext glfwContext;
     GLFWwindow* glfwWindow;
+    // void*                                        userInteraction;
+    // std::function<void(Window&, int, int)>       framebufferCallback;
+    // std::function<void(Window&, int, int)>       keyboardCallback;
+    // std::function<void(Window&, double, double)> mousePositionCallback;
+    // std::function<void(Window&, int, int)>       mouseButtonCallback;
+    // std::function<void(Window&, double, double)> mouseWheelCallback;
+    Callback callback;
 };
 
 }  // namespace surge::core

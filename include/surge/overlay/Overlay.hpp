@@ -1,5 +1,6 @@
 #pragma once
 
+#include "surge/core/UserInteraction.hpp"
 #include "surge/core/Command.hpp"
 
 #include "surge/core/Pipeline.hpp"

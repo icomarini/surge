@@ -70,8 +70,8 @@ public:
     };
 
     Context(const std::string& appName, const std::string& engineName, const uint32_t width, const uint32_t height,
-            UserInteraction& userInteraction)
-        : window { appName, width, height, userInteraction }
+            const Window::Callback& callback)
+        : window { appName, width, height, callback }
         , instance { createInstance(appName, engineName, window.extensions()) }
         , surface { window.createSurface(instance) }
         , physicalDevice { pickPhysicalDevice(instance, surface) }
@@ -88,9 +88,9 @@ public:
         return window.extent();
     }
 
-    bool exit() const
+    bool proceed() const
     {
-        return window.exit();
+        return window.proceed();
     }
 
     void pollEvents() const
@@ -737,15 +737,15 @@ private:
 };
 
 static const Context& createContext(const std::string& appName, const std::string& engineName, const uint32_t width,
-                                    const uint32_t height, UserInteraction* const userInteraction)
+                                    const uint32_t height, const std::optional<Window::Callback>& callback)
 {
-    static Context context(appName, engineName, width, height, *userInteraction);
+    static Context context { appName, engineName, width, height, callback.value() };
     return context;
 };
 
 static const Context& context()
 {
-    return createContext("", "", 0, 0, nullptr);
+    return createContext("", "", 0, 0, std::nullopt);
 };
 
 }  // namespace surge::core

@@ -56,7 +56,7 @@ public:
 
     Application(const std::map<std::string, asset::AssetHandle>& assetHandles)
         : userInteraction { WIDTH, HEIGHT }
-        , ctx { createContext(appName, engineName, WIDTH, HEIGHT, &userInteraction) }
+        , ctx { core::createContext(appName, engineName, WIDTH, HEIGHT, createCallback(&userInteraction)) }
         , command {}
         , presenter { command }
         , defaults { command, std::get<load::LoadedTexture::Handle>(assetHandles.at("default")) }
@@ -142,7 +142,7 @@ public:
 
         VkExtent2D extent { WIDTH, HEIGHT };
 
-        while (!core::context().exit())
+        while (core::context().proceed())
         {
             if (elapsedTime > 1.0 / 144.0)
             {
@@ -218,6 +218,19 @@ private:
     Renderer                            renderer;
     overlay::Overlay                    overlay;
 
+
+    template<typename UI>
+    static core::Window::Callback createCallback(UI* userInteraction)
+    {
+        return core::Window::Callback {
+            .opaquePtr     = userInteraction,
+            .framebuffer   = UI::template framebufferCallback<core::Window>,
+            .keyboard      = UI::template keyboardCallback<core::Window>,
+            .mousePosition = UI::template mousePositionCallback<core::Window>,
+            .mouseButton   = UI::template mouseButtonCallback<core::Window>,
+            .mouseWheel    = UI::template mouseWheelCallback<core::Window>,
+        };
+    }
 
     static std::map<std::string, asset::Asset>
     createAssets(const core::Command& command, const Defaults& defaults,
