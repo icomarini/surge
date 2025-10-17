@@ -13,25 +13,26 @@
 namespace surge::core
 {
 
-template<typename T>
-concept HasFramebufferCallabck =
-    requires(GLFWwindow* window, int width, int height) { T::framebuffer(window, width, height); };
+// template<typename T>
+// concept HasFramebufferCallabck =
+//     requires(GLFWwindow* window, int width, int height) { T::framebuffer(window, width, height); };
 
-template<typename T>
-concept HasKeyboardCallback = requires(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    T::keyboard(window, key, scancode, action, mods);
-};
+// template<typename T>
+// concept HasKeyboardCallback = requires(GLFWwindow* window, int key, int scancode, int action, int mods) {
+//     T::keyboard(window, key, scancode, action, mods);
+// };
 
-template<typename T>
-concept HasMousePositionCallback = requires(GLFWwindow* window, double x, double y) { T::mousePosition(window, x, y); };
+// template<typename T>
+// concept HasMousePositionCallback = requires(GLFWwindow* window, double x, double y) { T::mousePosition(window, x, y);
+// };
 
-template<typename T>
-concept HasMouseButtonCallback =
-    requires(GLFWwindow* window, int button, int action, int mods) { T::mouseButton(window, button, action, mods); };
+// template<typename T>
+// concept HasMouseButtonCallback =
+//     requires(GLFWwindow* window, int button, int action, int mods) { T::mouseButton(window, button, action, mods); };
 
-template<typename T>
-concept HasMouseWheelCallback =
-    requires(GLFWwindow* window, double xoffset, double yoffset) { T::mouseButton(window, xoffset, yoffset); };
+// template<typename T>
+// concept HasMouseWheelCallback =
+//     requires(GLFWwindow* window, double xoffset, double yoffset) { T::mouseButton(window, xoffset, yoffset); };
 
 
 class Window
@@ -51,47 +52,46 @@ public:
         : glfwContext {}
         , glfwWindow { glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr) }
         , callback { callback }
-    // , userInteraction { userInteraction }
-    // , framebufferCallback { UserInteraction::framebufferCallback<Window> }
-    // , keyboardCallback { UserInteraction::keyboardCallback<Window> }
-    // , mousePositionCallback { UserInteraction::mousePositionCallback<Window> }
-    // , mouseButtonCallback { UserInteraction::mouseButtonCallback<Window> }
-    // , mouseWheelCallback { UserInteraction::mouseWheelCallback<Window> }
     {
-        glfwSetErrorCallback(error);
         glfwSetWindowUserPointer(glfwWindow, this);
-        glfwSetFramebufferSizeCallback(glfwWindow, GlfwCallback::framebuffer);
-        glfwSetKeyCallback(glfwWindow, GlfwCallback::keyboard);
-        glfwSetCursorPosCallback(glfwWindow, GlfwCallback::mousePosition);
-        glfwSetMouseButtonCallback(glfwWindow, GlfwCallback::mouseButton);
-        glfwSetScrollCallback(glfwWindow, GlfwCallback::mouseWheel);
-        // mousePositionCallback = UserInteraction::mousePosition<Window>;
-        // if constexpr (HasFramebufferCallabck<Callback>)
-        // {
-        //     glfwSetFramebufferSizeCallback(glfwWindow, Callback::framebuffer);
-        // }
-        // if constexpr (HasKeyboardCallback<Callback>)
-        // {
-        //     glfwSetKeyCallback(glfwWindow, Callback::keyboard);
-        // }
-        // if constexpr (HasMousePositionCallback<Callback>)
-        // {
-        //     glfwSetCursorPosCallback(glfwWindow, Callback::mousePosition);
-        // }
-        // if constexpr (HasMouseButtonCallback<Callback>)
-        // {
-        //     glfwSetMouseButtonCallback(glfwWindow, Callback::mouseButton);
-        // }
-        // if constexpr (HasMouseWheelCallback<Callback>)
-        // {
-        //     glfwSetScrollCallback(glfwWindow, Callback::mouseWheel);
-        // }
+        glfwSetErrorCallback([](int error, const char* description)
+                             { throw std::runtime_error("GLFW error " + std::to_string(error) + ": " + description); });
+        glfwSetFramebufferSizeCallback(glfwWindow,
+                                       [](GLFWwindow* glfwWindow, int width, int height)
+                                       {
+                                           auto& window = Window::self(glfwWindow);
+                                           window.callback.framebuffer(window, width, height);
+                                       });
+        glfwSetKeyCallback(glfwWindow,
+                           [](GLFWwindow* glfwWindow, int key, int /*scancode*/, int action, int /*mods*/)
+                           {
+                               auto& window = Window::self(glfwWindow);
+                               window.callback.keyboard(window, key, action);
+                           });
+        glfwSetCursorPosCallback(glfwWindow,
+                                 [](GLFWwindow* glfwWindow, double x, double y)
+                                 {
+                                     auto& window = Window::self(glfwWindow);
+                                     window.callback.mousePosition(window, x, y);
+                                 });
+        glfwSetMouseButtonCallback(glfwWindow,
+                                   [](GLFWwindow* glfwWindow, int button, int action, int /*mods*/)
+                                   {
+                                       auto& window = Window::self(glfwWindow);
+                                       window.callback.mouseButton(window, button, action);
+                                   });
+        glfwSetScrollCallback(glfwWindow,
+                              [](GLFWwindow* glfwWindow, double xoffset, double yoffset)
+                              {
+                                  auto& window = Window::self(glfwWindow);
+                                  window.callback.mouseWheel(window, xoffset, yoffset);
+                              });
     }
 
-    static void error(int error, const char* description)
-    {
-        throw std::runtime_error("GLFW error " + std::to_string(error) + ": " + description);
-    }
+    // static void error(int error, const char* description)
+    // {
+    //     throw std::runtime_error("GLFW error " + std::to_string(error) + ": " + description);
+    // }
 
     std::vector<const char*> extensions() const
     {
@@ -161,141 +161,15 @@ public:
     }
 
 private:
-    struct GlfwCallback
+    // static Callback& getCallback(GLFWwindow* window)
+    // {
+    //     return *reinterpret_cast<Callback*>(glfwGetWindowUserPointer(window));
+    // }
+
+    static Window& self(GLFWwindow* window)
     {
-        // static constexpr std::array<UserInteraction::KeyState, 3> map {
-        //     UserInteraction::KeyState::release,
-        //     UserInteraction::KeyState::press,
-        //     UserInteraction::KeyState::repeat,
-        // };
-
-        // static UserInteraction& getUserInteraction(GLFWwindow* const window)
-        // {
-        //     return *reinterpret_cast<UserInteraction*>(glfwGetWindowUserPointer(window));
-        // }
-
-        static Window& self(GLFWwindow* window)
-        {
-            return *reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
-        }
-
-        static void framebuffer(GLFWwindow* glfwWindow, int width, int height)
-        {
-            auto& window = self(glfwWindow);
-            window.callback.keyboard(window, width, height);
-        }
-
-        static void keyboard(GLFWwindow* glfwWindow, int key, int /*scancode*/, int action, int /*mods*/)
-        {
-            auto& window = self(glfwWindow);
-            window.callback.keyboard(window, key, action);
-        }
-
-        static void mousePosition(GLFWwindow* glfwWindow, double x, double y)
-        {
-            auto& window = self(glfwWindow);
-            window.callback.mousePosition(window, x, y);
-        }
-
-        static void mouseButton(GLFWwindow* glfwWindow, int button, int action, int /*mods*/)
-        {
-            auto& window = self(glfwWindow);
-            window.callback.mouseButton(window, button, action);
-        }
-
-        static void mouseWheel(GLFWwindow* glfwWindow, double xoffset, double yoffset)
-        {
-            auto& window = self(glfwWindow);
-            window.callback.mouseWheel(window, xoffset, yoffset);
-        }
-
-        // static void framebuffer(GLFWwindow* window, int width, int height)
-        // {
-        //     auto& ui              = getUserInteraction(window);
-        //     ui.width              = static_cast<uint32_t>(width);
-        //     ui.height             = static_cast<uint32_t>(height);
-        //     ui.framebufferResized = true;
-        // }
-
-        // static void keyboard(GLFWwindow* window, int key, int /*scancode*/, int action, int /*mods*/)
-        // {
-        //     auto& ui = getUserInteraction(window);
-        //     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        //     {
-        //         glfwSetWindowShouldClose(window, GL_TRUE);
-        //     }
-
-        //     if (key == GLFW_KEY_G && action == GLFW_PRESS)
-        //     {
-        //         if (ui.mouseActive)
-        //         {
-        //             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        //             glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-        //             ui.mouseActive = false;
-        //         }
-        //         else
-        //         {
-        //             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        //             glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
-        //             ui.mouseActive = true;
-        //         }
-        //     }
-
-        //     if (key == GLFW_KEY_W)
-        //     {
-        //         ui.keyboard.w = map.at(action);
-        //     }
-        //     if (key == GLFW_KEY_S)
-        //     {
-        //         ui.keyboard.s = map.at(action);
-        //     }
-        //     if (key == GLFW_KEY_A)
-        //     {
-        //         ui.keyboard.a = map.at(action);
-        //     }
-        //     if (key == GLFW_KEY_D)
-        //     {
-        //         ui.keyboard.d = map.at(action);
-        //     }
-        // }
-
-        // static void mousePosition(GLFWwindow* window, double x, double y)
-        // {
-        //     auto&                                  ui = getUserInteraction(window);
-        //     const UserInteraction::Mouse::Position position { x, y };
-        //     ui.mouse.offset   = position - ui.mouse.position;
-        //     ui.mouse.position = position;
-        // }
-
-        // static void mouseButton(GLFWwindow* window, int button, int action, int /*mods*/)
-        // {
-        //     auto& ui = getUserInteraction(window);
-        //     switch (button)
-        //     {
-        //     case 0:
-        //     {
-        //         ui.mouse.left = map.at(action);
-        //         break;
-        //     }
-        //     case 1:
-        //     {
-        //         ui.mouse.right = map.at(action);
-        //         break;
-        //     }
-        //     case 2:
-        //     {
-        //         ui.mouse.middle = map.at(action);
-        //         break;
-        //     }
-        //     }
-        // }
-
-        // static void mouseWheel(GLFWwindow* window, double xoffset, double yoffset)
-        // {
-        //     auto& ui       = getUserInteraction(window);
-        //     ui.mouse.wheel = UserInteraction::Mouse::Offset { xoffset, yoffset };
-        // }
-    };
+        return *reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
+    }
 
     class GlfwContext
     {
@@ -318,13 +192,7 @@ private:
 
     GlfwContext glfwContext;
     GLFWwindow* glfwWindow;
-    // void*                                        userInteraction;
-    // std::function<void(Window&, int, int)>       framebufferCallback;
-    // std::function<void(Window&, int, int)>       keyboardCallback;
-    // std::function<void(Window&, double, double)> mousePositionCallback;
-    // std::function<void(Window&, int, int)>       mouseButtonCallback;
-    // std::function<void(Window&, double, double)> mouseWheelCallback;
-    Callback callback;
+    Callback    callback;
 };
 
 }  // namespace surge::core

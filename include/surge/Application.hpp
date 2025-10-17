@@ -56,7 +56,7 @@ public:
 
     Application(const std::map<std::string, asset::AssetHandle>& assetHandles)
         : userInteraction { WIDTH, HEIGHT }
-        , ctx { core::createContext(appName, engineName, WIDTH, HEIGHT, createCallback(&userInteraction)) }
+        , context { core::createContext(appName, engineName, WIDTH, HEIGHT, createCallback(&userInteraction)) }
         , command {}
         , presenter { command }
         , defaults { command, std::get<load::LoadedTexture::Handle>(assetHandles.at("default")) }
@@ -208,7 +208,7 @@ public:
 
 private:
     mutable core::UserInteraction       userInteraction;
-    const core::Context&                ctx;
+    const core::Context&                context;
     const core::Command                 command;
     core::Presenter                     presenter;
     const Defaults                      defaults;
