@@ -1,13 +1,12 @@
 #pragma once
 
 #include "surge/core/utils/utils.hpp"
-
 #include "surge/core/Window.hpp"
+
 #ifndef NDEBUG
 #include "surge/core/debug.hpp"
 #endif
 
-#include <vulkan/vulkan.h>
 
 #include <algorithm>
 #include <cstring>
@@ -69,9 +68,9 @@ public:
         VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
     };
 
-    Context(const std::string& appName, const std::string& engineName, const uint32_t width, const uint32_t height,
+    Context(const std::string& appName, const std::string& engineName, const Window::Resolution& resolution,
             const Window::Callback& callback)
-        : window { appName, width, height, callback }
+        : window { appName, resolution, callback }
         , instance { createInstance(appName, engineName, window.extensions()) }
         , surface { window.createSurface(instance) }
         , physicalDevice { pickPhysicalDevice(instance, surface) }
@@ -318,6 +317,7 @@ public:
 #ifndef NDEBUG
         destroyDebugMessenger(instance, debugMessenger, nullptr);
 #endif
+        vkDeviceWaitIdle(device);
         vkDestroyDevice(device, nullptr);
         vkDestroySurfaceKHR(instance, surface, nullptr);
         vkDestroyInstance(instance, nullptr);
@@ -736,16 +736,17 @@ private:
     }
 };
 
-static const Context& createContext(const std::string& appName, const std::string& engineName, const uint32_t width,
-                                    const uint32_t height, const std::optional<Window::Callback>& callback)
+static const Context& createContext(const std::string& appName, const std::string& engineName,
+                                    const Window::Resolution&              resolution,
+                                    const std::optional<Window::Callback>& callback)
 {
-    static Context context { appName, engineName, width, height, callback.value() };
+    static Context context { appName, engineName, resolution, callback.value() };
     return context;
 };
 
 static const Context& context()
 {
-    return createContext("", "", 0, 0, std::nullopt);
+    return createContext("", "", { 0, 0 }, std::nullopt);
 };
 
 }  // namespace surge::core

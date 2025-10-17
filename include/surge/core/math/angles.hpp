@@ -10,11 +10,6 @@ namespace surge::core::math
 
 template<typename Type = float>
 using Quaternion = Vector<4, Type>;
-// struct Quaternion
-// {
-//     double w, x, y, z;
-// };
-
 
 // roll, pitch, yaw
 enum class Angle
@@ -23,18 +18,9 @@ enum class Angle
     degrees,
 };
 
-// template<Angle angle, typename Type>
-// using Angles = Vector<3, Type>;
 
 template<Angle angle = Angle::radians, typename Type = float>
 using EulerAngles = Vector<3, Type>;
-// struct EulerAngles
-// {
-//     double roll, pitch, yaw;
-// };
-
-// this implementation assumes normalized quaternion
-// converts to Euler angles in 3-2-1 sequence
 
 template<typename Type>
 constexpr Type yaw(const Quaternion<Type>& quaternion)
@@ -82,28 +68,6 @@ constexpr Type pitch(const Quaternion<Type>& quaternion)
 template<typename Type>
 constexpr EulerAngles<Angle::radians, Type> toEulerAngles(const Quaternion<Type>& quaternion)
 {
-    // const auto qx = quaternion.at(0);
-    // const auto qy = quaternion.at(1);
-    // const auto qz = quaternion.at(2);
-    // const auto qw = quaternion.at(3);
-
-    // // roll (x-axis rotation)
-    // const auto sinr_cosp = 2 * (qw * qx + qy * qz);
-    // const auto cosr_cosp = 1 - 2 * (qx * qx + qy * qy);
-
-    // // pitch (y-axis rotation)
-    // const auto sinp = std::sqrt(1 + 2 * (qw * qy - qx * qz));
-    // const auto cosp = std::sqrt(1 - 2 * (qw * qy - qx * qz));
-
-    // // yaw (z-axis rotation)
-    // const auto siny_cosp = 2 * (qw * qz + qx * qy);
-    // const auto cosy_cosp = 1 - 2 * (qy * qy + qz * qz);
-
-    // return EulerAngles {
-    //     std::atan2(sinr_cosp, cosr_cosp),
-    //     2 * std::atan2(sinp, cosp) - std::numbers::pi_v<Float32> / 2,
-    //     std::atan2(siny_cosp, cosy_cosp),
-    // };
     return Vector<3> { yaw(quaternion), pitch(quaternion), roll(quaternion) };
 }
 

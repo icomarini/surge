@@ -1,7 +1,6 @@
 #pragma once
 
 #include "surge/core/math/math.hpp"
-#include "surge/core/input/input.hpp"
 #include "surge/core/Window.hpp"
 
 #include <map>
@@ -15,8 +14,11 @@ struct UserInteraction
 {
     struct Mouse
     {
-        using Position = core::math::Vector<2, double>;
-        using Offset   = core::math::Vector<2, double>;
+        // using Position = core::math::Vector<2, double>;
+        // using Offset   = core::math::Vector<2, double>;
+
+        using Position = core::input::Position;
+        using Offset   = core::input::Offset;
 
         Position            position { 0.0, 0.0 };
         Offset              offset { 0.0, 0.0 };
@@ -34,13 +36,12 @@ struct UserInteraction
         core::input::Action d = core::input::Action::none;
     };
 
-    UserInteraction(const uint32_t width, const uint32_t height)
+    UserInteraction(const core::Window::Resolution& resolution)
         : start { std::chrono::high_resolution_clock::now() }
         , elapsedTime { 0.0 }
         , begin { std::chrono::high_resolution_clock::now() }
         , timer { 0.0 }
-        , width { width }
-        , height { height }
+        , resolution { resolution }
         , mouseActive { true }
         , shadowMap { false }
         , lightPos { 0.0f, 0.0f, 0.0f }
@@ -57,9 +58,8 @@ struct UserInteraction
     Mouse    mouse;
     Keyboard keyboard;
 
-    uint32_t width { 0 };
-    uint32_t height { 0 };
-    bool     framebufferResized;
+    core::Window::Resolution resolution;
+    bool                     framebufferResized;
 
     bool mouseActive;
 
@@ -96,20 +96,16 @@ struct UserInteraction
         };
     }
 
-    static void framebufferCallback(core::Window& window, int width, int height)
+    static void framebufferCallback(core::Window& window, const core::Window::Resolution& resolution)
     {
         auto& userInteraction              = window.getUserInteraction<UserInteraction>();
-        userInteraction.width              = static_cast<uint32_t>(width);
-        userInteraction.height             = static_cast<uint32_t>(height);
+        userInteraction.resolution         = resolution;
         userInteraction.framebufferResized = true;
     }
 
-    static void keyboardCallback(core::Window& window, int rawKey, int rawAction)
+    static void keyboardCallback(core::Window& window, const core::input::Key key, const core::input::Action action)
     {
-        auto&      userInteraction = window.getUserInteraction<UserInteraction>();
-        const auto key             = static_cast<core::input::Key>(rawKey);
-        const auto action          = core::input::map.at(rawAction);
-
+        auto& userInteraction = window.getUserInteraction<UserInteraction>();
         if (key == core::input::Key::escape && action == core::input::Action::press)
         {
             window.exit();
@@ -147,42 +143,40 @@ struct UserInteraction
         }
     }
 
-    static void mousePositionCallback(core::Window& window, double x, double y)
+    static void mousePositionCallback(core::Window& window, const core::input::Position& position)
     {
-        auto&                 userInteraction = window.getUserInteraction<UserInteraction>();
-        const Mouse::Position position { x, y };
+        auto& userInteraction          = window.getUserInteraction<UserInteraction>();
         userInteraction.mouse.offset   = position - userInteraction.mouse.position;
         userInteraction.mouse.position = position;
     }
 
-    static void mouseButtonCallback(core::Window& window, int button, int rawAction)
+    static void mouseButtonCallback(core::Window& window, core::input::Button button, core::input::Action action)
     {
-        auto&      userInteraction = window.getUserInteraction<UserInteraction>();
-        const auto action          = core::input::map.at(rawAction);
+        auto& userInteraction = window.getUserInteraction<UserInteraction>();
         switch (button)
         {
-        case 0:
+        case core::input::Button::left:
         {
             userInteraction.mouse.left = action;
             break;
         }
-        case 1:
-        {
-            userInteraction.mouse.right = action;
-            break;
-        }
-        case 2:
+        case core::input::Button::middle:
         {
             userInteraction.mouse.middle = action;
+            break;
+        }
+        case core::input::Button::right:
+        {
+            userInteraction.mouse.right = action;
             break;
         }
         }
     }
 
-    static void mouseWheelCallback(core::Window& window, double xoffset, double yoffset)
+    static void mouseWheelCallback(core::Window& window, const core::input::Offset& offset)
     {
         auto& userInteraction       = window.getUserInteraction<UserInteraction>();
-        userInteraction.mouse.wheel = UserInteraction::Mouse::Offset { xoffset, yoffset };
+        userInteraction.mouse.wheel = offset;
     }
 };
 

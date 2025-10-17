@@ -86,10 +86,11 @@ public:
     }
 
 
-    static void newFrame(const VkExtent2D extent, const float scale, std::array<float, 50>& frameTimes,
-                         const UserInteraction& ui, const std::map<std::string, asset::Asset>& assets)
+    static void newFrame(const float scale, std::array<float, 50>& frameTimes, const UserInteraction& ui,
+                         const std::map<std::string, asset::Asset>& assets)
     {
-        ImGuiIO& io                = ImGui::GetIO();
+        ImGuiIO&    io             = ImGui::GetIO();
+        const auto& extent         = core::context().extent();
         io.DisplaySize             = ImVec2(extent.width, extent.height);
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
@@ -199,9 +200,9 @@ public:
         model->transfer(loadedOverlay);
     }
 
-    void update(const VkExtent2D extent, const UserInteraction& userInteraction) const
+    void update(const UserInteraction& userInteraction) const
     {
-        newFrame(extent, imGuiContext.scale, frameTimes, userInteraction, assets);
+        newFrame(imGuiContext.scale, frameTimes, userInteraction, assets);
         updateBuffers(graphicsQueue, model);
     }
 

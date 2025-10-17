@@ -56,14 +56,13 @@ void createRope(physics::Physics& physics, const physics::Position& first, const
 class Application
 {
 public:
-    const uint32_t    WIDTH      = 1600;
-    const uint32_t    HEIGHT     = 900;
-    const std::string appName    = "surge-app";
-    const std::string engineName = "surge";
+    static constexpr core::Window::Resolution resolution { .width = 1600, .height = 900 };
+    const std::string                         appName    = "surge-app";
+    const std::string                         engineName = "surge";
 
     Application(const std::map<std::string, load::AssetHandle>& assetHandles)
-        : userInteraction { WIDTH, HEIGHT }
-        , context { core::createContext(appName, engineName, WIDTH, HEIGHT, createCallback(&userInteraction)) }
+        : userInteraction { resolution }
+        , context { core::createContext(appName, engineName, resolution, createCallback(&userInteraction)) }
         , command {}
         , presenter { command }
         , defaults { command, std::get<load::LoadedTexture::Handle>(assetHandles.at("default")) }
@@ -82,28 +81,25 @@ public:
     {
         using namespace physics;
         physics.clear();
-        {
-            auto& anchor1   = physics.addAnchor(Position { 0, 0.5, 0 });
-            auto& anchor2   = physics.addAnchor(Position { 0, 0.5, 1 });
-            auto& anchor3   = physics.addAnchor(Position { 1, 0.5, 0 });
-            auto& anchor4   = physics.addAnchor(Position { 1, 0.5, 1 });
-            auto& particle1 = physics.addParticle(Mass { 1 }, Position { 0.4, 1.0, 0.5 });
 
-            constexpr Scalar springConstant = 0.5;
-            constexpr Scalar restLength     = 1;
-            physics.addAnchoredSpring(anchor1, particle1, springConstant, restLength);
-            physics.addAnchoredSpring(anchor2, particle1, springConstant, restLength);
-            physics.addAnchoredSpring(anchor3, particle1, springConstant, restLength);
-            physics.addAnchoredSpring(anchor4, particle1, springConstant, restLength);
+        auto& anchor1   = physics.addAnchor(Position { 0, 0.5, 0 });
+        auto& anchor2   = physics.addAnchor(Position { 0, 0.5, 1 });
+        auto& anchor3   = physics.addAnchor(Position { 1, 0.5, 0 });
+        auto& anchor4   = physics.addAnchor(Position { 1, 0.5, 1 });
+        auto& particle1 = physics.addParticle(Mass { 1 }, Position { 0.4, 1.0, 0.5 });
 
-            auto& particle2 = physics.addParticle(Mass { 0.1 }, Position { -1.4, 1.0, 0.5 });
-            physics.addSpring(particle1, particle2, springConstant, restLength);
-        }
+        constexpr Scalar springConstant = 0.5;
+        constexpr Scalar restLength     = 1;
+        physics.addAnchoredSpring(anchor1, particle1, springConstant, restLength);
+        physics.addAnchoredSpring(anchor2, particle1, springConstant, restLength);
+        physics.addAnchoredSpring(anchor3, particle1, springConstant, restLength);
+        physics.addAnchoredSpring(anchor4, particle1, springConstant, restLength);
 
-        {
-            createRope(physics, Position { -10, 0, 0 }, Position { 0, 0, -10 }, 64);
-            createRope(physics, Position { -9, 0, 0 }, Position { 0, 0, -9 }, 64);
-        }
+        auto& particle2 = physics.addParticle(Mass { 0.1 }, Position { -1.4, 1.0, 0.5 });
+        physics.addSpring(particle1, particle2, springConstant, restLength);
+
+        createRope(physics, Position { -10, 0, 0 }, Position { 0, 0, -10 }, 32);
+        createRope(physics, Position { -9, 0, 0 }, Position { 0, 0, -9 }, 32);
     }
 
     ~Application()
@@ -147,7 +143,7 @@ public:
             offsetX += stepX;
         }
 
-        VkExtent2D extent { WIDTH, HEIGHT };
+        // VkExtent2D extent { WIDTH, HEIGHT };
 
         while (core::context().proceed())
         {
@@ -167,13 +163,13 @@ public:
                 {
                     const auto duration = userInteraction.elapsedTime;
 
-                    physics.update(duration);
-
                     if (userInteraction.mouse.right == Action::press)
                     {
                         resetPhysics();
                         physicsActive = false;
                     }
+
+                    physics.update(duration);
                 }
                 // === physics playground ===
 
@@ -186,11 +182,10 @@ public:
 
                 skybox.update(userInteraction);
                 renderer.update(userInteraction);
-                overlay.update(extent, userInteraction);
+                overlay.update(userInteraction);
 
                 // === rendering ===
                 const auto inFlight = presenter.acquire();
-                extent              = inFlight.extent;
 
                 skybox.draw(inFlight.commandBuffer);
                 renderer.draw(inFlight.commandBuffer);

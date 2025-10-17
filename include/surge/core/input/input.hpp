@@ -1,5 +1,7 @@
 #pragma once
 
+#include "surge/core/math/Vector.hpp"
+
 #include <map>
 #include <string>
 
@@ -130,19 +132,34 @@ enum class Key
     menu           = 348
 };
 
-enum class Action
+enum class Button
 {
-    none,
-    release,
-    press,
-    repeat,
+    left = 0,
+    middle,
+    right,
 };
 
-static constexpr std::array<Action, 3> map {
-    Action::release,
-    Action::press,
-    Action::repeat,
+enum class Action
+{
+    release = 0,
+    press,
+    repeat,
+    none,
 };
+
+// struct Position
+// {
+//     double x;
+//     double y;
+// };
+
+// struct Offset
+// {
+//     double x;
+//     double y;
+// };
+using Position = core::math::Vector<2, double>;
+using Offset   = core::math::Vector<2, double>;
 
 const std::map<Action, std::string> toString {
     { Action::none, "none" },

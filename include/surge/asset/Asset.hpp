@@ -1,15 +1,10 @@
 #pragma once
 
-// #include "surge/load/Obj.hpp"
-// #include "surge/load/Gltf.hpp"
 #include "surge/asset/Animation.hpp"
 #include "surge/asset/Model.hpp"
 #include "surge/asset/Mesh.hpp"
 #include "surge/asset/Scene.hpp"
 #include "surge/asset/Skin.hpp"
-// #include "surge/load/Defaults.hpp"
-
-#include <numeric>
 
 
 namespace surge::asset

@@ -22,12 +22,6 @@ public:
 class Particle
 {
 public:
-    // enum class Type
-    // {
-    //     anchored,
-    //     free
-    // };
-    // Type         type;
     Mass         mass;
     Position     position;
     Velocity     velocity;

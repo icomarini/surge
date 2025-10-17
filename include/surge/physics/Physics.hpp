@@ -10,21 +10,24 @@ constexpr Acceleration earthGravity { 0, -9.81, 0 };
 class Physics
 {
 public:
-    ForceRegistry               registry;
-    ParticleGravity             gravity;
+    ForceRegistry   registry;
+    ParticleGravity gravity;
+    // std::size_t                 size;
     std::vector<Anchor>         anchors;
     std::vector<Particle>       particles;
     std::vector<AnchoredSpring> anchoredSprings;
     std::vector<Spring>         springs;
 
-    Physics(const Acceleration& gravity)
+    Physics(const Acceleration& gravity /*, const std::size_t size*/)
         : gravity { gravity }
+    // , size { size }
     {
         allocate(256);
     }
 
     void allocate(const std::size_t size)
     {
+        registry.reserve(size);
         anchors.reserve(size);
         particles.reserve(size);
         anchoredSprings.reserve(size);
@@ -37,7 +40,8 @@ public:
         anchors.clear();
         particles.clear();
         anchoredSprings.clear();
-        allocate(256);
+        springs.clear();
+        // allocate(256);
     }
 
     physics::Anchor& addAnchor(const Position& position)

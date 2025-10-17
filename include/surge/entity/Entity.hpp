@@ -2,6 +2,8 @@
 
 #include "surge/asset/Asset.hpp"
 
+#include <numeric>
+
 namespace surge::entity
 {
 struct Entity

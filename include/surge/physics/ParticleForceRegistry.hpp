@@ -40,6 +40,10 @@ public:
         registrations.clear();
     }
 
+    void reserve(const std::size_t size)
+    {
+        registrations.reserve(size);
+    }
     /**
      * Removes the given registered pair from the registry.
      * If the pair is not registered, this method will have

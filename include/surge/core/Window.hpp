@@ -16,19 +16,37 @@ namespace surge::core
 class Window
 {
 public:
-    struct Callback
+    struct Resolution
     {
-        void*                                        opaquePtr;
-        std::function<void(Window&, int, int)>       framebuffer;
-        std::function<void(Window&, int, int)>       keyboard;
-        std::function<void(Window&, double, double)> mousePosition;
-        std::function<void(Window&, int, int)>       mouseButton;
-        std::function<void(Window&, double, double)> mouseWheel;
+        std::size_t width;
+        std::size_t height;
     };
 
-    Window(const std::string& windowName, const uint32_t width, const uint32_t height, const Callback& callback)
+    struct Callback
+    {
+        void*                                                      opaquePtr;
+        std::function<void(Window&, Resolution)>                   framebuffer;
+        std::function<void(Window&, input::Key, input::Action)>    keyboard;
+        std::function<void(Window&, input::Position)>              mousePosition;
+        std::function<void(Window&, input::Button, input::Action)> mouseButton;
+        std::function<void(Window&, input::Offset)>                mouseWheel;
+    };
+
+    static constexpr std::array<input::Action, 3> action {
+        input::Action::release,
+        input::Action::press,
+        input::Action::repeat,
+    };
+
+    static constexpr std::array button {
+        input::Button::left,
+        input::Button::right,
+        input::Button::middle,
+    };
+
+    Window(const std::string& windowName, const Resolution& resolution, const Callback& callback)
         : glfwContext {}
-        , glfwWindow { glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr) }
+        , glfwWindow { glfwCreateWindow(resolution.width, resolution.height, windowName.c_str(), nullptr, nullptr) }
         , callback { callback }
     {
         glfwSetWindowUserPointer(glfwWindow, this);
@@ -37,32 +55,37 @@ public:
         glfwSetFramebufferSizeCallback(glfwWindow,
                                        [](GLFWwindow* glfwWindow, int width, int height)
                                        {
-                                           auto& window = Window::self(glfwWindow);
-                                           window.callback.framebuffer(window, width, height);
+                                           auto&            window = Window::self(glfwWindow);
+                                           const Resolution resolution {
+                                               .width  = static_cast<std::size_t>(width),
+                                               .height = static_cast<std::size_t>(height),
+                                           };
+                                           window.callback.framebuffer(window, resolution);
                                        });
         glfwSetKeyCallback(glfwWindow,
-                           [](GLFWwindow* glfwWindow, int key, int /*scancode*/, int action, int /*mods*/)
+                           [](GLFWwindow* glfwWindow, int rawKey, int /*scancode*/, int rawAction, int /*mods*/)
                            {
                                auto& window = Window::self(glfwWindow);
-                               window.callback.keyboard(window, key, action);
+                               window.callback.keyboard(window, static_cast<input::Key>(rawKey),
+                                                        static_cast<input::Action>(rawAction));
                            });
         glfwSetCursorPosCallback(glfwWindow,
                                  [](GLFWwindow* glfwWindow, double x, double y)
                                  {
                                      auto& window = Window::self(glfwWindow);
-                                     window.callback.mousePosition(window, x, y);
+                                     window.callback.mousePosition(window, input::Position { x, y });
                                  });
         glfwSetMouseButtonCallback(glfwWindow,
-                                   [](GLFWwindow* glfwWindow, int button, int action, int /*mods*/)
+                                   [](GLFWwindow* glfwWindow, int rawButton, int rawAction, int /*mods*/)
                                    {
                                        auto& window = Window::self(glfwWindow);
-                                       window.callback.mouseButton(window, button, action);
+                                       window.callback.mouseButton(window, button.at(rawButton), action.at(rawAction));
                                    });
         glfwSetScrollCallback(glfwWindow,
-                              [](GLFWwindow* glfwWindow, double xoffset, double yoffset)
+                              [](GLFWwindow* glfwWindow, double x, double y)
                               {
                                   auto& window = Window::self(glfwWindow);
-                                  window.callback.mouseWheel(window, xoffset, yoffset);
+                                  window.callback.mouseWheel(window, input::Offset { x, y });
                               });
     }
 

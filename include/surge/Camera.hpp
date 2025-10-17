@@ -8,7 +8,7 @@
 
 #include "glm/gtx/quaternion.hpp"
 #include "glm/gtx/euler_angles.hpp"
-#include "glm/glm.hpp"
+// #include "glm/glm.hpp"
 
 namespace surge
 {
@@ -54,7 +54,7 @@ public:
     {
         if (ui.framebufferResized)
         {
-            aspect           = static_cast<float>(ui.width) / ui.height;
+            aspect           = static_cast<float>(ui.resolution.width) / ui.resolution.height;
             mats.perspective = core::math::Perspective<flipY> { core::math::deg2rad(45.0f), aspect, 0.1f, 100.0f };
         }
 
