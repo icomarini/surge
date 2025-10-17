@@ -132,9 +132,9 @@ public:
     core::Descriptor                                               descriptor;
     std::map<std::string, std::pair<VkPipelineLayout, VkPipeline>> pipelines;
 
-    void update(const UserInteraction& ui)
+    void update(const Input& input)
     {
-        camera.update(ui);
+        camera.update(input);
         const std::array sceneMatrices {
             core::math::fullMatrix(camera.mats.perspective),
             core::math::fullMatrix(camera.mats.view),

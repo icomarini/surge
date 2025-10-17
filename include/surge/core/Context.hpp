@@ -314,12 +314,12 @@ public:
 
     ~Context()
     {
-#ifndef NDEBUG
-        destroyDebugMessenger(instance, debugMessenger, nullptr);
-#endif
         vkDeviceWaitIdle(device);
         vkDestroyDevice(device, nullptr);
         vkDestroySurfaceKHR(instance, surface, nullptr);
+#ifndef NDEBUG
+        destroyDebugMessenger(instance, debugMessenger, nullptr);
+#endif
         vkDestroyInstance(instance, nullptr);
     }
 

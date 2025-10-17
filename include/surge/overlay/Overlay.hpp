@@ -1,7 +1,7 @@
 #pragma once
 
 #include "surge/overlay/LoadedOverlay.hpp"
-#include "surge/UserInteraction.hpp"
+#include "surge/Input.hpp"
 #include "surge/core/Command.hpp"
 
 #include "surge/core/Pipeline.hpp"
@@ -28,7 +28,7 @@ public:
     };
 
 
-    Overlay(const core::Command& command, UserInteraction&, const std::map<std::string, asset::Asset>& assets)
+    Overlay(const core::Command& command, Input&, const std::map<std::string, asset::Asset>& assets)
         : imGuiContext { 1 }
         , frameTimes {}
         , fontTexture { command, Font {}, asset::SceneTextureInfo {} }
@@ -87,7 +87,7 @@ public:
     }
 
 
-    static void newFrame(const float scale, std::array<float, 50>& frameTimes, const UserInteraction& ui,
+    static void newFrame(const float scale, std::array<float, 50>& frameTimes, const Input& input,
                          const std::map<std::string, asset::Asset>& assets)
     {
         ImGuiIO&    io             = ImGui::GetIO();
@@ -97,15 +97,15 @@ public:
 
         constexpr float scaling = 2;
         // constexpr float scaling = 1;
-        io.AddMousePosEvent(scaling * static_cast<float>(ui.mouse.position.at(0)),
-                            scaling * static_cast<float>(ui.mouse.position.at(1)));
-        io.AddMouseWheelEvent(ui.mouse.wheel.at(0), ui.mouse.wheel.at(1));
+        io.AddMousePosEvent(scaling * static_cast<float>(input.mouse.position.at(0)),
+                            scaling * static_cast<float>(input.mouse.position.at(1)));
+        io.AddMouseWheelEvent(input.mouse.wheel.at(0), input.mouse.wheel.at(1));
 
-        if (ui.mouse.left == core::input::Action::press)
+        if (input.mouse.left == core::input::Action::press)
         {
             io.AddMouseButtonEvent(0, true);
         }
-        if (ui.mouse.left == core::input::Action::release)
+        if (input.mouse.left == core::input::Action::release)
         {
             io.AddMouseButtonEvent(0, false);
         }
@@ -123,13 +123,13 @@ public:
         ImGui::PushItemWidth(100.0f * scale);
 
         std::rotate(frameTimes.begin(), frameTimes.begin() + 1, frameTimes.end());
-        frameTimes.back()     = 1.0 / ui.elapsedTime;
+        frameTimes.back()     = 1.0 / input.elapsedTime;
         const auto [min, max] = std::minmax_element(frameTimes.begin(), frameTimes.end());
         ImGui::PlotLines("Frame Times", frameTimes.data(), 50, 0, "", 0, *max, ImVec2(0, 20));
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
-        ImGui::Text("Mouse position: %f %f", ui.mouse.position.at(0), ui.mouse.position.at(1));
-        ImGui::Text("Mouse wheel:    %f %f", ui.mouse.wheel.at(0), ui.mouse.wheel.at(1));
+        ImGui::Text("Mouse position: %f %f", input.mouse.position.at(0), input.mouse.position.at(1));
+        ImGui::Text("Mouse wheel:    %f %f", input.mouse.wheel.at(0), input.mouse.wheel.at(1));
 
         // ImGui::Text("Cam.pos  %f, %f, %f", ui.firstPersonCamera.position.x, ui.firstPersonCamera.position.y,
         //             ui.firstPersonCamera.position.z);
@@ -137,7 +137,7 @@ public:
         // ImGui::Text("Cam.front  %f, %f, %f", ui.firstPersonCamera.front.x, ui.firstPersonCamera.front.y,
         //             ui.firstPersonCamera.front.z);
 
-        ImGui::Text("active mouse: %s", ui.mouseActive ? "true" : "false");
+        ImGui::Text("active mouse: %s", input.mouseActive ? "true" : "false");
         // ImGui::Text("shadow map: %s", ui.shadowMap ? "true" : "false");
 
         // ImGui::Text("light pos: %f, %f, %f", ui.lightPos[0], ui.lightPos[1], ui.lightPos[2]);
@@ -201,21 +201,16 @@ public:
         model->transfer(loadedOverlay);
     }
 
-    void update(const UserInteraction& userInteraction) const
+    void update(const Input& input) const
     {
-        newFrame(imGuiContext.scale, frameTimes, userInteraction, assets);
+        newFrame(imGuiContext.scale, frameTimes, input, assets);
         updateBuffers(graphicsQueue, model);
     }
-
-    // void drawOffscreen(const VkCommandBuffer commandBuffer) const
-    // {
-    // }
 
     void draw(const VkCommandBuffer commandBuffer) const
     {
         if (!model)
         {
-            // throw std::runtime_error("Failed to retrieve ImGui model!");
             return;
         }
 

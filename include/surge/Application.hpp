@@ -61,8 +61,8 @@ public:
     const std::string                         engineName = "surge";
 
     Application(const std::map<std::string, load::AssetHandle>& assetHandles)
-        : userInteraction { resolution }
-        , context { core::createContext(appName, engineName, resolution, createCallback(&userInteraction)) }
+        : input { resolution }
+        , context { core::createContext(appName, engineName, resolution, createCallback(&input)) }
         , command {}
         , presenter { command }
         , defaults { command, std::get<load::LoadedTexture::Handle>(assetHandles.at("default")) }
@@ -70,11 +70,11 @@ public:
         , physics { physics::earthGravity }
         , assets { createAssets(command, defaults, assetHandles) }
         , renderer { assets, physics }
-        , overlay { command, userInteraction, assets }
+        , overlay { command, input, assets }
     {
         resetPhysics();
 
-        // std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge started" << std::endl;
+        std::cout << "\033[1;32m[surge of INFO]\033[0m The surge of urge to purge loaded" << std::endl;
     }
 
     void resetPhysics()
@@ -104,8 +104,8 @@ public:
 
     ~Application()
     {
-        std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge "
-                     "terminated"
+        std::cout << "\033[1;32m[surge of INFO]\033[0m The surge of urge to purge "
+                     "unloaded"
                   << std::endl;
     }
 
@@ -149,21 +149,21 @@ public:
         {
             if (elapsedTime > 1.0 / 144.0)
             {
-                userInteraction.reset();
+                input.reset();
                 core::context().pollEvents();
 
                 // === physics playground ===
                 using Action = core::input::Action;
-                if (!physicsActive && userInteraction.mouse.left == Action::press)
+                if (!physicsActive && input.mouse.left == Action::press)
                 {
                     physicsActive = true;
                 }
 
                 if (physicsActive)
                 {
-                    const auto duration = userInteraction.elapsedTime;
+                    const auto duration = input.elapsedTime;
 
-                    if (userInteraction.mouse.right == Action::press)
+                    if (input.mouse.right == Action::press)
                     {
                         resetPhysics();
                         physicsActive = false;
@@ -180,9 +180,9 @@ public:
                 }
                 // === entity playground ===
 
-                skybox.update(userInteraction);
-                renderer.update(userInteraction);
-                overlay.update(userInteraction);
+                skybox.update(input);
+                renderer.update(input);
+                overlay.update(input);
 
                 // === rendering ===
                 const auto inFlight = presenter.acquire();
@@ -195,7 +195,7 @@ public:
                 }
                 overlay.draw(inFlight.commandBuffer);
 
-                presenter.present(command, userInteraction.framebufferResized);
+                presenter.present(command, input.framebufferResized);
                 // === rendering ===
 
                 start = std::chrono::high_resolution_clock::now();
@@ -209,7 +209,7 @@ public:
     }
 
 private:
-    mutable UserInteraction             userInteraction;
+    mutable Input                       input;
     const core::Context&                context;
     const core::Command                 command;
     core::Presenter                     presenter;
@@ -221,15 +221,15 @@ private:
     overlay::Overlay                    overlay;
 
 
-    static core::Window::Callback createCallback(UserInteraction* userInteraction)
+    static core::Window::Callback createCallback(Input* input)
     {
         return core::Window::Callback {
-            .opaquePtr     = userInteraction,
-            .framebuffer   = UserInteraction::framebufferCallback,
-            .keyboard      = UserInteraction::keyboardCallback,
-            .mousePosition = UserInteraction::mousePositionCallback,
-            .mouseButton   = UserInteraction::mouseButtonCallback,
-            .mouseWheel    = UserInteraction::mouseWheelCallback,
+            .opaquePtr     = input,
+            .framebuffer   = Input::framebufferCallback,
+            .keyboard      = Input::keyboardCallback,
+            .mousePosition = Input::mousePositionCallback,
+            .mouseButton   = Input::mouseButtonCallback,
+            .mouseWheel    = Input::mouseWheelCallback,
         };
     }
 

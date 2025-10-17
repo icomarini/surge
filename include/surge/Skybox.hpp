@@ -65,14 +65,14 @@ public:
     {
     }
 
-    void update(const VkExtent2D, const UserInteraction& ui) const
+    void update(const VkExtent2D, const Input& input) const
     {
-        update({}, ui);
+        update({}, input);
     }
 
-    void update(const UserInteraction& ui) const
+    void update(const Input& input) const
     {
-        camera.update(ui);
+        camera.update(input);
         const auto viewProjection = camera.mats.perspective * camera.mats.view;
         memcpy(uniformBuffer.mapped, &viewProjection, sizeof(core::math::Matrix<4, 4>));
     }

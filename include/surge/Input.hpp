@@ -10,13 +10,10 @@
 
 namespace surge
 {
-struct UserInteraction
+struct Input
 {
     struct Mouse
     {
-        // using Position = core::math::Vector<2, double>;
-        // using Offset   = core::math::Vector<2, double>;
-
         using Position = core::input::Position;
         using Offset   = core::input::Offset;
 
@@ -36,7 +33,7 @@ struct UserInteraction
         core::input::Action d = core::input::Action::none;
     };
 
-    UserInteraction(const core::Window::Resolution& resolution)
+    Input(const core::Window::Resolution& resolution)
         : start { std::chrono::high_resolution_clock::now() }
         , elapsedTime { 0.0 }
         , begin { std::chrono::high_resolution_clock::now() }
@@ -99,14 +96,14 @@ struct UserInteraction
 
     static void framebufferCallback(core::Window& window, const core::Window::Resolution& resolution)
     {
-        auto& userInteraction              = window.getUserInteraction<UserInteraction>();
-        userInteraction.resolution         = resolution;
-        userInteraction.framebufferResized = true;
+        auto& input              = window.getInput<Input>();
+        input.resolution         = resolution;
+        input.framebufferResized = true;
     }
 
     static void keyboardCallback(core::Window& window, const core::input::Key key, const core::input::Action action)
     {
-        auto& userInteraction = window.getUserInteraction<UserInteraction>();
+        auto& input = window.getInput<Input>();
         if (key == core::input::Key::escape && action == core::input::Action::press)
         {
             window.exit();
@@ -114,61 +111,61 @@ struct UserInteraction
 
         if (key == core::input::Key::g && action == core::input::Action::press)
         {
-            if (userInteraction.mouseActive)
+            if (input.mouseActive)
             {
                 window.deactivateCursor();
-                userInteraction.mouseActive = false;
+                input.mouseActive = false;
             }
             else
             {
                 window.activateCursor();
-                userInteraction.mouseActive = true;
+                input.mouseActive = true;
             }
         }
 
         if (key == core::input::Key::w)
         {
-            userInteraction.keyboard.w = action;
+            input.keyboard.w = action;
         }
         if (key == core::input::Key::s)
         {
-            userInteraction.keyboard.s = action;
+            input.keyboard.s = action;
         }
         if (key == core::input::Key::a)
         {
-            userInteraction.keyboard.a = action;
+            input.keyboard.a = action;
         }
         if (key == core::input::Key::d)
         {
-            userInteraction.keyboard.d = action;
+            input.keyboard.d = action;
         }
     }
 
     static void mousePositionCallback(core::Window& window, const core::input::Position& position)
     {
-        auto& userInteraction          = window.getUserInteraction<UserInteraction>();
-        userInteraction.mouse.offset   = position - userInteraction.mouse.position;
-        userInteraction.mouse.position = position;
+        auto& input          = window.getInput<Input>();
+        input.mouse.offset   = position - input.mouse.position;
+        input.mouse.position = position;
     }
 
     static void mouseButtonCallback(core::Window& window, core::input::Button button, core::input::Action action)
     {
-        auto& userInteraction = window.getUserInteraction<UserInteraction>();
+        auto& input = window.getInput<Input>();
         switch (button)
         {
         case core::input::Button::left:
         {
-            userInteraction.mouse.left = action;
+            input.mouse.left = action;
             break;
         }
         case core::input::Button::middle:
         {
-            userInteraction.mouse.middle = action;
+            input.mouse.middle = action;
             break;
         }
         case core::input::Button::right:
         {
-            userInteraction.mouse.right = action;
+            input.mouse.right = action;
             break;
         }
         }
@@ -176,8 +173,8 @@ struct UserInteraction
 
     static void mouseWheelCallback(core::Window& window, const core::input::Offset& offset)
     {
-        auto& userInteraction       = window.getUserInteraction<UserInteraction>();
-        userInteraction.mouse.wheel = offset;
+        auto& input       = window.getInput<Input>();
+        input.mouse.wheel = offset;
     }
 };
 

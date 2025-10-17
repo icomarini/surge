@@ -151,7 +151,7 @@ public:
     }
 
     template<typename UI>
-    UI& getUserInteraction() const
+    UI& getInput() const
     {
         return *reinterpret_cast<UI*>(callback.opaquePtr);
     }
@@ -186,7 +186,11 @@ private:
 
         ~GlfwContext()
         {
+            // glfwDestroyWindow(glfwWindow);
             glfwTerminate();
+            std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge "
+                         "terminated"
+                      << std::endl;
         }
     };
 

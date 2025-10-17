@@ -1,6 +1,6 @@
 #pragma once
 
-#include "surge/UserInteraction.hpp"
+#include "surge/Input.hpp"
 #include "surge/core/math/matrices.hpp"
 
 #include <algorithm>
@@ -50,43 +50,36 @@ public:
         core::math::View<>             view;
     } mats;
 
-    void update(const UserInteraction& ui)
+    void update(const Input& input)
     {
-        if (ui.framebufferResized)
+        if (input.framebufferResized)
         {
-            aspect           = static_cast<float>(ui.resolution.width) / ui.resolution.height;
+            aspect           = static_cast<float>(input.resolution.width) / input.resolution.height;
             mats.perspective = core::math::Perspective<flipY> { core::math::deg2rad(45.0f), aspect, 0.1f, 100.0f };
         }
 
-        if (!ui.mouseActive)
+        if (!input.mouseActive)
         {
             if constexpr (flipY)
             {
-                rotate(ui.mouse.offset[0], -ui.mouse.offset[1]);
+                rotate(input.mouse.offset[0], -input.mouse.offset[1]);
             }
             else
             {
-                rotate(ui.mouse.offset[0], ui.mouse.offset[1]);
+                rotate(input.mouse.offset[0], input.mouse.offset[1]);
             }
 
             if constexpr (!fixed)
             {
                 using State        = core::input::Action;
-                const auto forward = ui.keyboard.w == State::press || ui.keyboard.w == State::repeat;
-                const auto back    = ui.keyboard.s == State::press || ui.keyboard.s == State::repeat;
-                const auto left    = ui.keyboard.a == State::press || ui.keyboard.a == State::repeat;
-                const auto right   = ui.keyboard.d == State::press || ui.keyboard.d == State::repeat;
-                translate(ui.elapsedTime, forward, back, left, right);
+                const auto forward = input.keyboard.w == State::press || input.keyboard.w == State::repeat;
+                const auto back    = input.keyboard.s == State::press || input.keyboard.s == State::repeat;
+                const auto left    = input.keyboard.a == State::press || input.keyboard.a == State::repeat;
+                const auto right   = input.keyboard.d == State::press || input.keyboard.d == State::repeat;
+                translate(input.elapsedTime, forward, back, left, right);
             }
-            // mats.view       = math::View { vecs.position, vecs.position + vecs.front, vecs.up };
             mats.view = core::math::View { vecs.position, vecs.position + vecs.front, vecs.up };
         }
-
-        // if (ui.framebufferResized || !ui.mouseActive)
-        // {
-        // constexpr math::Rotation correction { math::deg2rad(180.0f), { 1, 0, 0 } };
-        // mats.viewPerspective = mats.view * mats.perspective;
-        // }
     }
 
     const core::math::Matrix<4, 4> viewProjection() const
