@@ -353,7 +353,7 @@ VkPipeline createGraphicPipeline(const VkPipelineVertexInputStateCreateInfo vert
     VkPipeline pipeline;
     if (vkCreateGraphicsPipelines(context().device, pipelineCache, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS)
     {
-        throw std::runtime_error("failed to create graphics pipeline!");
+        throw std::runtime_error("Failed to create graphics pipeline");
     }
     return pipeline;
 }

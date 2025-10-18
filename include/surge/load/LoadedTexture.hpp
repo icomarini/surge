@@ -55,7 +55,7 @@ public:
             if (ktxTexture_CreateFromNamedFile(handle.path.string().c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
                                                &data) != KTX_SUCCESS)
             {
-                throw std::runtime_error("failed to load texture " + handle.path.string());
+                throw std::runtime_error("Failed to load texture " + handle.path.string());
             }
 
             width       = data->baseWidth;
@@ -70,13 +70,12 @@ public:
                     ktx_size_t offset;
                     if (ktxTexture_GetImageOffset(data, mipLevel, 0, arrayLayer, &offset) != KTX_SUCCESS)
                     {
-                        throw std::runtime_error("failed to get offset");
+                        throw std::runtime_error("Failed to get offset");
                     }
                     vOffsets.emplace_back(mipLevel, arrayLayer, offset);
                 }
             }
             pData = data;
-            // throw std::runtime_error("Unsupported formnat image 'ktx' for file " + path.string());
         }
         else
         {
@@ -85,7 +84,7 @@ public:
                 stbi_load(handle.path.string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
             if (data == nullptr)
             {
-                throw std::runtime_error("failed to load texture " + handle.path.string());
+                throw std::runtime_error("Failed to load texture " + handle.path.string());
             }
             pData    = data;
             width    = static_cast<uint32_t>(texWidth);
@@ -114,7 +113,7 @@ public:
         const auto data = stbi_load_from_memory(buffer, size, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         if (data == nullptr)
         {
-            throw std::runtime_error("failed to load texture '" + name + "' from buffer");
+            throw std::runtime_error("Failed to load texture '" + name + "' from buffer");
         }
         pData    = data;
         width    = static_cast<uint32_t>(texWidth);
@@ -134,7 +133,6 @@ public:
 
     const void* data() const
     {
-        // return static_cast<const void* const>(pData);
         return std::visit(
             core::overload {
                 [](stbi_uc* data) { return static_cast<const void*>(data); },

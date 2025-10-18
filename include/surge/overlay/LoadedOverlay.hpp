@@ -39,7 +39,7 @@ public:
         const ImDrawData* const imDrawData = ImGui::GetDrawData();
         if (size != static_cast<std::size_t>(imDrawData->TotalVtxCount) || vertex != nullptr)
         {
-            throw std::runtime_error("Corrupted ImGui vertex data!");
+            throw std::runtime_error("Corrupted ImGui vertex data");
         }
         ImDrawVert* vtxDst = static_cast<ImDrawVert*>(mapped);
         for (int n = 0; n < imDrawData->CmdListsCount; n++)
@@ -55,7 +55,7 @@ public:
         const ImDrawData* const imDrawData = ImGui::GetDrawData();
         if (size != static_cast<std::size_t>(imDrawData->TotalIdxCount) || index != nullptr)
         {
-            throw std::runtime_error("Corrupted ImGui index data!");
+            throw std::runtime_error("Corrupted ImGui index data");
         }
         ImDrawIdx* idxDst = static_cast<ImDrawIdx*>(mapped);
         for (int n = 0; n < imDrawData->CmdListsCount; n++)

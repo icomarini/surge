@@ -82,7 +82,7 @@ public:
             drawPoint(commandBuffer, pipelineLayout,
                       asset::Point {
                           .p     = particle.position,
-                          .color = core::colors::green,
+                          .color = core::Colors<core::Type::rgba>::green,
                       });
         }
         for (const auto& anchor : physics.anchors)
@@ -90,7 +90,7 @@ public:
             drawPoint(commandBuffer, pipelineLayout,
                       asset::Point {
                           .p     = anchor.position,
-                          .color = core::colors::red,
+                          .color = core::Colors<core::Type::rgba>::red,
                       });
         }
     }
@@ -121,7 +121,7 @@ public:
                      asset::Line {
                          .a     = spring.first.position,
                          .b     = spring.second.position,
-                         .color = core::colors::white,
+                         .color = core::Colors<core::Type::rgba>::white,
                      });
         }
         for (const auto& spring : physics.anchoredSprings)
@@ -130,7 +130,7 @@ public:
                      asset::Line {
                          .a     = spring.particle.position,
                          .b     = spring.anchor.position,
-                         .color = core::colors::white,
+                         .color = core::Colors<core::Type::rgba>::white,
                      });
         }
     }

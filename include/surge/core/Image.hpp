@@ -134,7 +134,7 @@ private:
         });
         if (vkBindImageMemory(context().device, image, memory, 0) != VK_SUCCESS)
         {
-            throw std::runtime_error("failed to bind image memory!");
+            throw std::runtime_error("Failed to bind image memory");
         }
         return memory;
     }
@@ -151,7 +151,7 @@ private:
         });
         if (vkBindImageMemory(context().device, image, memory, 0) != VK_SUCCESS)
         {
-            throw std::runtime_error("failed to bind image memory!");
+            throw std::runtime_error("Failed to bind image memory");
         }
         return memory;
     }

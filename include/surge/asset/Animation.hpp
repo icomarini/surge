@@ -73,7 +73,7 @@ public:
             }
             case Channel::Path::weights:
             {
-                throw std::runtime_error("unsupported");
+                throw std::runtime_error("Unsupported");
                 break;
             }
             }

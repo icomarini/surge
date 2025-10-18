@@ -10,6 +10,8 @@
 #include "surge/entity/Entity.hpp"
 #include "surge/entity/Skybox.hpp"
 
+#include "surge/Log.hpp"
+
 namespace surge
 {
 
@@ -48,7 +50,12 @@ double elapsed(auto start)
     return 1e-3 * std::chrono::duration<double, std::milli>(stop - start).count();
 }
 
-void log(const std::string& line) { };
+
+// void log(const std::string& line)
+// {
+//     std::cout << "\033[" << core::Colors<core::Type::ansi>::green << "[surge of INFO]\033[0m" << line << std::endl;
+//     // std::format("[{}", std::format("{:01.3e}", x));
+// };
 
 class Application
 {
@@ -65,7 +72,8 @@ public:
         , overlay { command, input, assets }
     {
         resetPhysics();
-
+        log::urge("The surge of urge to purge started");
+        // std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge started" << std::endl;
         // std::cout << "\033[1;32m[surge of INFO]\033[0m The surge of urge to purge loaded" << std::endl;
     }
 
@@ -98,7 +106,7 @@ public:
     {
         if (assets.contains(name))
         {
-            throw std::runtime_error("asset [" + name + "] already exits");
+            throw std::runtime_error("Asset [" + name + "] already exits");
         }
         const auto start = std::chrono::high_resolution_clock::now();
         std::visit(
@@ -107,6 +115,7 @@ public:
                 {
                     textures.emplace(std::piecewise_construct, std::forward_as_tuple(name),
                                      std::forward_as_tuple(command, load::LoadedTexture { handle }, defaults.sampler));
+                    log::info(core::math::toString(elapsed(start)) + " Loaded texture asset " + handle.path.string());
                 },
                 [&](const load::LoadedSkybox::Handle& handle)
                 {
@@ -117,6 +126,8 @@ public:
                     const auto& [_, asset] = *iter;
                     renderer.createPipeline(name, asset.vertexInputState, asset.shader,
                                             asset.materialDescriptorSetLayout, asset.jointMatricesDescriptorSetLayout);
+                    log::info(core::math::toString(elapsed(start)) + " Loaded skybox asset " +
+                              handle.texturePath.string());
                 },
                 [&](const load::Gltf::Handle& handle)
                 {
@@ -128,6 +139,7 @@ public:
 
                     renderer.createPipeline(name, asset.vertexInputState, asset.shader,
                                             asset.materialDescriptorSetLayout, asset.jointMatricesDescriptorSetLayout);
+                    log::info(core::math::toString(elapsed(start)) + " Loaded gltf asset " + handle.path.string());
                 },
                 [&](const load::Obj::Handle& handle)
                 {
@@ -138,33 +150,7 @@ public:
                     const auto& [_, asset] = *iter;
                     renderer.createPipeline(name, asset.vertexInputState, asset.shader,
                                             asset.materialDescriptorSetLayout, asset.jointMatricesDescriptorSetLayout);
-                },
-            },
-            handle);
-
-        const auto stop        = std::chrono::high_resolution_clock::now();
-        const auto elapsedTime = 1e-3 * std::chrono::duration<double, std::milli>(stop - start).count();
-        std::visit(
-            core::overload {
-                [&](const load::LoadedTexture::Handle& handle)
-                {
-                    std::cout << "\033[1;32m[surge of INFO]\033[0m Loaded texture asset '" << handle.path << "'"
-                              << " in " << elapsedTime << " seconds" << std::endl;
-                },
-                [&](const load::LoadedSkybox::Handle& handle)
-                {
-                    std::cout << "\033[1;32m[surge of INFO]\033[0m Loaded skybox asset '" << handle.texturePath << "'"
-                              << " in " << elapsedTime << " seconds" << std::endl;
-                },
-                [&](const load::Gltf::Handle& handle)
-                {
-                    std::cout << "\033[1;32m[surge of INFO]\033[0m Loaded glTF asset '" << handle.path << "'"
-                              << " in " << elapsedTime << " seconds" << std::endl;
-                },
-                [&](const load::Obj::Handle& handle)
-                {
-                    std::cout << "\033[1;32m[surge of INFO]\033[0m Loaded obj asset '" << handle.meshPath << "'"
-                              << " in " << elapsedTime << " seconds" << std::endl;
+                    log::info(core::math::toString(elapsed(start)) + " Loaded obj asset " + handle.meshPath.string());
                 },
             },
             handle);
@@ -172,9 +158,7 @@ public:
 
     ~Application()
     {
-        std::cout << "\033[1;32m[surge of INFO]\033[0m The surge of urge to purge "
-                     "unloaded"
-                  << std::endl;
+        log::urge("The surge of urge to purge terminated");
     }
 
     void run()

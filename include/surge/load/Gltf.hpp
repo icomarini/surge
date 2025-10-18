@@ -181,7 +181,7 @@ public:
             const auto  name  = baptize<This::texture>(texture.name, textureId++);
 
             const fastgltf::visitor visitor {
-                [](const auto&) -> LoadedTexture { throw std::runtime_error("unsupported visitor"); },
+                [](const auto&) -> LoadedTexture { throw std::runtime_error("Unsupported visitor"); },
                 [&](const fastgltf::sources::URI& uri) -> LoadedTexture
                 {
                     return LoadedTexture { LoadedTexture::Handle { asset::Texture::Type::scene,
@@ -202,7 +202,7 @@ public:
                     const auto&     bufferView = asset.bufferViews.at(view.bufferViewIndex);
                     const auto&     buffer     = asset.buffers.at(bufferView.bufferIndex);
                     const fastgltf::visitor visitor    = {
-                        [](const auto&) -> LoadedTexture { throw std::runtime_error("unsupported visitor"); },
+                        [](const auto&) -> LoadedTexture { throw std::runtime_error("Unsupported visitor"); },
                         [&](const fastgltf::sources::Vector& vector) -> LoadedTexture
                         {
                             return LoadedTexture { name, asset::Texture::Type::scene,
@@ -728,7 +728,7 @@ private:
     {
         const auto errorMessage = [&](const fastgltf::Error error)
         {
-            return "failed to load asset at path '" + path.string() +
+            return "Failed to load asset at path '" + path.string() +
                    "': " + std::string { fastgltf::getErrorName(error) };
         };
 

@@ -129,7 +129,7 @@ public:
             }
         }
 
-        throw std::runtime_error("failed to find suitable memory type!");
+        throw std::runtime_error("Failed to find suitable memory type");
     }
 
     uint32_t findMemoryType(const VkMemoryPropertyFlags memoryPropertyFlags, const uint32_t typeFilter) const
@@ -146,7 +146,7 @@ public:
             }
         }
 
-        throw std::runtime_error("failed to find suitable memory type!");
+        throw std::runtime_error("Failed to find suitable memory type");
     }
 
     bool formatIsFilterable(const VkFormat format, const VkImageTiling tiling) const
@@ -368,7 +368,7 @@ private:
     {
         if (result != VK_SUCCESS)
         {
-            throw std::runtime_error(std::string("failed to create ") + typeid(Handle).name());
+            throw std::runtime_error(std::string("Failed to create ") + typeid(Handle).name());
         }
     }
 
@@ -405,7 +405,7 @@ private:
                 availableExtensions.cend();
             if (!supported)
             {
-                throw std::runtime_error(std::string("missing required extension ") + requiredExtension);
+                throw std::runtime_error(std::string("Missing required extension ") + requiredExtension);
             }
         }
     }
@@ -425,7 +425,7 @@ private:
                 availableLayers.cend();
             if (!supported)
             {
-                throw std::runtime_error(std::string("missing required validation layer") + requestedLayer);
+                throw std::runtime_error(std::string("Missing required validation layer ") + requestedLayer);
             }
         }
     }
@@ -611,7 +611,7 @@ private:
                 return candidate.value();
             }
         }
-        throw std::runtime_error("failed to find a suitable GPU!");
+        throw std::runtime_error("Failed to find a suitable GPU");
     }
 
     VkDevice createLogicalDevice(const VkPhysicalDevice physicalDevice, const uint32_t graphicsFamilyIndex,

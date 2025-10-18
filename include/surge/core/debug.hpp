@@ -43,13 +43,13 @@ VkDebugUtilsMessengerEXT createDebugMessenger(const VkInstance instance)
         vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
     if (vkCreateDebugUtilsMessengerEXT == nullptr)
     {
-        throw std::runtime_error("Failed to set up debug messenger!");
+        throw std::runtime_error("Failed to set up debug messenger");
     }
 
     VkDebugUtilsMessengerEXT debugMessenger;
     if (vkCreateDebugUtilsMessengerEXT(instance, &debugInfo, nullptr, &debugMessenger) != VK_SUCCESS)
     {
-        throw std::runtime_error("Failed to set up debug messenger!");
+        throw std::runtime_error("Failed to set up debug messenger");
     }
     return debugMessenger;
 }
@@ -62,7 +62,7 @@ void destroyDebugMessenger(const VkInstance instance, VkDebugUtilsMessengerEXT d
         vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
     if (vkDestroyDebugUtilsMessengerEXT == nullptr)
     {
-        throw std::runtime_error("Failed to destroy debug messenger!");
+        throw std::runtime_error("Failed to destroy debug messenger");
     }
     if (vkDestroyDebugUtilsMessengerEXT != nullptr)
     {

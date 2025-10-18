@@ -89,11 +89,6 @@ public:
                               });
     }
 
-    // static void error(int error, const char* description)
-    // {
-    //     throw std::runtime_error("GLFW error " + std::to_string(error) + ": " + description);
-    // }
-
     std::vector<const char*> extensions() const
     {
         uint32_t     count      = 0;
@@ -118,7 +113,7 @@ public:
         VkSurfaceKHR surface;
         if (glfwCreateWindowSurface(instance, glfwWindow, nullptr, &surface) != VK_SUCCESS)
         {
-            throw std::runtime_error(std::string("failed to create ") + typeid(VkSurfaceKHR).name());
+            throw std::runtime_error(std::string("Failed to create ") + typeid(VkSurfaceKHR).name());
         }
         return surface;
     }
@@ -181,19 +176,13 @@ private:
             glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
             glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
             glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
-            // glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
         }
 
         ~GlfwContext()
         {
-            // glfwDestroyWindow(glfwWindow);
             glfwTerminate();
-            std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge "
-                         "terminated"
-                      << std::endl;
         }
     };
-
 
     GlfwContext glfwContext;
     GLFWwindow* glfwWindow;

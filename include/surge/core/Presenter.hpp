@@ -43,7 +43,7 @@ public:
         };
         if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
         {
-            throw std::runtime_error("failed to begin recording command buffer!");
+            throw std::runtime_error("Failed to begin recording command buffer");
         }
     }
 
@@ -68,7 +68,7 @@ public:
             break;
         }
         default:
-            throw std::runtime_error("failed to acquire swap chain image!");
+            throw std::runtime_error("Failed to acquire swap chain image");
         }
         const auto& frame = swapchain->frames.at(imageIndex);
 
@@ -83,7 +83,7 @@ public:
         };
         if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
         {
-            throw std::runtime_error("failed to begin recording command buffer!");
+            throw std::runtime_error("Failed to begin recording command buffer");
         }
 
         // pipeline barrier
@@ -220,7 +220,7 @@ public:
 
         if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
         {
-            throw std::runtime_error("failed to record command buffer!");
+            throw std::runtime_error("Failed to record command buffer");
         }
 
         const auto [presented, rendered] = semaphores.current();
@@ -237,7 +237,7 @@ public:
                                                                    .pSignalSemaphores    = &rendered };
         if (vkQueueSubmit(command.graphicsQueue, 1, &submitInfo, fence) != VK_SUCCESS)
         {
-            throw std::runtime_error("failed to submit to queue!");
+            throw std::runtime_error("Failed to submit to queue");
         }
 
         const VkPresentInfoKHR presentInfo {
@@ -257,7 +257,7 @@ public:
         }
         else if (result != VK_SUCCESS)
         {
-            throw std::runtime_error("failed to present swap chain image!");
+            throw std::runtime_error("Failed to present swap chain image");
         }
 
         frames.rotate();

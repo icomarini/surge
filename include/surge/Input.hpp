@@ -44,7 +44,6 @@ struct Input
         , lightPos { 0.0f, 0.0f, 0.0f }
         , wireframe { false }
     {
-        std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge started" << std::endl;
     }
 
     std::chrono::system_clock::time_point start;

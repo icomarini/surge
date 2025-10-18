@@ -71,7 +71,7 @@ public:
         };
         if (vkFlushMappedMemoryRanges(core::context().device, 1, &vertexMappedRange) != VK_SUCCESS)
         {
-            throw std::runtime_error("failed to flush vertex model!");
+            throw std::runtime_error("Failed to flush vertex model");
         }
 
         const VkMappedMemoryRange indexMappedRange = {
@@ -83,7 +83,7 @@ public:
         };
         if (vkFlushMappedMemoryRanges(core::context().device, 1, &indexMappedRange) != VK_SUCCESS)
         {
-            throw std::runtime_error("failed to flush index model!");
+            throw std::runtime_error("Failed to flush index model");
         }
     }
 

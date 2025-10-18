@@ -2,12 +2,36 @@
 
 #include "surge/core/math/Vector.hpp"
 
-namespace surge::core::colors
+namespace surge::core
 {
-using Color = math::Vector<4>;
-static constexpr Color black { 0, 0, 0, 1 };
-static constexpr Color white { 1, 1, 1, 1 };
-static constexpr Color red { 1, 0, 0, 1 };
-static constexpr Color green { 0, 1, 0, 1 };
-static constexpr Color blue { 0, 0, 1, 1 };
-}  // namespace surge::core::colors
+enum class Type
+{
+    rgba,
+    ansi,
+};
+
+template<Type>
+struct Colors;
+
+template<>
+struct Colors<Type::rgba>
+{
+    using Format = math::Vector<4>;
+    static constexpr Format black { 0, 0, 0, 1 };
+    static constexpr Format white { 1, 1, 1, 1 };
+    static constexpr Format red { 1, 0, 0, 1 };
+    static constexpr Format green { 0, 1, 0, 1 };
+    static constexpr Format blue { 0, 0, 1, 1 };
+};
+
+template<>
+struct Colors<Type::ansi>
+{
+    using Format = std::uint8_t;
+    static constexpr Format black { 30 };
+    static constexpr Format white { 37 };
+    static constexpr Format red { 31 };
+    static constexpr Format green { 32 };
+    static constexpr Format blue { 34 };
+};
+}  // namespace surge::core

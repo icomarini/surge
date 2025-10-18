@@ -87,7 +87,7 @@ private:
         });
         if (vkBindBufferMemory(context().device, buffer, memory, 0) != VK_SUCCESS)
         {
-            throw std::runtime_error("failed to bind buffer memory!");
+            throw std::runtime_error("Failed to bind buffer memory");
         }
         return memory;
     }

@@ -14,7 +14,7 @@ public:
     {
         if (const auto report = ma_engine_init(NULL, &engine); report != MA_SUCCESS)
         {
-            throw std::runtime_error("failed to initialize miniaudio with error code " + std::to_string(report));
+            throw std::runtime_error("Failed to initialize miniaudio with error code " + std::to_string(report));
         }
     }
 
@@ -22,7 +22,7 @@ public:
     {
         if (const auto report = ma_engine_play_sound(&engine, path.c_str(), NULL); report != MA_SUCCESS)
         {
-            throw std::runtime_error("failed to play audio at path " + path.string() + " with error code " +
+            throw std::runtime_error("Failed to play audio at path " + path.string() + " with error code " +
                                      std::to_string(report));
         }
     }

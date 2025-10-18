@@ -108,7 +108,7 @@ public:
         VkDescriptorSet descriptorSet;
         if (vkAllocateDescriptorSets(context().device, &allocInfo, &descriptorSet) != VK_SUCCESS)
         {
-            throw std::runtime_error("failed to allocate descriptor sets!");
+            throw std::runtime_error("Failed to allocate descriptor sets");
         }
         return descriptorSet;
     }

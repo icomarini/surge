@@ -178,7 +178,7 @@ public:
         const ImDrawData* const imDrawData = ImGui::GetDrawData();
         if (imDrawData == nullptr)
         {
-            throw std::runtime_error("Failed to retrieve ImGui data!");
+            throw std::runtime_error("Failed to retrieve ImGui data");
         }
 
         // Note: Alignment is done inside buffer creation
@@ -247,7 +247,7 @@ public:
         ImDrawData* imDrawData = ImGui::GetDrawData();
         if (imDrawData == nullptr)
         {
-            throw std::runtime_error("Failed to retrieve ImGui data!");
+            throw std::runtime_error("Failed to retrieve ImGui data");
         }
         int32_t vertexOffset = 0;
         int32_t indexOffset  = 0;

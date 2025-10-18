@@ -174,7 +174,7 @@ public:
                 }
                 else
                 {
-                    throw std::invalid_argument("unsupported layout transition!");
+                    throw std::invalid_argument("Unsupported layout transition");
                 }
 
                 vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1,
