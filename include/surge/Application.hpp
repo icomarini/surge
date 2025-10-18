@@ -72,7 +72,7 @@ public:
         , overlay { command, input, assets }
     {
         resetPhysics();
-        log::urge("The surge of urge to purge started");
+        log::checkpoint("The surge of urge to purge started");
         // std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge started" << std::endl;
         // std::cout << "\033[1;32m[surge of INFO]\033[0m The surge of urge to purge loaded" << std::endl;
     }
@@ -156,9 +156,16 @@ public:
             handle);
     }
 
+    entity::Entity createEntity(const std::string& name, const core::math::StaticMatrix auto& matrix)
+    {
+        const auto& asset                     = assets.at(name);
+        const auto [pipelineLayout, pipeline] = renderer.pipelines.at(name);
+        return entity::Entity { asset, pipelineLayout, pipeline, 0, matrix };
+    }
+
     ~Application()
     {
-        log::urge("The surge of urge to purge terminated");
+        log::checkpoint("The surge of urge to purge terminated");
     }
 
     void run()
@@ -176,14 +183,12 @@ public:
         float offsetX = 0;
         for (const auto& [name, asset] : assets)
         {
-            const auto [pipelineLayout, pipeline] = renderer.pipelines.at(name);
-
             float offsetY = 0;
             for (float y = 0; y < sizeY; ++y)
             {
-                auto& entity =
-                    entities.emplace_back(asset, pipelineLayout, pipeline, 0,
-                                          core::math::Translation { core::math::Vector<3> { offsetX, 0, offsetY } });
+                auto& entity = entities.emplace_back(
+                    createEntity(name, core::math::Translation { core::math::Vector<3> { offsetX, 0, offsetY } }));
+
                 if (entity.animation)
                 {
                     entity.animation->state.progress += 0.5 * y;
@@ -192,9 +197,14 @@ public:
             }
             offsetX += stepX;
         }
+        auto entity { entities.front() };
+        entity.state.modelMatrix =
+            core::math::fullMatrix(core::math::Translation { core::math::Vector<3> { 0, 1, 0 } });
         const auto [pipelineLayout, pipeline] = renderer.pipelines.at("skyboxasset");
         entity::Skybox skybox { assets.at("skyboxasset"), pipelineLayout, pipeline, 0, core::math::identity<4> };
 
+        entity::Skybox              skybox2 { skybox };
+        std::vector<entity::Entity> entities2 { entities.begin(), entities.end() };
 
         while (core::context().proceed())
         {
@@ -225,25 +235,27 @@ public:
                 // === physics playground ===
 
                 // === entity playground ===
-                for (auto& entity : entities)
+                for (auto& entity : entities2)
                 {
                     entity.update(0, elapsedTime);
                 }
+                entity.update(0, elapsedTime);
                 // === entity playground ===
 
-                skybox.update(input);
+                skybox2.update(input);
                 renderer.update(input);
                 overlay.update(input);
 
                 // === rendering ===
                 const auto inFlight = presenter.acquire();
 
-                skybox.draw(inFlight.commandBuffer, renderer.descriptor.set);
+                skybox2.draw(inFlight.commandBuffer, renderer.descriptor.set);
                 renderer.draw(inFlight.commandBuffer);
-                for (const auto& entity : entities)
+                for (const auto& entity : entities2)
                 {
                     entity.draw(inFlight.commandBuffer, renderer.descriptor.set);
                 }
+                entity.draw(inFlight.commandBuffer, renderer.descriptor.set);
                 overlay.draw(inFlight.commandBuffer);
 
                 presenter.present(command, input.framebufferResized);

@@ -51,7 +51,7 @@ struct Entity
     Entity(const asset::Asset& asset, const VkPipelineLayout pipelineLayout, const VkPipeline pipeline,
            const core::Index sceneIndex, const core::math::StaticMatrix auto& modelMatrix)
         : asset { asset }
-        , nodes { asset.scenes.at(sceneIndex).treenNodes }
+        , nodes { asset.mainScene().treenNodes }
         , pipelineLayout { pipelineLayout }
         , pipeline { pipeline }
         , animation { !asset.skins.empty() ?
@@ -61,6 +61,22 @@ struct Entity
         , state { State {
               .active      = true,
               .modelMatrix = core::math::fullMatrix(modelMatrix),
+          } }
+    {
+    }
+
+    Entity(const Entity& other)
+        : asset { other.asset }
+        , nodes { other.asset.mainScene().treenNodes }
+        , pipelineLayout { other.pipelineLayout }
+        , pipeline { other.pipeline }
+        , animation { !other.asset.skins.empty() ?
+                          std::optional<entity::Entity::Animation> { std::in_place, asset.descriptorPool,
+                                                                     asset.skins } :
+                          std::optional<entity::Entity::Animation> {} }
+        , state { State {
+              .active      = true,
+              .modelMatrix = core::math::fullMatrix(other.state.modelMatrix),
           } }
     {
     }

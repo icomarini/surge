@@ -6,7 +6,7 @@ namespace surge::log
 {
 enum class Type
 {
-    urge,
+    checkpoint,
     info,
     error,
 };
@@ -19,7 +19,7 @@ enum class Font
 
 std::pair<std::string, core::Colors<core::Type::ansi>::Format> convert(const Type type)
 {
-    if (type == Type::urge)
+    if (type == Type::checkpoint)
     {
         return { "URGE", core::Colors<core::Type::ansi>::white };
     }
@@ -29,13 +29,18 @@ std::pair<std::string, core::Colors<core::Type::ansi>::Format> convert(const Typ
     }
     else if (type == Type::error)
     {
-        return { "ERROR", core::Colors<core::Type::ansi>::red };
+        return { "PURGE", core::Colors<core::Type::ansi>::red };
     }
 }
 
 std::string format(const uint8_t color, const Font font)
 {
     return std::format("\033[{};{}m", static_cast<int>(font), color);
+}
+
+std::string format(const Font font)
+{
+    return std::format("\033[{};m", static_cast<int>(font));
 }
 
 std::string format()
@@ -49,10 +54,20 @@ void print(const std::string& line)
     const auto [tag, color] = convert(type);
     using Colors            = core::Colors<core::Type::ansi>;
     std::stringstream stream;
-    stream << format(Colors::blue, Font::bold) << "[" << format(Colors::blue, Font::regular) << "surge of "
-           << format(color, Font::bold) << tag << format(Colors::blue, Font::bold) << "] "
-           << format(Colors::white, Font::regular) << line;
+    if constexpr (type == Type::info)
+    {
+        // stream << "[surge of " << format(color, Font::bold) << tag << format() << "] "
+        //        << format(Colors::white, Font::regular) << line;
+        stream << format(Colors::white, Font::bold) << "[" << format(Colors::white, Font::regular) << "surge of "
+               << format(color, Font::bold) << tag << format(Colors::white, Font::bold) << "] " << format() << line;
+    }
+    else
+    {
+        stream << format(Colors::white, Font::bold) << "[" << format(Colors::white, Font::regular) << "surge of "
+               << format(color, Font::bold) << tag << format(Colors::white, Font::bold) << "] " << format() << line;
+    }
     const std::string string = stream.str();
+
     if constexpr (type == Type::error)
     {
         std::cerr << string << std::endl;
@@ -63,9 +78,9 @@ void print(const std::string& line)
     }
 };
 
-void urge(const std::string& line)
+void checkpoint(const std::string& line)
 {
-    print<Type::urge>(line);
+    print<Type::checkpoint>(line);
 }
 
 void info(const std::string& line)

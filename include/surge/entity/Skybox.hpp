@@ -14,25 +14,18 @@ namespace surge::entity
 class Skybox
 {
 public:
-    // struct PushConstants
-    // {
-    //     core::math::Matrix<4, 4> matrix;
-    // };
-
     struct State
     {
         bool                     active { true };
         core::math::Matrix<4, 4> modelMatrix;
     };
 
-
     mutable Camera<false, true>    camera;
     const asset::Asset&            asset;
     core::utils::Tree<asset::Node> nodes;
     VkPipelineLayout               pipelineLayout;
     VkPipeline                     pipeline;
-    // std::optional<Animation>       animation;
-    mutable State state;
+    mutable State                  state;
 
     Skybox(const asset::Asset& asset, const VkPipelineLayout pipelineLayout, const VkPipeline pipeline,
            const core::Index sceneIndex, const core::math::StaticMatrix auto& modelMatrix)
@@ -84,13 +77,6 @@ public:
                 }
             });
     }
-
-
-    // ~Skybox()
-    // {
-    //     core::context().destroy(pipeline);
-    //     core::context().destroy(pipelineLayout);
-    // }
 };
 
 }  // namespace surge::entity
