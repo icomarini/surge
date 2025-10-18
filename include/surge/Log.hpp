@@ -54,20 +54,9 @@ void print(const std::string& line)
     const auto [tag, color] = convert(type);
     using Colors            = core::Colors<core::Type::ansi>;
     std::stringstream stream;
-    if constexpr (type == Type::info)
-    {
-        // stream << "[surge of " << format(color, Font::bold) << tag << format() << "] "
-        //        << format(Colors::white, Font::regular) << line;
-        stream << format(Colors::white, Font::bold) << "[" << format(Colors::white, Font::regular) << "surge of "
-               << format(color, Font::bold) << tag << format(Colors::white, Font::bold) << "] " << format() << line;
-    }
-    else
-    {
-        stream << format(Colors::white, Font::bold) << "[" << format(Colors::white, Font::regular) << "surge of "
-               << format(color, Font::bold) << tag << format(Colors::white, Font::bold) << "] " << format() << line;
-    }
+    stream << format(Colors::white, Font::bold) << "[" << format(Colors::white, Font::regular) << "surge of "
+           << format(color, Font::bold) << tag << format(Colors::white, Font::bold) << "] " << format() << line;
     const std::string string = stream.str();
-
     if constexpr (type == Type::error)
     {
         std::cerr << string << std::endl;

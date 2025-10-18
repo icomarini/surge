@@ -1,5 +1,5 @@
 
-#include "surge/Application.hpp"
+#include "surge/Engine.hpp"
 
 int main()
 {
@@ -14,7 +14,7 @@ int main()
         const std::string                                windowName = "A Surge Of Engine";
         const std::string                                appName    = "aSurgeOfEngine";
         static constexpr surge::core::Window::Resolution resolution { .width = 1600, .height = 900 };
-        surge::Application                               engine(windowName, appName, resolution, assetHandles);
+        surge::Engine                                    engine(windowName, appName, resolution, assetHandles);
 
         using Gltf   = surge::load::Gltf::Handle;
         using Obj    = surge::load::Obj::Handle;

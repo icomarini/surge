@@ -105,6 +105,8 @@ private:
                                   .imageViewType       = VK_IMAGE_VIEW_TYPE_CUBE,
                               },
                           .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+        default:
+            throw;
         }
     }
 

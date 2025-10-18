@@ -50,18 +50,11 @@ double elapsed(auto start)
     return 1e-3 * std::chrono::duration<double, std::milli>(stop - start).count();
 }
 
-
-// void log(const std::string& line)
-// {
-//     std::cout << "\033[" << core::Colors<core::Type::ansi>::green << "[surge of INFO]\033[0m" << line << std::endl;
-//     // std::format("[{}", std::format("{:01.3e}", x));
-// };
-
-class Application
+class Engine
 {
 public:
-    Application(const std::string& windowName, const std::string& appName, const core::Window::Resolution& resolution,
-                const std::map<std::string, load::AssetHandle>& assetHandles)
+    Engine(const std::string& windowName, const std::string& appName, const core::Window::Resolution& resolution,
+           const std::map<std::string, load::AssetHandle>& assetHandles)
         : input { resolution }
         , context { core::createContext(windowName, appName, resolution, createCallback(&input)) }
         , command {}
@@ -73,8 +66,6 @@ public:
     {
         resetPhysics();
         log::checkpoint("The surge of urge to purge started");
-        // std::cout << "\033[1;37m[surge of INFO]\033[0m The surge of urge to purge started" << std::endl;
-        // std::cout << "\033[1;32m[surge of INFO]\033[0m The surge of urge to purge loaded" << std::endl;
     }
 
     void resetPhysics()
@@ -160,10 +151,10 @@ public:
     {
         const auto& asset                     = assets.at(name);
         const auto [pipelineLayout, pipeline] = renderer.pipelines.at(name);
-        return entity::Entity { asset, pipelineLayout, pipeline, 0, matrix };
+        return entity::Entity { asset, pipelineLayout, pipeline, matrix };
     }
 
-    ~Application()
+    ~Engine()
     {
         log::checkpoint("The surge of urge to purge terminated");
     }

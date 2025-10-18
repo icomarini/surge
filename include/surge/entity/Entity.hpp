@@ -49,7 +49,7 @@ struct Entity
     mutable State                  state;
 
     Entity(const asset::Asset& asset, const VkPipelineLayout pipelineLayout, const VkPipeline pipeline,
-           const core::Index sceneIndex, const core::math::StaticMatrix auto& modelMatrix)
+           const core::math::StaticMatrix auto& modelMatrix)
         : asset { asset }
         , nodes { asset.mainScene().treenNodes }
         , pipelineLayout { pipelineLayout }
