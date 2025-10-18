@@ -10,12 +10,12 @@ namespace surge::core
 class Presenter
 {
 public:
-    using DepthImageInfo =
-        ImageInfo<VkImageCreateFlags {}, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_VIEW_TYPE_2D>;
+    // using DepthImageInfo =
+    //     ImageInfo<VkImageCreateFlags {}, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+    //               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_VIEW_TYPE_2D>;
 
     Presenter(const Command& command)
-        : swapchain { std::in_place, DepthImageInfo {} }
+        : swapchain { std::in_place }
         , semaphores { createSemaphores(swapchain->imageCount()) }
         , frames { createFrames(command) }
         , imageIndex {}
@@ -334,7 +334,7 @@ private:
     void recreateSwapchain()
     {
         vkDeviceWaitIdle(context().device);
-        swapchain.emplace(DepthImageInfo {});
+        swapchain.emplace();
     }
 };
 

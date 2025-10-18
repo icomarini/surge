@@ -46,12 +46,11 @@ public:
     {
     }
 
-    template<typename Info>
-    Image(const VkExtent2D& extent, Info)
+    Image(const VkExtent2D& extent, const Data& data)
         : extent { extent }
-        , image { createImage<Info::imageCreateFlags, Info::format, Info::imageUsageFlags>(extent, 1, 1) }
-        , memory { createImageMemory<Info::memoryPropertyFlags>(image) }
-        , view { createImageView<Info::imageAspectFlags, Info::imageViewType, Info::format>(image, 1, 1) }
+        , image { createImage(extent, 1, 1, data) }
+        , memory { createImageMemory(image, data) }
+        , view { createImageView(image, 1, 1, data) }
     {
     }
 
