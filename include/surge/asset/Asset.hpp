@@ -69,7 +69,7 @@ public:
     std::vector<Skin>      skins;
     std::vector<Animation> animations;
 
-    VkDescriptorSetLayout jointMatricesDescriptorSetLayout;
+    std::optional<VkDescriptorSetLayout> jointMatricesDescriptorSetLayout;
 
     using SSBODescr = core::Description<VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, core::Buffer>;
 
@@ -98,9 +98,9 @@ public:
 
     ~Asset()
     {
-        if (jointMatricesDescriptorSetLayout != VK_NULL_HANDLE)
+        if (jointMatricesDescriptorSetLayout.has_value())
         {
-            core::context().destroy(jointMatricesDescriptorSetLayout);
+            core::context().destroy(jointMatricesDescriptorSetLayout.value());
         }
         core::context().destroy(materialDescriptorSetLayout);
         core::context().destroy(descriptorPool);
@@ -115,10 +115,11 @@ public:
         return scenes.at(mainSceneIndex);
     }
 
-    static VkDescriptorSetLayout createJointMatricesDescriptorSetLayout(const std::vector<Skin>& skins)
+    static std::optional<VkDescriptorSetLayout> createJointMatricesDescriptorSetLayout(const std::vector<Skin>& skins)
     {
-        return !skins.empty() > 0 ? core::Descriptor::createDescriptorSetLayout<SSBODescr>(1) :
-                                    VkDescriptorSetLayout { VK_NULL_HANDLE };
+        return !skins.empty() > 0 ?
+                   std::optional<VkDescriptorSetLayout> { core::Descriptor::createDescriptorSetLayout<SSBODescr>(1) } :
+                   std::optional<VkDescriptorSetLayout> {};
     }
 };
 

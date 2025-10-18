@@ -32,6 +32,25 @@ public:
         }
     }
 
+    void createPipeline(const std::string& name, const VkPipelineVertexInputStateCreateInfo& vertexInputState,
+                        const core::shader::Type shader, const VkDescriptorSetLayout materialDescriptorSetLayout,
+                        const std::optional<VkDescriptorSetLayout> jointMatricesDescriptorSetLayout)
+    {
+        constexpr VkPushConstantRange nodePpushConstantRange {
+            core::createPushConstantRange<asset::Node::PushConstants>(VK_SHADER_STAGE_VERTEX_BIT |
+                                                                      VK_SHADER_STAGE_FRAGMENT_BIT)
+        };
+
+        auto& [pipelineLayout, pipeline] = pipelines[name];
+        pipelineLayout =
+            jointMatricesDescriptorSetLayout.has_value() ?
+                core::createPipelineLayout(nodePpushConstantRange, descriptor.setLayout, materialDescriptorSetLayout,
+                                           jointMatricesDescriptorSetLayout.value()) :
+                core::createPipelineLayout(nodePpushConstantRange, descriptor.setLayout, materialDescriptorSetLayout);
+        pipeline = core::createGraphicPipeline(vertexInputState, pipelineLayout, shader);
+    }
+
+
     void drawLine(const VkCommandBuffer commandBuffer, const VkPipelineLayout pipelineLayout,
                   const asset::Line& line) const
     {
@@ -204,10 +223,10 @@ private:
             };
 
             auto& [pipelineLayout, pipeline] = pipelines[name];
-            pipelineLayout                   = asset.jointMatricesDescriptorSetLayout != VK_NULL_HANDLE ?
+            pipelineLayout                   = asset.jointMatricesDescriptorSetLayout.has_value() ?
                                                    core::createPipelineLayout(nodePpushConstantRange, sceneDescriptorSetLayout,
                                                                               asset.materialDescriptorSetLayout,
-                                                                              asset.jointMatricesDescriptorSetLayout) :
+                                                                              asset.jointMatricesDescriptorSetLayout.value()) :
                                                    core::createPipelineLayout(nodePpushConstantRange, sceneDescriptorSetLayout,
                                                                               asset.materialDescriptorSetLayout);
             pipeline = core::createGraphicPipeline(asset.vertexInputState, pipelineLayout, asset.shader);

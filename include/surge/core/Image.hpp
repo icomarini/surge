@@ -22,13 +22,19 @@ struct ImageInfo
     static constexpr auto imageViewType       = _imageViewType;
 };
 
-using SceneImageInfo = ImageInfo<VkImageCreateFlags {}, VK_FORMAT_R8G8B8A8_SRGB,
-                                 VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_2D>;
-
 class Image
 {
 public:
+    struct Data
+    {
+        VkImageCreateFlags    imageCreateFlags;
+        VkFormat              format;
+        VkImageUsageFlags     imageUsageFlags;
+        VkMemoryPropertyFlags memoryPropertyFlags;
+        VkImageAspectFlags    imageAspectFlags;
+        VkImageViewType       imageViewType;
+    };
+
     template<typename LoadedTexture, typename Info>
     Image(const LoadedTexture& loadedTexture, Info)
         : extent { loadedTexture.width, loadedTexture.height }
@@ -49,6 +55,15 @@ public:
     {
     }
 
+    template<typename LoadedTexture>
+    Image(const LoadedTexture& loadedTexture, const Data& data)
+        : extent { loadedTexture.width, loadedTexture.height }
+        , image { createImage(extent, loadedTexture.mipLevels, loadedTexture.arrayLayers, data) }
+        , memory { createImageMemory(image, data) }
+        , view { createImageView(image, loadedTexture.mipLevels, loadedTexture.arrayLayers, data) }
+    {
+    }
+
     ~Image()
     {
         context().destroy(view);
@@ -63,6 +78,28 @@ public:
     VkImageView    view;
 
 private:
+    static VkImage createImage(const VkExtent2D& extent, const uint32_t mipLevels, const uint32_t arrayLayers,
+                               const Data& data)
+    {
+        return context().create(VkImageCreateInfo {
+            .sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+            .pNext                 = nullptr,
+            .flags                 = data.imageCreateFlags,
+            .imageType             = VK_IMAGE_TYPE_2D,
+            .format                = data.format,
+            .extent                = { extent.width, extent.height, 1 },
+            .mipLevels             = mipLevels,
+            .arrayLayers           = arrayLayers,
+            .samples               = VK_SAMPLE_COUNT_1_BIT,
+            .tiling                = VK_IMAGE_TILING_OPTIMAL,
+            .usage                 = data.imageUsageFlags,
+            .sharingMode           = VK_SHARING_MODE_EXCLUSIVE,
+            .queueFamilyIndexCount = 0,
+            .pQueueFamilyIndices   = nullptr,
+            .initialLayout         = VK_IMAGE_LAYOUT_UNDEFINED,
+        });
+    }
+
     template<VkImageCreateFlags imageCreateFlags, VkFormat format, VkImageUsageFlags imageUsageFlags>
     static VkImage createImage(const VkExtent2D& extent, const uint32_t mipLevels, const uint32_t arrayLayers)
     {
@@ -103,6 +140,23 @@ private:
         return memory;
     }
 
+    static VkDeviceMemory createImageMemory(const VkImage image, const Data& data)
+    {
+        VkMemoryRequirements memRequirements;
+        vkGetImageMemoryRequirements(context().device, image, &memRequirements);
+        const auto memory = context().create(VkMemoryAllocateInfo {
+            .sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            .pNext           = nullptr,
+            .allocationSize  = memRequirements.size,
+            .memoryTypeIndex = context().findMemoryType(data.memoryPropertyFlags, memRequirements.memoryTypeBits),
+        });
+        if (vkBindImageMemory(context().device, image, memory, 0) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to bind image memory!");
+        }
+        return memory;
+    }
+
     template<VkImageAspectFlags imageAspectFlags, VkImageViewType imageViewType, VkFormat format>
     static VkImageView createImageView(const VkImage image, const uint32_t mipLevels, const uint32_t arrayLayers)
     {
@@ -120,6 +174,28 @@ private:
             .image            = image,
             .viewType         = imageViewType,
             .format           = format,
+            .components       = {},
+            .subresourceRange = subresourceRange,
+        });
+    }
+
+    static VkImageView createImageView(const VkImage image, const uint32_t mipLevels, const uint32_t arrayLayers,
+                                       const Data& data)
+    {
+        const VkImageSubresourceRange subresourceRange {
+            .aspectMask     = data.imageAspectFlags,
+            .baseMipLevel   = 0,
+            .levelCount     = mipLevels,
+            .baseArrayLayer = 0,
+            .layerCount     = arrayLayers,
+        };
+        return context().create(VkImageViewCreateInfo {
+            .sType            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .pNext            = nullptr,
+            .flags            = {},
+            .image            = image,
+            .viewType         = data.imageViewType,
+            .format           = data.format,
             .components       = {},
             .subresourceRange = subresourceRange,
         });

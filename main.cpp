@@ -1,5 +1,6 @@
 
 #include "surge/Application.hpp"
+#include "surge/Engine.hpp"
 
 int main()
 {
@@ -16,11 +17,13 @@ int main()
 
         const std::filesystem::path                     home { "/home/ico/projects/" };
         std::map<std::string, surge::load::AssetHandle> assetHandles {
-            { "default", surge::load::LoadedTexture::Handle { home / "surge/textures/default.png" } },
-            { "skybox", surge::load::LoadedTexture::Handle { home / "surge/textures/skybox.ktx" } },
+            { "default", surge::load::LoadedTexture::Handle { surge::asset::Texture::Type::scene,
+                                                              home / "surge/textures/default.png" } },
+            { "skybox", surge::load::LoadedTexture::Handle { surge::asset::Texture::Type::cube,
+                                                             home / "surge/textures/skybox.ktx" } },
             { "oaktree", surge::load::Gltf::Handle { home / "surge/models/oaktree.gltf" } },
             { "man", surge::load::Gltf::Handle { home / "extern/Vulkan/assets/models/CesiumMan/glTF/CesiumMan.gltf" } },
-            { "dragon", surge::load::Gltf::Handle { home / "extern/Vulkan/assets/models/chinesedragon.gltf" } },
+            // { "dragon", surge::load::Gltf::Handle { home / "extern/Vulkan/assets/models/chinesedragon.gltf" } },
             { "robot", surge::load::Gltf::Handle { home / "uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" } },
             { "viking", surge::load::Obj::Handle { home / "surge/models/viking_room.obj",
                                                    home / "surge/textures/viking_room.png" } },
@@ -42,7 +45,13 @@ int main()
             //                                      home / "Container_v1_L1/Container_diffuse.jpg" } },
         };
 
-        surge::Application application(assetHandles);
+        const std::string                                windowName = "A Surge Of Engine";
+        const std::string                                appName    = "aSurgeOfEngine";
+        static constexpr surge::core::Window::Resolution resolution { .width = 1600, .height = 900 };
+
+        surge::Application application(windowName, appName, resolution, assetHandles);
+        application.loadAsset("dragon",
+                              surge::load::Gltf::Handle { home / "extern/Vulkan/assets/models/chinesedragon.gltf" });
         application.run();
     }
     catch (const std::exception& e)

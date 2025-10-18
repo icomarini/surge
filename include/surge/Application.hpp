@@ -10,16 +10,6 @@
 #include "surge/physics/Physics.hpp"
 #include "surge/entity/Entity.hpp"
 
-/**
- * types utils
- * math
- * geomtry
- *
- *
- *
- *
- * */
-
 namespace surge
 {
 
@@ -56,13 +46,10 @@ void createRope(physics::Physics& physics, const physics::Position& first, const
 class Application
 {
 public:
-    static constexpr core::Window::Resolution resolution { .width = 1600, .height = 900 };
-    const std::string                         appName    = "surge-app";
-    const std::string                         engineName = "surge";
-
-    Application(const std::map<std::string, load::AssetHandle>& assetHandles)
+    Application(const std::string& windowName, const std::string& appName, const core::Window::Resolution& resolution,
+                const std::map<std::string, load::AssetHandle>& assetHandles)
         : input { resolution }
-        , context { core::createContext(appName, engineName, resolution, createCallback(&input)) }
+        , context { core::createContext(windowName, appName, resolution, createCallback(&input)) }
         , command {}
         , presenter { command }
         , defaults { command, std::get<load::LoadedTexture::Handle>(assetHandles.at("default")) }
@@ -100,6 +87,67 @@ public:
 
         createRope(physics, Position { -10, 0, 0 }, Position { 0, 0, -10 }, 32);
         createRope(physics, Position { -9, 0, 0 }, Position { 0, 0, -9 }, 32);
+    }
+
+    void loadAsset(const std::string& name, const load::AssetHandle& handle)
+    {
+        if (assets.contains(name))
+        {
+            throw std::runtime_error("asset [" + name + "] already exits");
+        }
+        const auto start = std::chrono::high_resolution_clock::now();
+        std::visit(
+            core::overload {
+                [&](const load::LoadedTexture::Handle& handle)
+                {
+                    textures.emplace(std::piecewise_construct, std::forward_as_tuple(name),
+                                     std::forward_as_tuple(command, load::LoadedTexture { handle }, defaults.sampler));
+                },
+                [&](const load::Gltf::Handle& handle)
+                {
+                    const auto [iter, inserted] =
+                        assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
+                                       std::forward_as_tuple(command, load::Gltf { handle, defaults }));
+                    assert(inserted);
+                    const auto& [_, asset] = *iter;
+
+                    renderer.createPipeline(name, asset.vertexInputState, asset.shader,
+                                            asset.materialDescriptorSetLayout, asset.jointMatricesDescriptorSetLayout);
+                },
+                [&](const load::Obj::Handle& handle)
+                {
+                    const auto [iter, inserted] =
+                        assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
+                                       std::forward_as_tuple(command, load::Obj { handle, defaults }));
+                    assert(inserted);
+                    const auto& [_, asset] = *iter;
+                    renderer.createPipeline(name, asset.vertexInputState, asset.shader,
+                                            asset.materialDescriptorSetLayout, asset.jointMatricesDescriptorSetLayout);
+                },
+            },
+            handle);
+
+        const auto stop        = std::chrono::high_resolution_clock::now();
+        const auto elapsedTime = 1e-3 * std::chrono::duration<double, std::milli>(stop - start).count();
+        std::visit(
+            core::overload {
+                [&](const load::LoadedTexture::Handle& handle)
+                {
+                    std::cout << "\033[1;32m[surge of INFO]\033[0m Loaded texture asset '" << handle.path << "'"
+                              << " in " << elapsedTime << " seconds" << std::endl;
+                },
+                [&](const load::Gltf::Handle& handle)
+                {
+                    std::cout << "\033[1;32m[surge of INFO]\033[0m Loaded glTF asset '" << handle.path << "'"
+                              << " in " << elapsedTime << " seconds" << std::endl;
+                },
+                [&](const load::Obj::Handle& handle)
+                {
+                    std::cout << "\033[1;32m[surge of INFO]\033[0m Loaded obj asset '" << handle.meshPath << "'"
+                              << " in " << elapsedTime << " seconds" << std::endl;
+                },
+            },
+            handle);
     }
 
     ~Application()
@@ -209,16 +257,17 @@ public:
     }
 
 private:
-    mutable Input                       input;
-    const core::Context&                context;
-    const core::Command                 command;
-    core::Presenter                     presenter;
-    const Defaults                      defaults;
-    Skybox                              skybox;
-    physics::Physics                    physics;
-    std::map<std::string, asset::Asset> assets;
-    Renderer                            renderer;
-    overlay::Overlay                    overlay;
+    mutable Input                         input;
+    const core::Context&                  context;
+    core::Command                         command;
+    core::Presenter                       presenter;
+    Defaults                              defaults;
+    Skybox                                skybox;
+    physics::Physics                      physics;
+    std::map<std::string, asset::Asset>   assets;
+    std::map<std::string, asset::Texture> textures;
+    Renderer                              renderer;
+    overlay::Overlay                      overlay;
 
 
     static core::Window::Callback createCallback(Input* input)
@@ -240,6 +289,7 @@ private:
         std::map<std::string, asset::Asset> assets;
         for (const auto& [name, assetHandle] : assetHandles)
         {
+            const auto start = std::chrono::high_resolution_clock::now();
             std::visit(
                 core::overload {
                     [&](const auto&) {},
@@ -252,6 +302,23 @@ private:
                     {
                         assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
                                        std::forward_as_tuple(command, load::Obj { handle, defaults }));
+                    },
+                },
+                assetHandle);
+            const auto stop        = std::chrono::high_resolution_clock::now();
+            const auto elapsedTime = 1e-3 * std::chrono::duration<double, std::milli>(stop - start).count();
+            std::visit(
+                core::overload {
+                    [&](const auto&) {},
+                    [&](const load::Gltf::Handle& handle)
+                    {
+                        std::cout << "\033[1;32m[surge of INFO]\033[0m Loaded glTF asset '" << handle.path << "'"
+                                  << " in " << elapsedTime << " seconds" << std::endl;
+                    },
+                    [&](const load::Obj::Handle& handle)
+                    {
+                        std::cout << "\033[1;32m[surge of INFO]\033[0m Loaded obj asset '" << handle.meshPath << "'"
+                                  << " in " << elapsedTime << " seconds" << std::endl;
                     },
                 },
                 assetHandle);

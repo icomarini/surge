@@ -68,10 +68,10 @@ public:
         VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
     };
 
-    Context(const std::string& appName, const std::string& engineName, const Window::Resolution& resolution,
+    Context(const std::string& windowName, const std::string& appName, const Window::Resolution& resolution,
             const Window::Callback& callback)
-        : window { appName, resolution, callback }
-        , instance { createInstance(appName, engineName, window.extensions()) }
+        : window { windowName, resolution, callback }
+        , instance { createInstance(appName, "surge", window.extensions()) }
         , surface { window.createSurface(instance) }
         , physicalDevice { pickPhysicalDevice(instance, surface) }
         , device { createLogicalDevice(physicalDevice.physicalDevice, physicalDevice.graphicsFamilyIndex,
@@ -116,6 +116,23 @@ public:
 
     template<VkMemoryPropertyFlags memoryPropertyFlags>
     uint32_t findMemoryType(const uint32_t typeFilter) const
+    {
+        VkPhysicalDeviceMemoryProperties memoryProperties;
+        vkGetPhysicalDeviceMemoryProperties(physicalDevice.physicalDevice, &memoryProperties);
+
+        for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
+        {
+            if ((typeFilter & (1 << i)) &&
+                (memoryProperties.memoryTypes[i].propertyFlags & memoryPropertyFlags) == memoryPropertyFlags)
+            {
+                return i;
+            }
+        }
+
+        throw std::runtime_error("failed to find suitable memory type!");
+    }
+
+    uint32_t findMemoryType(const VkMemoryPropertyFlags memoryPropertyFlags, const uint32_t typeFilter) const
     {
         VkPhysicalDeviceMemoryProperties memoryProperties;
         vkGetPhysicalDeviceMemoryProperties(physicalDevice.physicalDevice, &memoryProperties);
@@ -736,11 +753,11 @@ private:
     }
 };
 
-static const Context& createContext(const std::string& appName, const std::string& engineName,
+static const Context& createContext(const std::string& windowName, const std::string& appName,
                                     const Window::Resolution&              resolution,
                                     const std::optional<Window::Callback>& callback)
 {
-    static Context context { appName, engineName, resolution, callback.value() };
+    static Context context { windowName, appName, resolution, callback.value() };
     return context;
 };
 

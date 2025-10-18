@@ -1,6 +1,6 @@
 #pragma once
 
-#include "surge/core/utils/utils.hpp"
+#include "surge/asset/Texture.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -18,8 +18,25 @@ class LoadedTexture
 public:
     struct Handle
     {
+        asset::Texture::Type  type;
         std::filesystem::path path;
     };
+
+    // const std::map<asset::Texture::Type, asset::TextureData> map {
+    //     { asset::Texture::Type::scene,
+    //       asset::Texture::Data {
+    //           .imageData =
+    //               core::Image::Data {
+    //                   .imageCreateFlags    = {},
+    //                   .format              = VK_FORMAT_R8G8B8A8_SRGB,
+    //                   .imageUsageFlags     = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+    //                   .memoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+    //                   .imageAspectFlags    = VK_IMAGE_ASPECT_COLOR_BIT,
+    //                   .imageViewType       = VK_IMAGE_VIEW_TYPE_2D,
+    //               },
+    //           .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+    //       } },
+    // };
 
     LoadedTexture(const Handle& handle)
         : width {}
@@ -27,6 +44,7 @@ public:
         , mipLevels { 1 }
         , arrayLayers { 1 }
         , name { handle.path.filename() }
+        , type { handle.type }  // , textureData { }
         , vOffsets { {} }
     {
         const auto fileExtension = handle.path.extension();
@@ -77,7 +95,7 @@ public:
     }
 
     LoadedTexture(const std::filesystem::path& path)
-        : LoadedTexture(Handle { path })
+        : LoadedTexture(Handle { asset::Texture::Type::scene, path })
     {
     }
 
@@ -138,11 +156,12 @@ public:
             pData);
     }
 
-    uint32_t    width;
-    uint32_t    height;
-    uint32_t    mipLevels;
-    uint32_t    arrayLayers;
-    std::string name;
+    uint32_t             width;
+    uint32_t             height;
+    uint32_t             mipLevels;
+    uint32_t             arrayLayers;
+    std::string          name;
+    asset::Texture::Type type;
 
 private:
     std::variant<stbi_uc*, ktxTexture*>                   pData;
