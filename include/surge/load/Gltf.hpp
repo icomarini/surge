@@ -224,14 +224,14 @@ public:
 
             const auto sampler = texture.samplerIndex ? createSampler(texture.samplerIndex.value()) : defaults.sampler;
 
-            textures.emplace_back(command, std::visit(visitor, image.data), sampler, asset::SceneTextureInfo {});
+            textures.emplace_back(command, std::visit(visitor, image.data), sampler);
         }
 
         // external textures
         for (const auto& [textureType, path] : externalTextures)
         {
             textures.emplace_back(command, LoadedTexture(LoadedTexture::Handle { asset::Texture::Type::scene, path }),
-                                  defaults.sampler, asset::SceneTextureInfo {});
+                                  defaults.sampler);
         }
 
         return textures;

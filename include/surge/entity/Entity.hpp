@@ -58,7 +58,7 @@ struct Entity
                           std::optional<entity::Entity::Animation> { std::in_place, asset.descriptorPool,
                                                                      asset.skins } :
                           std::optional<entity::Entity::Animation> {} }
-        , state { entity::Entity::State {
+        , state { State {
               .active      = true,
               .modelMatrix = core::math::fullMatrix(modelMatrix),
           } }

@@ -36,17 +36,15 @@ public:
                         const core::shader::Type shader, const VkDescriptorSetLayout materialDescriptorSetLayout,
                         const std::optional<VkDescriptorSetLayout> jointMatricesDescriptorSetLayout)
     {
-        constexpr VkPushConstantRange nodePpushConstantRange {
-            core::createPushConstantRange<asset::Node::PushConstants>(VK_SHADER_STAGE_VERTEX_BIT |
-                                                                      VK_SHADER_STAGE_FRAGMENT_BIT)
-        };
+        constexpr VkPushConstantRange nodePushConstantRange { core::createPushConstantRange<asset::Node::PushConstants>(
+            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT) };
 
         auto& [pipelineLayout, pipeline] = pipelines[name];
         pipelineLayout =
             jointMatricesDescriptorSetLayout.has_value() ?
-                core::createPipelineLayout(nodePpushConstantRange, descriptor.setLayout, materialDescriptorSetLayout,
+                core::createPipelineLayout(nodePushConstantRange, descriptor.setLayout, materialDescriptorSetLayout,
                                            jointMatricesDescriptorSetLayout.value()) :
-                core::createPipelineLayout(nodePpushConstantRange, descriptor.setLayout, materialDescriptorSetLayout);
+                core::createPipelineLayout(nodePushConstantRange, descriptor.setLayout, materialDescriptorSetLayout);
         pipeline = core::createGraphicPipeline(vertexInputState, pipelineLayout, shader);
     }
 

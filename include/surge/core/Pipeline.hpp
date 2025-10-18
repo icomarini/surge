@@ -249,6 +249,21 @@ VkPipeline createGraphicPipeline(const VkPipelineVertexInputStateCreateInfo vert
         .alphaToOneEnable      = VK_FALSE,
     });
 
+    // VkPipelineDepthStencilStateCreateInfo ciao {
+    //     .sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+    //     .pNext                 = nullptr,
+    //     .flags                 = {},
+    //     .depthTestEnable       = VK_FALSE,
+    //     .depthWriteEnable      = VK_FALSE,
+    //     .depthCompareOp        = VK_COMPARE_OP_LESS_OR_EQUAL,
+    //     .depthBoundsTestEnable = VK_FALSE,
+    //     .stencilTestEnable     = VK_FALSE,
+    //     .front                 = {},
+    //     .back                  = {},
+    //     .minDepthBounds        = 0.0f,
+    //     .maxDepthBounds        = 1.0f,
+    // };
+
     const auto depthStencilState = getOr(VkPipelineDepthStencilStateCreateInfo {
         .sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
         .pNext                 = nullptr,
@@ -348,14 +363,6 @@ VkPipeline createGraphicPipeline(const VkPipelineVertexInputStateCreateInfo vert
 VkPipeline createGraphicPipeline(const VkPipelineVertexInputStateCreateInfo vertexInputState,
                                  const VkPipelineLayout pipelineLayout, const shader::Type shaderType)
 {
-    // gltfAnimated,
-    // gltfStatic,
-    // bbox,
-    // line,
-    // point,
-    // shader,
-    // skybox,
-    // ui,
     switch (shaderType)
     {
     case shader::Type::gltfAnimated:
@@ -401,6 +408,35 @@ VkPipeline createGraphicPipeline(const VkPipelineVertexInputStateCreateInfo vert
                                      shader::Shader {
                                          shader::ShaderInfo<shader::Type::skybox, shader::Stage::vertex> { nullptr },
                                          shader::ShaderInfo<shader::Type::skybox, shader::Stage::fragment> { nullptr },
+                                     },
+                                     VkPipelineRasterizationStateCreateInfo {
+                                         .sType            = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+                                         .pNext            = nullptr,
+                                         .flags            = {},
+                                         .depthClampEnable = VK_FALSE,
+                                         .rasterizerDiscardEnable = VK_FALSE,
+                                         .polygonMode             = VK_POLYGON_MODE_FILL,
+                                         .cullMode                = VK_CULL_MODE_FRONT_BIT,
+                                         .frontFace               = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+                                         .depthBiasEnable         = VK_FALSE,
+                                         .depthBiasConstantFactor = 0.0f,
+                                         .depthBiasClamp          = 0.0f,
+                                         .depthBiasSlopeFactor    = 0.0f,
+                                         .lineWidth               = 1.0f,
+                                     },
+                                     VkPipelineDepthStencilStateCreateInfo {
+                                         .sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+                                         .pNext            = nullptr,
+                                         .flags            = {},
+                                         .depthTestEnable  = VK_FALSE,
+                                         .depthWriteEnable = VK_FALSE,
+                                         .depthCompareOp   = VK_COMPARE_OP_LESS,
+                                         .depthBoundsTestEnable = VK_FALSE,
+                                         .stencilTestEnable     = VK_FALSE,
+                                         .front                 = {},
+                                         .back                  = {},
+                                         .minDepthBounds        = 0.0f,
+                                         .maxDepthBounds        = 1.0f,
                                      });
     case shader::Type::ui:
         return createGraphicPipeline(vertexInputState, VK_NULL_HANDLE, pipelineLayout,

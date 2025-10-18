@@ -1,9 +1,9 @@
 #version 450
 
 // input ========================================
-layout(location = 0) in vec2 fragTexCoord;
-layout(location = 1) in vec3 fragColor;
-layout(location = 2) in vec3 fragNormal;
+layout(location = 0) in vec3 inColor;
+layout(location = 1) in vec3 inNormal;
+layout(location = 2) in vec2 inTexCoord;
 
 layout(push_constant) uniform PushConstants
 {
@@ -23,15 +23,15 @@ void main()
 {
     if (fragmentStageFlag == 0)
     {
-        outColor = texture(texSampler, fragTexCoord);
+        outColor = texture(texSampler, inTexCoord);
     }
     else if (fragmentStageFlag == 1)
     {
-        outColor = vec4(fragColor, 1.0);
+        outColor = vec4(inColor, 1.0);
     }
     else if (fragmentStageFlag == 2)
     {
-        outColor = vec4(fragNormal, 1.0);
+        outColor = vec4(inNormal, 1.0);
     }
     else
     {

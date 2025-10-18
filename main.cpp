@@ -51,9 +51,11 @@ int main()
         static constexpr surge::core::Window::Resolution resolution { .width = 1600, .height = 900 };
         surge::Application                               engine(windowName, appName, resolution, assetHandles);
 
-        using Gltf = surge::load::Gltf::Handle;
-        using Obj  = surge::load::Obj::Handle;
+        using Gltf   = surge::load::Gltf::Handle;
+        using Obj    = surge::load::Obj::Handle;
+        using Skybox = surge::load::LoadedSkybox::Handle;
 
+        engine.loadAsset("skyboxasset", Skybox { home / "surge/textures/skybox.ktx" });
         engine.loadAsset("oaktree", Gltf { home / "surge/models/oaktree.gltf" });
         engine.loadAsset("man", Gltf { home / "extern/Vulkan/assets/models/CesiumMan/glTF/CesiumMan.gltf" });
         engine.loadAsset("dragon", Gltf { home / "extern/Vulkan/assets/models/chinesedragon.gltf" });

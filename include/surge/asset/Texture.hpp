@@ -7,20 +7,6 @@
 namespace surge::asset
 {
 
-template<typename _ImageInfo, VkImageLayout _imageLayout>
-struct TextureInfo
-{
-    using ImageInfo                   = _ImageInfo;
-    static constexpr auto imageLayout = _imageLayout;
-};
-
-
-using SceneImageInfo =
-    core::ImageInfo<VkImageCreateFlags {}, VK_FORMAT_R8G8B8A8_SRGB,
-                    VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                    VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_2D>;
-
-using SceneTextureInfo = TextureInfo<SceneImageInfo, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>;
 
 struct Sampler
 {
@@ -47,32 +33,6 @@ public:
         VkImageLayout     layout;
     };
 
-    // const std::map<asset::Texture::Type, asset::TextureData> map {
-    //     { asset::Texture::Type::scene,
-    //       asset::Texture::Data {
-    //           .imageData =
-    //               core::Image::Data {
-    //                   .imageCreateFlags    = {},
-    //                   .format              = VK_FORMAT_R8G8B8A8_SRGB,
-    //                   .imageUsageFlags     = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-    //                   .memoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-    //                   .imageAspectFlags    = VK_IMAGE_ASPECT_COLOR_BIT,
-    //                   .imageViewType       = VK_IMAGE_VIEW_TYPE_2D,
-    //               },
-    //           .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-    //       } },
-    // };
-
-    template<typename LoadedTexture, typename Info>
-    Texture(const core::Command& command, const LoadedTexture& loadedTexture, const Sampler& sampler, Info)
-        : name { loadedTexture.name }
-        , image { loadedTexture, typename Info::ImageInfo {} }
-        , sampler { createSampler(sampler) }
-        , info { .sampler = this->sampler, .imageView = image.view, .imageLayout = Info::imageLayout }
-    {
-        command.transferImage(image.image, loadedTexture);
-    }
-
     template<typename LoadedTexture>
     Texture(const core::Command& command, const LoadedTexture& loadedTexture, const Sampler& sampler)
         : name { loadedTexture.name }
@@ -85,44 +45,17 @@ public:
 
     template<typename LoadedTexture>
     Texture(const core::Command& command, const LoadedTexture& loadedTexture)
-        : name { loadedTexture.name }
-        , image { loadedTexture, convert(loadedTexture.type).image }
-        , sampler { createSampler(Sampler {
-              .magFilter    = VK_FILTER_LINEAR,
-              .minFilter    = VK_FILTER_LINEAR,
-              .mipmapMode   = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-              .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-              .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-              .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-          }) }
-        , info { .sampler = this->sampler, .imageView = image.view, .imageLayout = convert(loadedTexture.type).layout }
+        : Texture { command, loadedTexture,
+                    Sampler {
+                        .magFilter    = VK_FILTER_LINEAR,
+                        .minFilter    = VK_FILTER_LINEAR,
+                        .mipmapMode   = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+                        .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+                        .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+                        .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+                    } }
     {
-        command.transferImage(image.image, loadedTexture);
     }
-
-    // template<typename LoadedTexture>
-    // Texture(const core::Command& command, const LoadedTexture& loadedTexture)
-    //     : Texture { command, loadedTexture,
-    //                 createSampler(Sampler {
-    //                     .magFilter    = VK_FILTER_LINEAR,
-    //                     .minFilter    = VK_FILTER_LINEAR,
-    //                     .mipmapMode   = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-    //                     .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-    //                     .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-    //                     .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-    //                 }) }
-    // {
-    // }
-
-    // template<typename LoadedTexture, typename Info>
-    // Texture(const core::Command& command, const LoadedTexture& loadedTexture, Info)
-    //     : name { loadedTexture.name }
-    //     , image { loadedTexture, typename Info::ImageInfo {} }
-    //     , sampler { createSampler() }
-    //     , info { .sampler = sampler, .imageView = image.view, .imageLayout = Info::imageLayout }
-    // {
-    //     command.transferImage(image.image, loadedTexture);
-    // }
 
     const VkDescriptorImageInfo* imageInfo() const
     {

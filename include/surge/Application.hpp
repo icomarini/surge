@@ -4,7 +4,6 @@
 #include "surge/core/colors.hpp"
 #include "surge/core/Presenter.hpp"
 #include "surge/Renderer.hpp"
-#include "surge/Skybox.hpp"
 
 #include "surge/load/AssetHandle.hpp"
 #include "surge/physics/Physics.hpp"
@@ -43,6 +42,13 @@ void createRope(physics::Physics& physics, const physics::Position& first, const
     };
 }
 
+double elapsed(auto start)
+{
+    const auto stop = std::chrono::high_resolution_clock::now();
+    return 1e-3 * std::chrono::duration<double, std::milli>(stop - start).count();
+}
+
+void log(const std::string& line) { };
 
 class Application
 {
@@ -54,8 +60,7 @@ public:
         , command {}
         , presenter { command }
         , defaults { command, std::get<load::LoadedTexture::Handle>(assetHandles.at("default")) }
-        , skybox { command, std::get<load::LoadedTexture::Handle>(assetHandles.at("skybox")) }
-        , physics { physics::earthGravity }  // , assets { createAssets(command, defaults, assetHandles) }
+        , physics { physics::earthGravity }
         , renderer { assets, physics }
         , overlay { command, input, assets }
     {
@@ -103,6 +108,16 @@ public:
                     textures.emplace(std::piecewise_construct, std::forward_as_tuple(name),
                                      std::forward_as_tuple(command, load::LoadedTexture { handle }, defaults.sampler));
                 },
+                [&](const load::LoadedSkybox::Handle& handle)
+                {
+                    const auto [iter, inserted] =
+                        assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
+                                       std::forward_as_tuple(command, load::LoadedSkybox { handle, defaults }));
+                    assert(inserted);
+                    const auto& [_, asset] = *iter;
+                    renderer.createPipeline(name, asset.vertexInputState, asset.shader,
+                                            asset.materialDescriptorSetLayout, asset.jointMatricesDescriptorSetLayout);
+                },
                 [&](const load::Gltf::Handle& handle)
                 {
                     const auto [iter, inserted] =
@@ -136,6 +151,11 @@ public:
                     std::cout << "\033[1;32m[surge of INFO]\033[0m Loaded texture asset '" << handle.path << "'"
                               << " in " << elapsedTime << " seconds" << std::endl;
                 },
+                [&](const load::LoadedSkybox::Handle& handle)
+                {
+                    std::cout << "\033[1;32m[surge of INFO]\033[0m Loaded skybox asset '" << handle.texturePath << "'"
+                              << " in " << elapsedTime << " seconds" << std::endl;
+                },
                 [&](const load::Gltf::Handle& handle)
                 {
                     std::cout << "\033[1;32m[surge of INFO]\033[0m Loaded glTF asset '" << handle.path << "'"
@@ -162,15 +182,13 @@ public:
         double elapsedTime   = {};
         bool   physicsActive = false;
 
-        auto     start = std::chrono::high_resolution_clock::now();
-        uint32_t ticCount {};
-
+        auto start = std::chrono::high_resolution_clock::now();
 
         std::vector<entity::Entity> entities;
         constexpr float             stepX = 2;
         constexpr float             stepY = 2;
         constexpr core::Size        sizeY = 3;
-        entities.reserve(assets.size() * sizeY);
+        entities.reserve(assets.size() * sizeY + 1);
         float offsetX = 0;
         for (const auto& [name, asset] : assets)
         {
@@ -190,6 +208,9 @@ public:
             }
             offsetX += stepX;
         }
+        const auto [pipelineLayout, pipeline] = renderer.pipelines.at("skyboxasset");
+        entity::Skybox skybox { assets.at("skyboxasset"), pipelineLayout, pipeline, 0, core::math::identity<4> };
+
 
         while (core::context().proceed())
         {
@@ -233,7 +254,7 @@ public:
                 // === rendering ===
                 const auto inFlight = presenter.acquire();
 
-                skybox.draw(inFlight.commandBuffer);
+                skybox.draw(inFlight.commandBuffer, renderer.descriptor.set);
                 renderer.draw(inFlight.commandBuffer);
                 for (const auto& entity : entities)
                 {
@@ -249,22 +270,16 @@ public:
 
             const auto stop = std::chrono::high_resolution_clock::now();
             elapsedTime     = 1e-3 * std::chrono::duration<double, std::milli>(stop - start).count();
-            ++ticCount;
         }
         vkDeviceWaitIdle(core::context().device);
     }
 
 private:
-    mutable Input        input;
-    const core::Context& context;
-    core::Command        command;
-    core::Presenter      presenter;
-    load::Defaults       defaults;
-
-    struct SkyboxAsset
-    {
-    };
-    Skybox                                skybox;
+    mutable Input                         input;
+    const core::Context&                  context;
+    core::Command                         command;
+    core::Presenter                       presenter;
+    load::Defaults                        defaults;
     physics::Physics                      physics;
     std::map<std::string, asset::Asset>   assets;
     std::map<std::string, asset::Texture> textures;
