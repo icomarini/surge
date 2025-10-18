@@ -22,12 +22,6 @@ using SceneImageInfo =
 
 using SceneTextureInfo = TextureInfo<SceneImageInfo, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>;
 
-using CubeImageInfo =
-    core::ImageInfo<VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, VK_FORMAT_R8G8B8A8_SRGB,
-                    VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                    VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_CUBE>;
-// using CubeTextureInfo = asset::TextureInfo<CubeImageInfo, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>;
-
 struct Sampler
 {
     VkFilter             magFilter;
@@ -106,9 +100,17 @@ public:
         command.transferImage(image.image, loadedTexture);
     }
 
-    //     template<typename LoadedTexture>
-    // Texture(const core::Command& command, const LoadedTexture& loadedTexture, const Sampler& sampler)
-    //     : Texture(command,  )
+    // template<typename LoadedTexture>
+    // Texture(const core::Command& command, const LoadedTexture& loadedTexture)
+    //     : Texture { command, loadedTexture,
+    //                 createSampler(Sampler {
+    //                     .magFilter    = VK_FILTER_LINEAR,
+    //                     .minFilter    = VK_FILTER_LINEAR,
+    //                     .mipmapMode   = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+    //                     .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+    //                     .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+    //                     .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+    //                 }) }
     // {
     // }
 
@@ -146,33 +148,6 @@ public:
 private:
     static Data convert(const Type type)
     {
-        // const std::map<asset::Texture::Type, asset::Texture::Data> map {
-        //     { asset::Texture::Type::scene,
-        //       asset::Texture::Data {
-        //           .image =
-        //               core::Image::Data {
-        //                   .imageCreateFlags    = {},
-        //                   .format              = VK_FORMAT_R8G8B8A8_SRGB,
-        //                   .imageUsageFlags     = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        //                   .memoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        //                   .imageAspectFlags    = VK_IMAGE_ASPECT_COLOR_BIT,
-        //                   .imageViewType       = VK_IMAGE_VIEW_TYPE_2D,
-        //               },
-        //           .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } },
-        //     { asset::Texture::Type::cube,
-        //       asset::Texture::Data {
-        //           .image =
-        //               core::Image::Data {
-        //                   .imageCreateFlags    = {},
-        //                   .format              = VK_FORMAT_R8G8B8A8_SRGB,
-        //                   .imageUsageFlags     = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        //                   .memoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        //                   .imageAspectFlags    = VK_IMAGE_ASPECT_COLOR_BIT,
-        //                   .imageViewType       = VK_IMAGE_VIEW_TYPE_CUBE,
-        //               },
-        //           .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } },
-        // };
-
         switch (type)
         {
         case asset::Texture::Type::scene:

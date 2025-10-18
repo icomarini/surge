@@ -1,17 +1,18 @@
 #version 450
 
-layout(location = 0) in vec3 inPos;
+// input ========================================
+layout(location = 0) in vec3 inPosition;
 
-layout(binding = 0) uniform UBO
+layout(push_constant) uniform PushConstants
 {
-    mat4 mvp;
-}
-ubo;
+    mat4 model;
+};
 
+// output =======================================
 layout(location = 0) out vec3 outUVW;
 
 void main()
 {
-    outUVW      = inPos;
-    gl_Position = vec4(inPos.xyz, 1.0) * ubo.mvp;
+    outUVW      = inPosition;
+    gl_Position = vec4(inPosition.xyz, 1.0) * model;
 }

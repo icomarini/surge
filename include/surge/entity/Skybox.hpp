@@ -6,8 +6,9 @@
 #include "surge/core/input/input.hpp"
 #include "surge/core/Pipeline.hpp"
 #include "surge/load/LoadedTexture.hpp"
+#include "surge/load/Defaults.hpp"
 
-namespace surge
+namespace surge::entity
 {
 
 class Skybox
@@ -18,10 +19,11 @@ public:
         core::math::Matrix<4, 4> matrix;
     };
 
-    Skybox(const core::Command& command, const load::LoadedTexture::Handle& handle)
+    Skybox(const asset::Texture& texture, const load::Defaults& defaults, const VkPipelineLayout pipelineLayout,
+           const VkPipeline pipeline)
         : camera { 16.0 / 9.0, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } }
-        , texture { command, load::LoadedTexture { handle } }
-        , model { command, core::geometry::cubeFill, true, asset::SceneModelInfo {} }
+        , texture { texture }
+        , model { defaults.cube }
         , descriptor { 1, core::Description<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT,
                                             asset::Texture> { texture } }
         , pipelineLayout { core::createPipelineLayout(core::createPushConstantRange<core::math::Matrix<4, 4>>(
@@ -93,16 +95,16 @@ public:
     }
 
 
-    ~Skybox()
-    {
-        core::context().destroy(pipeline);
-        core::context().destroy(pipelineLayout);
-    }
+    // ~Skybox()
+    // {
+    //     core::context().destroy(pipeline);
+    //     core::context().destroy(pipelineLayout);
+    // }
 
 private:
     mutable Camera<false, true> camera;
-    const asset::Texture        texture;
-    const asset::Model          model;
+    const asset::Texture&       texture;
+    const asset::Model&         model;
     const core::Descriptor      descriptor;
     core::math::Matrix<4, 4>    matrix;
 
@@ -110,4 +112,4 @@ private:
     VkPipeline       pipeline;
 };
 
-}  // namespace surge
+}  // namespace surge::entity

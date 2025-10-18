@@ -6,9 +6,6 @@
 #include "surge/asset/Skin.hpp"
 #include "surge/load/Defaults.hpp"
 
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
-
 #include <filesystem>
 #include <numeric>
 #include <optional>
@@ -17,13 +14,13 @@
 namespace surge::load
 {
 
-class Obj
+class LoadedSkybox
 {
 public:
     struct Handle
     {
-        std::filesystem::path                meshPath;
-        std::optional<std::filesystem::path> texturePath;
+        std::filesystem::path texturePath;
+        // std::optional<std::filesystem::path> texturePath;
     };
 
     using TextureDescr = asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT>;
@@ -38,7 +35,7 @@ public:
         core::geometry::AttributeSlot<core::geometry::Attribute::texCoord, core::math::Vector<2>, 2,
                                             core::geometry::Format::sfloat>>;
 
-    Obj(const Handle& handle, const Defaults& defaults)
+    LoadedSkybox(const Handle& handle, const Defaults& defaults)
         : name { handle.meshPath.filename() }
         , path { handle.meshPath }
         , defaults { defaults }
@@ -59,7 +56,7 @@ public:
 
     core::shader::Type shader() const
     {
-        return core::shader::Type::shader;
+        return core::shader::Type::skybox;
     }
 
     std::vector<asset::Texture> createTextures(const core::Command& command) const
@@ -67,24 +64,19 @@ public:
         std::vector<asset::Texture> textures;
         if (texture)
         {
-            textures.emplace_back(command, texture.value(), defaults.sampler);
+            textures.emplace_back(command, texture.value(), defaults.sampler, asset::SceneTextureInfo {});
         }
         return textures;
     }
 
     VkDescriptorPool createDescriptorPool() const
     {
-        return core::Descriptor::createDescriptorPool(5U, std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U });
+        return core::Descriptor::createDescriptorPool(1U, std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1U });
     }
 
     VkDescriptorSetLayout createMaterialDescriptorSetLayout() const
     {
-        return core::Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture
-                                                           TextureDescr,  // metallic/rough texture
-                                                           TextureDescr,  // normal texture
-                                                           TextureDescr,  // occlusion texture
-                                                           TextureDescr   // emissive texture
-                                                           >(1);
+        return core::Descriptor::createDescriptorSetLayout<TextureDescr>(1);
     }
 
     std::vector<asset::Material> createMaterials(const VkDescriptorPool             descriptorPool,
@@ -97,28 +89,26 @@ public:
         }
         assert(textures.size() == 1);
         using TextureData = asset::Material::TextureData;
-        return { asset::Material { .name                     = baptize<This::material>(0),
-                                   .doubleSided              = false,
-                                   .unlit                    = false,
-                                   .alphaMode                = asset::Material::AlphaMode::opaque,
-                                   .alphaCutoff              = 1,
-                                   .baseColorTexture         = TextureData { &textures.front(), 0 },
-                                   .baseColorFactor          = { 1, 1, 1, 1 },
-                                   .metallicRoughnessTexture = TextureData { &defaults.texture, 0 },
-                                   .metallicFactor           = 1,
-                                   .roughnessFactor          = 1,
-                                   .emissiveTexture          = TextureData { &defaults.texture, 0 },
-                                   .emissiveFactor           = { 0, 0, 0, 0 },
-                                   .emissiveStrength         = 1,
-                                   .normalTexture            = TextureData { &defaults.texture, 0 },
-                                   .normalScale              = 1,
-                                   .occlusionTexture         = TextureData { &defaults.texture, 0 },
-                                   .occlusionStrength        = 1,
-                                   .descriptorSet            = core::Descriptor::createDescriptorSet(
-                                       materialDescriptorSetLayout, descriptorPool,  //
-                                       TextureDescr { textures.front() }, TextureDescr { defaults.texture },
-                                       TextureDescr { defaults.texture }, TextureDescr { defaults.texture },
-                                       TextureDescr { defaults.texture }) } };
+        return { asset::Material {
+            .name                     = baptize<This::material>(0),
+            .doubleSided              = false,
+            .unlit                    = false,
+            .alphaMode                = asset::Material::AlphaMode::opaque,
+            .alphaCutoff              = 1,
+            .baseColorTexture         = TextureData { &textures.front(), 0 },
+            .baseColorFactor          = { 1, 1, 1, 1 },
+            .metallicRoughnessTexture = TextureData { &defaults.texture, 0 },
+            .metallicFactor           = 1,
+            .roughnessFactor          = 1,
+            .emissiveTexture          = TextureData { &defaults.texture, 0 },
+            .emissiveFactor           = { 0, 0, 0, 0 },
+            .emissiveStrength         = 1,
+            .normalTexture            = TextureData { &defaults.texture, 0 },
+            .normalScale              = 1,
+            .occlusionTexture         = TextureData { &defaults.texture, 0 },
+            .occlusionStrength        = 1,
+            .descriptorSet = core::Descriptor::createDescriptorSet(materialDescriptorSetLayout, descriptorPool,
+                                                                   TextureDescr { textures.front() }) } };
     }
 
     std::vector<asset::Mesh> createMeshes(const std::vector<asset::Material>& materials) const
@@ -170,47 +160,7 @@ public:
 
     asset::Model createModel(const core::Command& command, const std::vector<asset::Mesh>& meshes) const
     {
-        assert(meshes.size() == 1);
-        assert(meshes.front().primitives.size() == 1);
-
-        const auto vertexCount = meshes.front().primitives.front().vertexCount;
-        // const auto indexCount  = meshes.front().primitives.front().indexCount;
-
-        std::vector<Vertex> vertices;
-        vertices.reserve(vertexCount);
-        for (const auto& shape : shapes)
-        {
-            for (const auto& index : shape.mesh.indices)
-            {
-                const auto vertexIdx   = 3 * index.vertex_index;
-                const auto normalIdx   = 3 * index.normal_index;
-                const auto texCoordIdx = 2 * index.texcoord_index;
-
-                vertices.emplace_back(
-                    Vertex::Attribute<Vertex::attributeIndex<core::geometry::Attribute::position>()>::Value {
-                        attrib.vertices.at(vertexIdx + 0),
-                        attrib.vertices.at(vertexIdx + 1),
-                        attrib.vertices.at(vertexIdx + 2),
-                    },
-                    Vertex::Attribute<Vertex::attributeIndex<core::geometry::Attribute::color>()>::Value { 1.0f, 1.0f,
-                                                                                                           1.0f, 1.0f },
-                    Vertex::Attribute<Vertex::attributeIndex<core::geometry::Attribute::normal>()>::Value {
-                        attrib.normals.at(normalIdx + 0),
-                        attrib.normals.at(normalIdx + 1),
-                        attrib.normals.at(normalIdx + 2),
-                    },
-                    Vertex::Attribute<Vertex::attributeIndex<core::geometry::Attribute::texCoord>()>::Value {
-                        attrib.texcoords.at(texCoordIdx + 0),
-                        1.0f - attrib.texcoords.at(texCoordIdx + 1),
-                    });
-            }
-        }
-
-        std::vector<Index> indices(vertexCount);
-        std::iota(indices.begin(), indices.end(), 0);
-
-        return asset::Model { command, core::geometry::Shape { "asset", std::move(vertices), std::move(indices) }, true,
-                              asset::SceneModelInfo {} };
+        return asset::Model { command, core::geometry::cubeFill, true, asset::SceneModelInfo {} };
     }
 
     core::utils::Tree<asset::Node> createTree() const

@@ -9,6 +9,7 @@
 #include "surge/load/AssetHandle.hpp"
 #include "surge/physics/Physics.hpp"
 #include "surge/entity/Entity.hpp"
+#include "surge/entity/Skybox.hpp"
 
 namespace surge
 {
@@ -54,14 +55,13 @@ public:
         , presenter { command }
         , defaults { command, std::get<load::LoadedTexture::Handle>(assetHandles.at("default")) }
         , skybox { command, std::get<load::LoadedTexture::Handle>(assetHandles.at("skybox")) }
-        , physics { physics::earthGravity }
-        , assets { createAssets(command, defaults, assetHandles) }
+        , physics { physics::earthGravity }  // , assets { createAssets(command, defaults, assetHandles) }
         , renderer { assets, physics }
         , overlay { command, input, assets }
     {
         resetPhysics();
 
-        std::cout << "\033[1;32m[surge of INFO]\033[0m The surge of urge to purge loaded" << std::endl;
+        // std::cout << "\033[1;32m[surge of INFO]\033[0m The surge of urge to purge loaded" << std::endl;
     }
 
     void resetPhysics()
@@ -191,8 +191,6 @@ public:
             offsetX += stepX;
         }
 
-        // VkExtent2D extent { WIDTH, HEIGHT };
-
         while (core::context().proceed())
         {
             if (elapsedTime > 1.0 / 144.0)
@@ -257,11 +255,15 @@ public:
     }
 
 private:
-    mutable Input                         input;
-    const core::Context&                  context;
-    core::Command                         command;
-    core::Presenter                       presenter;
-    Defaults                              defaults;
+    mutable Input        input;
+    const core::Context& context;
+    core::Command        command;
+    core::Presenter      presenter;
+    load::Defaults       defaults;
+
+    struct SkyboxAsset
+    {
+    };
     Skybox                                skybox;
     physics::Physics                      physics;
     std::map<std::string, asset::Asset>   assets;
@@ -280,50 +282,6 @@ private:
             .mouseButton   = Input::mouseButtonCallback,
             .mouseWheel    = Input::mouseWheelCallback,
         };
-    }
-
-    static std::map<std::string, asset::Asset>
-    createAssets(const core::Command& command, const Defaults& defaults,
-                 const std::map<std::string, load::AssetHandle>& assetHandles)
-    {
-        std::map<std::string, asset::Asset> assets;
-        for (const auto& [name, assetHandle] : assetHandles)
-        {
-            const auto start = std::chrono::high_resolution_clock::now();
-            std::visit(
-                core::overload {
-                    [&](const auto&) {},
-                    [&](const load::Gltf::Handle& handle)
-                    {
-                        assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
-                                       std::forward_as_tuple(command, load::Gltf { handle, defaults }));
-                    },
-                    [&](const load::Obj::Handle& handle)
-                    {
-                        assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
-                                       std::forward_as_tuple(command, load::Obj { handle, defaults }));
-                    },
-                },
-                assetHandle);
-            const auto stop        = std::chrono::high_resolution_clock::now();
-            const auto elapsedTime = 1e-3 * std::chrono::duration<double, std::milli>(stop - start).count();
-            std::visit(
-                core::overload {
-                    [&](const auto&) {},
-                    [&](const load::Gltf::Handle& handle)
-                    {
-                        std::cout << "\033[1;32m[surge of INFO]\033[0m Loaded glTF asset '" << handle.path << "'"
-                                  << " in " << elapsedTime << " seconds" << std::endl;
-                    },
-                    [&](const load::Obj::Handle& handle)
-                    {
-                        std::cout << "\033[1;32m[surge of INFO]\033[0m Loaded obj asset '" << handle.meshPath << "'"
-                                  << " in " << elapsedTime << " seconds" << std::endl;
-                    },
-                },
-                assetHandle);
-        }
-        return assets;
     }
 };
 }  // namespace surge

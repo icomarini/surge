@@ -9,7 +9,7 @@
 #include "surge/asset/Model.hpp"
 #include "surge/load/LoadedTexture.hpp"
 
-namespace surge
+namespace surge::load
 {
 
 enum class This
@@ -67,6 +67,7 @@ public:
     VkPipeline       descriptorlessPipeline;
 
     asset::Model coordinateSystem;
+    asset::Model cube;
 
     using TextureDescr = asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT>;
 
@@ -78,7 +79,7 @@ public:
     };
 
     Defaults(const core::Command& command, const load::LoadedTexture::Handle& defaultTextureHandle)
-        : texture { command, load::LoadedTexture { defaultTextureHandle }, asset::SceneTextureInfo {} }
+        : texture { command, load::LoadedTexture { defaultTextureHandle } }
         , descriptorPool { core::Descriptor::createDescriptorPool(
               5U, std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U }) }
         , descriptorSetLayout { core::Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture
@@ -125,6 +126,7 @@ public:
                   .primitiveRestartEnable = VK_FALSE,
               }) }
         , coordinateSystem { command, core::geometry::coordinateSystem, true, asset::SceneModelInfo {} }
+        , cube { command, core::geometry::cubeFill, true, asset::SceneModelInfo {} }
     {
     }
 
@@ -137,4 +139,4 @@ public:
     }
 };
 
-}  // namespace surge
+}  // namespace surge::load

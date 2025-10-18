@@ -42,7 +42,7 @@ using PositionAndColor = geometry::Vertex<
 // [-1,-1,-1] O----------2 [ 1,-1,-1]
 
 
-static constexpr Shape cubeFill { "cubefill",
+static constexpr Shape cubeFill { "cube",
                                   std::array {
                                       Position { { -1, -1, -1 } },
                                       Position { { -1, 1, -1 } },

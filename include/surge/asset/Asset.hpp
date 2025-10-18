@@ -47,14 +47,12 @@ public:
 class Asset
 {
 public:
-    std::string           name;
-    std::filesystem::path path;
-    core::shader::Type    shader;
+    std::string        name;
+    core::shader::Type shader;
 
     std::vector<Texture> textures;
 
-    VkDescriptorPool descriptorPool;
-
+    VkDescriptorPool      descriptorPool;
     VkDescriptorSetLayout materialDescriptorSetLayout;
     std::vector<Material> materials;
 
@@ -73,12 +71,9 @@ public:
 
     using SSBODescr = core::Description<VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, core::Buffer>;
 
-    Asset(Asset&&) = default;
-
     template<typename LoadedAsset>
     Asset(const core::Command& command, const LoadedAsset& loadedAsset)
         : name { loadedAsset.name }
-        , path { loadedAsset.path }
         , shader { loadedAsset.shader() }
         , textures { loadedAsset.createTextures(command) }
         , descriptorPool { loadedAsset.createDescriptorPool() }
