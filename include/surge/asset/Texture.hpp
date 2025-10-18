@@ -114,15 +114,15 @@ public:
     // {
     // }
 
-    template<typename LoadedTexture, typename Info>
-    Texture(const core::Command& command, const LoadedTexture& loadedTexture, Info)
-        : name { loadedTexture.name }
-        , image { loadedTexture, typename Info::ImageInfo {} }
-        , sampler { createSampler() }
-        , info { .sampler = sampler, .imageView = image.view, .imageLayout = Info::imageLayout }
-    {
-        command.transferImage(image.image, loadedTexture);
-    }
+    // template<typename LoadedTexture, typename Info>
+    // Texture(const core::Command& command, const LoadedTexture& loadedTexture, Info)
+    //     : name { loadedTexture.name }
+    //     , image { loadedTexture, typename Info::ImageInfo {} }
+    //     , sampler { createSampler() }
+    //     , info { .sampler = sampler, .imageView = image.view, .imageLayout = Info::imageLayout }
+    // {
+    //     command.transferImage(image.image, loadedTexture);
+    // }
 
     const VkDescriptorImageInfo* imageInfo() const
     {

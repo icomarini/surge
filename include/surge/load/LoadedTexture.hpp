@@ -44,7 +44,7 @@ public:
         , mipLevels { 1 }
         , arrayLayers { 1 }
         , name { handle.path.filename() }
-        , type { handle.type }  // , textureData { }
+        , type { handle.type }
         , vOffsets { {} }
     {
         const auto fileExtension = handle.path.extension();
@@ -99,12 +99,14 @@ public:
     {
     }
 
-    LoadedTexture(const std::string& name, const uint8_t* const buffer, const uint64_t size)
+    LoadedTexture(const std::string& name, const asset::Texture::Type type, const uint8_t* const buffer,
+                  const uint64_t size)
         : width {}
         , height {}
         , mipLevels { 1 }
         , arrayLayers { 1 }
         , name { name }
+        , type { type }
         , pData {}
         , vOffsets { {} }
     {

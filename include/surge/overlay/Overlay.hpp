@@ -31,7 +31,7 @@ public:
     Overlay(const core::Command& command, Input&, const std::map<std::string, asset::Asset>& assets)
         : imGuiContext { 1 }
         , frameTimes {}
-        , fontTexture { command, Font {}, asset::SceneTextureInfo {} }
+        , fontTexture { command, Font {} }
         , model {}
         , descriptor { 1, asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT> { fontTexture } }
         , graphicsQueue { command.graphicsQueue }

@@ -189,13 +189,13 @@ public:
                 },
                 [&](const fastgltf::sources::Vector& vector) -> LoadedTexture
                 {
-                    return LoadedTexture { name, reinterpret_cast<const uint8_t*>(vector.bytes.data()),
-                                           vector.bytes.size() };
+                    return LoadedTexture { name, asset::Texture::Type::scene,
+                                           reinterpret_cast<const uint8_t*>(vector.bytes.data()), vector.bytes.size() };
                 },
                 [&](const fastgltf::sources::Array& array) -> LoadedTexture
                 {
-                    return LoadedTexture { name, reinterpret_cast<const uint8_t*>(array.bytes.data()),
-                                           array.bytes.size() };
+                    return LoadedTexture { name, asset::Texture::Type::scene,
+                                           reinterpret_cast<const uint8_t*>(array.bytes.data()), array.bytes.size() };
                 },
                 [&](const fastgltf::sources::BufferView& view) -> LoadedTexture
                 {
@@ -205,14 +205,14 @@ public:
                         [](const auto&) -> LoadedTexture { throw std::runtime_error("unsupported visitor"); },
                         [&](const fastgltf::sources::Vector& vector) -> LoadedTexture
                         {
-                            return LoadedTexture { name,
+                            return LoadedTexture { name, asset::Texture::Type::scene,
                                                    reinterpret_cast<const uint8_t*>(vector.bytes.data()) +
                                                        bufferView.byteOffset,
                                                    bufferView.byteLength };
                         },
                         [&](const fastgltf::sources::Array& array) -> LoadedTexture
                         {
-                            return LoadedTexture { name,
+                            return LoadedTexture { name, asset::Texture::Type::scene,
                                                    reinterpret_cast<const uint8_t*>(array.bytes.data()) +
                                                        bufferView.byteOffset,
                                                    bufferView.byteLength };
