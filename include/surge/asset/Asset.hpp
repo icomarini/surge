@@ -13,12 +13,10 @@ namespace surge::asset
 class ShaderStorageBufferObject
 {
 public:
-    using SSBOBufferInfo = core::BufferInfo<VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                                            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT>;
     using SSBODescr = core::Description<VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, core::Buffer>;
 
     ShaderStorageBufferObject(const core::Size size, const VkDescriptorPool descriptorPool)
-        : buffer { size, SSBOBufferInfo {} }
+        : buffer { size, core::Buffer::ssbo }
         , descriptorSetLayout { core::Descriptor::createDescriptorSetLayout<SSBODescr>(1) }
         , descriptorSet { core::Descriptor::createDescriptorSet(descriptorSetLayout, descriptorPool,
                                                                 SSBODescr { buffer }) }

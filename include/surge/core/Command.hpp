@@ -7,14 +7,6 @@
 
 namespace surge::core
 {
-
-using StagingBufferInfo = BufferInfo<VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT>;
-
-namespace detail
-{
-}  // namespace detail
-
 class Command
 {
 public:
@@ -74,7 +66,7 @@ public:
     template<typename Type>
     void transferBuffer(const VkBuffer buffer, const Type* const data, const VkDeviceSize size) const
     {
-        const Buffer stagingBuffer { size, StagingBufferInfo {} };
+        const Buffer stagingBuffer { size, Buffer::staging };
         std::memcpy(stagingBuffer.mapped, data, size);
         singleTimeCommand(
             [&](const VkCommandBuffer commandBuffer)
@@ -91,7 +83,7 @@ public:
     template<typename LoadedTexture>
     void transferImage(const VkImage image, const LoadedTexture& loadedTexture) const
     {
-        const Buffer stagingBuffer { loadedTexture.memorySize(), StagingBufferInfo {} };
+        const Buffer stagingBuffer { loadedTexture.memorySize(), Buffer::staging };
         memcpy(stagingBuffer.mapped, loadedTexture.data(), static_cast<size_t>(loadedTexture.memorySize()));
 
         transitionImageLayout(image, loadedTexture, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);

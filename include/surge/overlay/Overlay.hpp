@@ -19,8 +19,6 @@ namespace surge::overlay
 class Overlay
 {
 public:
-    using ImGuiModelInfo = asset::ModelInfo<VkBufferUsageFlags {}, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT>;
-
     struct PushConstBlock
     {
         core::math::Vector<2> scale;
@@ -196,7 +194,8 @@ public:
         if (!model || model->vertexCount != vertexCount || model->indexCount != indexCount)
         {
             vkQueueWaitIdle(graphicsQueue);
-            model.emplace(loadedOverlay, ImGuiModelInfo {});
+            model.emplace(loadedOverlay,
+                          asset::Model::Info<VkBufferUsageFlags {}, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT> {});
         }
         model->transfer(loadedOverlay);
     }

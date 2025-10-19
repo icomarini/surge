@@ -7,23 +7,17 @@
 
 namespace surge::asset
 {
-
-template<VkBufferUsageFlags _bufferUsageFlags, VkMemoryPropertyFlags _memoryPropertyFlags>
-struct ModelInfo
-{
-    static constexpr auto bufferUsageFlags    = _bufferUsageFlags;
-    static constexpr auto memoryPropertyFlags = _memoryPropertyFlags;
-};
-// using ImGuiModelInfo = asset::ModelInfo<VkBufferUsageFlags {}, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT>;
-
-using SceneModelInfo = ModelInfo<VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT>;
-
 class Model
 {
 public:
-    struct Data
+    template<VkBufferUsageFlags usage, VkMemoryPropertyFlags property>
+    struct Info
     {
+        static constexpr auto bufferUsageFlags    = usage;
+        static constexpr auto memoryPropertyFlags = property;
     };
+
+    static constexpr auto scene = Info<VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT> {};
 
     template<typename LoadedModel, typename I>
     Model(const LoadedModel& loadedModel, I)

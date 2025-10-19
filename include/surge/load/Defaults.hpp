@@ -125,8 +125,8 @@ public:
                   .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
                   .primitiveRestartEnable = VK_FALSE,
               }) }
-        , coordinateSystem { core::geometry::coordinateSystem, command, asset::SceneModelInfo {} }
-        , cube { core::geometry::cubeFill, command, asset::SceneModelInfo {} }
+        , coordinateSystem { core::geometry::coordinateSystem, command, asset::Model::scene }
+        , cube { core::geometry::cube, command, asset::Model::scene }
     {
     }
 

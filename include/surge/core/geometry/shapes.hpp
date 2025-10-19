@@ -42,25 +42,25 @@ using PositionAndColor = geometry::Vertex<
 // [-1,-1,-1] O----------2 [ 1,-1,-1]
 
 
-static constexpr Shape cubeFill { "cube",
-                                  std::array {
-                                      Position { { -1, -1, -1 } },
-                                      Position { { -1, 1, -1 } },
-                                      Position { { 1, -1, -1 } },
-                                      Position { { 1, 1, -1 } },
-                                      Position { { -1, -1, 1 } },
-                                      Position { { -1, 1, 1 } },
-                                      Position { { 1, -1, 1 } },
-                                      Position { { 1, 1, 1 } },
-                                  },
-                                  std::array {
-                                      1, 4, 0, 5, 4, 1,  // x = -1
-                                      6, 3, 2, 6, 7, 3,  // x = 1
-                                      4, 2, 0, 4, 6, 2,  // y = -1
-                                      3, 5, 1, 7, 5, 3,  // y = 1
-                                      2, 1, 0, 2, 3, 1,  // z = -1
-                                      5, 6, 4, 7, 6, 5,  // z = 1
-                                  } };
+static constexpr Shape cube { "cube",
+                              std::array {
+                                  Position { { -1, -1, -1 } },
+                                  Position { { -1, 1, -1 } },
+                                  Position { { 1, -1, -1 } },
+                                  Position { { 1, 1, -1 } },
+                                  Position { { -1, -1, 1 } },
+                                  Position { { -1, 1, 1 } },
+                                  Position { { 1, -1, 1 } },
+                                  Position { { 1, 1, 1 } },
+                              },
+                              std::array {
+                                  1, 4, 0, 5, 4, 1,  // x = -1
+                                  6, 3, 2, 6, 7, 3,  // x = 1
+                                  4, 2, 0, 4, 6, 2,  // y = -1
+                                  3, 5, 1, 7, 5, 3,  // y = 1
+                                  2, 1, 0, 2, 3, 1,  // z = -1
+                                  5, 6, 4, 7, 6, 5,  // z = 1
+                              } };
 
 static constexpr Shape coordinateSystem { "coord",
                                           std::array { PositionAndColor { { -0.9, -0.9, -0.9 }, { 1, 0, 0, 1 } },

@@ -489,7 +489,7 @@ public:
             }
         }
         return asset::Model { core::geometry::Shape { "asset", std::move(vertices), std::move(indices) }, command,
-                              asset::SceneModelInfo {} };
+                              asset::Model::scene };
     }
 
     // static auto decomposeMatrix(const fastgltf::math::fmat4x4& matrix)

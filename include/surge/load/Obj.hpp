@@ -210,7 +210,7 @@ public:
         std::iota(indices.begin(), indices.end(), 0);
 
         return asset::Model { core::geometry::Shape { "asset", std::move(vertices), std::move(indices) }, command,
-                              asset::SceneModelInfo {} };
+                              asset::Model::scene };
     }
 
     core::utils::Tree<asset::Node> createTree() const
