@@ -14,46 +14,38 @@ struct ModelInfo
     static constexpr auto bufferUsageFlags    = _bufferUsageFlags;
     static constexpr auto memoryPropertyFlags = _memoryPropertyFlags;
 };
+// using ImGuiModelInfo = asset::ModelInfo<VkBufferUsageFlags {}, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT>;
 
 using SceneModelInfo = ModelInfo<VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT>;
 
 class Model
 {
 public:
-    template<VkBufferUsageFlags bufferUsageFlags, VkMemoryPropertyFlags memoryPropertyFlags>
-    using VertexBufferInfo =
-        core::BufferInfo<bufferUsageFlags | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, memoryPropertyFlags>;
-    template<VkBufferUsageFlags bufferUsageFlags, VkMemoryPropertyFlags memoryPropertyFlags>
-    using IndexBufferInfo = core::BufferInfo<bufferUsageFlags | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, memoryPropertyFlags>;
+    struct Data
+    {
+    };
 
-    template<typename LoadedModel, typename Info>
-    Model(const core::Command& command, const LoadedModel& loadedModel, const bool transfer, Info)
+    template<typename LoadedModel, typename I>
+    Model(const LoadedModel& loadedModel, I)
         : name { loadedModel.name }
         , vertexBuffer { loadedModel.vertexBufferSize(),
-                         VertexBufferInfo<Info::bufferUsageFlags, Info::memoryPropertyFlags> {} }
+                         core::Buffer::Info<I::bufferUsageFlags | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                                            I::memoryPropertyFlags> {} }
         , vertexCount { static_cast<uint32_t>(loadedModel.vertexSize()) }
         , indexBuffer { loadedModel.indexBufferSize(),
-                        IndexBufferInfo<Info::bufferUsageFlags, Info::memoryPropertyFlags> {} }
+                        core::Buffer::Info<I::bufferUsageFlags | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                                           I::memoryPropertyFlags> {} }
         , indexCount { static_cast<uint32_t>(loadedModel.indexSize()) }
     {
-        if (transfer)
-        {
-            static_assert(Info::memoryPropertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-            command.transferBuffer(vertexBuffer.buffer, loadedModel.vertexData(), loadedModel.vertexBufferSize());
-            command.transferBuffer(indexBuffer.buffer, loadedModel.indexData(), loadedModel.indexBufferSize());
-        }
     }
 
-    template<typename LoadedModel, typename Info>
-    Model(const LoadedModel& loadedModel, Info)
-        : name { loadedModel.name }
-        , vertexBuffer { loadedModel.vertexBufferSize(),
-                         VertexBufferInfo<Info::bufferUsageFlags, Info::memoryPropertyFlags> {} }
-        , vertexCount { static_cast<uint32_t>(loadedModel.vertexSize()) }
-        , indexBuffer { loadedModel.indexBufferSize(),
-                        IndexBufferInfo<Info::bufferUsageFlags, Info::memoryPropertyFlags> {} }
-        , indexCount { static_cast<uint32_t>(loadedModel.indexSize()) }
+    template<typename LoadedModel, typename I>
+    Model(const LoadedModel& loadedModel, const core::Command& command, I)
+        : Model(loadedModel, I {})
     {
+        static_assert(I::memoryPropertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        command.transferBuffer(vertexBuffer.buffer, loadedModel.vertexData(), loadedModel.vertexBufferSize());
+        command.transferBuffer(indexBuffer.buffer, loadedModel.indexData(), loadedModel.indexBufferSize());
     }
 
     template<typename Type>

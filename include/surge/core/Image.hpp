@@ -35,14 +35,14 @@ public:
         VkImageViewType       imageViewType;
     };
 
-    template<typename LoadedTexture, typename Info>
-    Image(const LoadedTexture& loadedTexture, Info)
+    template<typename LoadedTexture, typename I>
+    Image(const LoadedTexture& loadedTexture, I)
         : extent { loadedTexture.width, loadedTexture.height }
-        , image { createImage<Info::imageCreateFlags, Info::format, Info::imageUsageFlags>(
-              extent, loadedTexture.mipLevels, loadedTexture.arrayLayers) }
-        , memory { createImageMemory<Info::memoryPropertyFlags>(image) }
-        , view { createImageView<Info::imageAspectFlags, Info::imageViewType, Info::format>(
-              image, loadedTexture.mipLevels, loadedTexture.arrayLayers) }
+        , image { createImage<I::imageCreateFlags, I::format, I::imageUsageFlags>(extent, loadedTexture.mipLevels,
+                                                                                  loadedTexture.arrayLayers) }
+        , memory { createImageMemory<I::memoryPropertyFlags>(image) }
+        , view { createImageView<I::imageAspectFlags, I::imageViewType, I::format>(image, loadedTexture.mipLevels,
+                                                                                   loadedTexture.arrayLayers) }
     {
     }
 

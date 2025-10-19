@@ -372,17 +372,16 @@ private:
         }
     }
 
-    template<typename Handle, typename Info, typename Constructor>
-    Handle construct(const Constructor constructor, const Info& createInfo,
-                     const VkAllocationCallbacks* allocator) const
+    template<typename Handle, typename I, typename Constructor>
+    Handle construct(const Constructor constructor, const I& createInfo, const VkAllocationCallbacks* allocator) const
     {
         Handle handle;
         checkConstruction<Handle>(constructor(device, &createInfo, allocator, &handle));
         return handle;
     }
 
-    template<typename Handle, typename Info, typename Constructor>
-    Handle construct(const Constructor constructor, const Info& createInfo) const
+    template<typename Handle, typename I, typename Constructor>
+    Handle construct(const Constructor constructor, const I& createInfo) const
     {
         Handle handle;
         checkConstruction<Handle>(constructor(device, &createInfo, &handle));

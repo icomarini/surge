@@ -109,7 +109,7 @@ public:
 
     asset::Model createModel(const core::Command& command, const std::vector<asset::Mesh>&) const
     {
-        return asset::Model { command, core::geometry::cubeFill, true, asset::SceneModelInfo {} };
+        return asset::Model { core::geometry::cubeFill, command, asset::SceneModelInfo {} };
     }
 
     core::utils::Tree<asset::Node> createTree() const
