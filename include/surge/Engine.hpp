@@ -154,7 +154,7 @@ public:
         return entity::Entity { asset, pipelineLayout, pipeline, matrix };
     }
 
-    entity::Skybox createEntity(const std::string& name)
+    entity::Skybox createSkybox(const std::string& name)
     {
         const auto& asset                     = assets.at(name);
         const auto [pipelineLayout, pipeline] = renderer.pipelines.at(name);
@@ -195,15 +195,13 @@ public:
             }
             offsetX += stepX;
         }
-        auto entity { entities.front() };
-        entity.state.modelMatrix =
-            core::math::fullMatrix(core::math::Translation { core::math::Vector<3> { 0, 1, 0 } });
-        const auto [pipelineLayout, pipeline] = renderer.pipelines.at("skyboxasset");
-        entity::Skybox skybox { assets.at("skyboxasset"), pipelineLayout, pipeline, core::math::identity<4> };
 
-        entity::Skybox              skybox2 { skybox };
-        std::vector<entity::Entity> entities2 { entities.begin(), entities.end() };
+        // const auto [pipelineLayout, pipeline] = renderer.pipelines.at("skybox");
+        // entity::Skybox skybox { assets.at("skybox"), pipelineLayout, pipeline, core::math::identity<4> };
 
+        auto skybox = createSkybox("skybox");
+
+        log::checkpoint("Main loop start");
         while (core::context().proceed())
         {
             if (elapsedTime > 1.0 / 144.0)
@@ -233,27 +231,25 @@ public:
                 // === physics playground ===
 
                 // === entity playground ===
-                for (auto& entity : entities2)
+                for (auto& entity : entities)
                 {
                     entity.update(0, elapsedTime);
                 }
-                entity.update(0, elapsedTime);
                 // === entity playground ===
 
-                skybox2.update(input);
+                skybox.update(input);
                 renderer.update(input);
                 overlay.update(input);
 
                 // === rendering ===
                 const auto inFlight = presenter.acquire();
 
-                skybox2.draw(inFlight.commandBuffer, renderer.descriptor.set);
+                skybox.draw(inFlight.commandBuffer, renderer.descriptor.set);
                 renderer.draw(inFlight.commandBuffer);
-                for (const auto& entity : entities2)
+                for (const auto& entity : entities)
                 {
                     entity.draw(inFlight.commandBuffer, renderer.descriptor.set);
                 }
-                entity.draw(inFlight.commandBuffer, renderer.descriptor.set);
                 overlay.draw(inFlight.commandBuffer);
 
                 presenter.present(command, input.framebufferResized);
@@ -266,6 +262,7 @@ public:
             elapsedTime     = 1e-3 * std::chrono::duration<double, std::milli>(stop - start).count();
         }
         vkDeviceWaitIdle(core::context().device);
+        log::checkpoint("Main loop end");
     }
 
 private:
