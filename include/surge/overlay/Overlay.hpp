@@ -182,8 +182,8 @@ public:
         }
 
         // Note: Alignment is done inside buffer creation
-        const auto vertexCount = imDrawData->TotalVtxCount;
-        const auto indexCount  = imDrawData->TotalIdxCount;
+        const auto vertexCount = static_cast<std::size_t>(imDrawData->TotalVtxCount);
+        const auto indexCount  = static_cast<std::size_t>(imDrawData->TotalIdxCount);
 
         if ((vertexCount == 0) || (indexCount == 0))
         {

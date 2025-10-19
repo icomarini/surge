@@ -19,17 +19,16 @@ enum class Font
 
 std::pair<std::string, core::Colors<core::Type::ansi>::Format> convert(const Type type)
 {
-    if (type == Type::checkpoint)
+    switch (type)
     {
+    case Type::checkpoint:
         return { "URGE", core::Colors<core::Type::ansi>::white };
-    }
-    else if (type == Type::info)
-    {
+    case Type::info:
         return { "INFO", core::Colors<core::Type::ansi>::green };
-    }
-    else if (type == Type::error)
-    {
+    case Type::error:
         return { "PURGE", core::Colors<core::Type::ansi>::red };
+    default:
+        throw;
     }
 }
 

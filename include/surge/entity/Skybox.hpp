@@ -28,10 +28,10 @@ public:
     mutable State                  state;
 
     Skybox(const asset::Asset& asset, const VkPipelineLayout pipelineLayout, const VkPipeline pipeline,
-           const core::Index sceneIndex, const core::math::StaticMatrix auto& modelMatrix)
+           const core::math::StaticMatrix auto& modelMatrix)
         : camera { 16.0 / 9.0, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } }
         , asset { asset }
-        , nodes { asset.scenes.at(sceneIndex).treenNodes }
+        , nodes { asset.mainScene().treenNodes }
         , pipelineLayout { pipelineLayout }
         , pipeline { pipeline }
         , state { State {

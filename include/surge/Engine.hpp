@@ -61,7 +61,7 @@ public:
         , presenter { command }
         , defaults { command, std::get<load::LoadedTexture::Handle>(assetHandles.at("default")) }
         , physics { physics::earthGravity }
-        , renderer { assets, physics }
+        , renderer { physics }
         , overlay { command, input, assets }
     {
         resetPhysics();
@@ -154,6 +154,13 @@ public:
         return entity::Entity { asset, pipelineLayout, pipeline, matrix };
     }
 
+    entity::Skybox createEntity(const std::string& name)
+    {
+        const auto& asset                     = assets.at(name);
+        const auto [pipelineLayout, pipeline] = renderer.pipelines.at(name);
+        return entity::Skybox { asset, pipelineLayout, pipeline, core::math::identity<4> };
+    }
+
     ~Engine()
     {
         log::checkpoint("The surge of urge to purge terminated");
@@ -169,7 +176,7 @@ public:
         std::vector<entity::Entity> entities;
         constexpr float             stepX = 2;
         constexpr float             stepY = 2;
-        constexpr core::Size        sizeY = 3;
+        constexpr core::Size        sizeY = 10;
         entities.reserve(assets.size() * sizeY + 1);
         float offsetX = 0;
         for (const auto& [name, asset] : assets)
@@ -192,7 +199,7 @@ public:
         entity.state.modelMatrix =
             core::math::fullMatrix(core::math::Translation { core::math::Vector<3> { 0, 1, 0 } });
         const auto [pipelineLayout, pipeline] = renderer.pipelines.at("skyboxasset");
-        entity::Skybox skybox { assets.at("skyboxasset"), pipelineLayout, pipeline, 0, core::math::identity<4> };
+        entity::Skybox skybox { assets.at("skyboxasset"), pipelineLayout, pipeline, core::math::identity<4> };
 
         entity::Skybox              skybox2 { skybox };
         std::vector<entity::Entity> entities2 { entities.begin(), entities.end() };

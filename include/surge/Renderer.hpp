@@ -1,11 +1,9 @@
 #pragma once
 
 #include "surge/Camera.hpp"
-#include "surge/asset/Asset.hpp"
 #include "surge/physics/Physics.hpp"
 #include "surge/core/Pipeline.hpp"
 #include "surge/asset/Line.hpp"
-#include "surge/entity/Entity.hpp"
 
 namespace surge
 {
@@ -13,13 +11,12 @@ namespace surge
 class Renderer
 {
 public:
-    Renderer(std::map<std::string, asset::Asset>& assets, const physics::Physics& physics)
-        : assets { assets }
-        , physics { physics }
+    Renderer(const physics::Physics& physics)
+        : physics { physics }
         , camera { 16.0 / 9.0, { 0.0f, 1.0f, 3.0f }, { 0.0f, 0.0f, -1.0f } }
         , scene { 2 * sizeof(core::math::Matrix<4, 4>), core::UniformBufferInfo {} }
         , descriptor { 1, core::UniformBufferDescription<VK_SHADER_STAGE_VERTEX_BIT> { scene } }
-        , pipelines { createPipelines(assets, descriptor.setLayout) }
+        , pipelines { createPipelines(descriptor.setLayout) }
     {
     }
 
@@ -142,7 +139,6 @@ public:
         vkCmdDraw(commandBuffer, 1, 1, 0, 0);
     }
 
-    std::map<std::string, asset::Asset>&                           assets;
     const physics::Physics&                                        physics;
     mutable Camera<true, false>                                    camera;
     core::Buffer                                                   scene;
@@ -168,8 +164,7 @@ public:
 
 private:
     static std::map<std::string, std::pair<VkPipelineLayout, VkPipeline>>
-    createPipelines(const std::map<std::string, asset::Asset>& assets,
-                    const VkDescriptorSetLayout                sceneDescriptorSetLayout)
+    createPipelines(const VkDescriptorSetLayout sceneDescriptorSetLayout)
     {
         std::map<std::string, std::pair<VkPipelineLayout, VkPipeline>> pipelines;
 
@@ -210,24 +205,6 @@ private:
                     .topology               = VK_PRIMITIVE_TOPOLOGY_POINT_LIST,
                     .primitiveRestartEnable = VK_FALSE,
                 });
-        }
-
-        // assets
-        for (const auto& [name, asset] : assets)
-        {
-            constexpr VkPushConstantRange nodePpushConstantRange {
-                core::createPushConstantRange<asset::Node::PushConstants>(VK_SHADER_STAGE_VERTEX_BIT |
-                                                                          VK_SHADER_STAGE_FRAGMENT_BIT)
-            };
-
-            auto& [pipelineLayout, pipeline] = pipelines[name];
-            pipelineLayout                   = asset.jointMatricesDescriptorSetLayout.has_value() ?
-                                                   core::createPipelineLayout(nodePpushConstantRange, sceneDescriptorSetLayout,
-                                                                              asset.materialDescriptorSetLayout,
-                                                                              asset.jointMatricesDescriptorSetLayout.value()) :
-                                                   core::createPipelineLayout(nodePpushConstantRange, sceneDescriptorSetLayout,
-                                                                              asset.materialDescriptorSetLayout);
-            pipeline = core::createGraphicPipeline(asset.vertexInputState, pipelineLayout, asset.shader);
         }
         return pipelines;
     }

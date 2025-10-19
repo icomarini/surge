@@ -29,8 +29,8 @@ public:
 
     LoadedOverlay()
         : name { "imgui" }
-        , verSize { ImGui::GetDrawData()->TotalVtxCount }
-        , indSize { ImGui::GetDrawData()->TotalIdxCount }
+        , verSize { static_cast<std::size_t>(ImGui::GetDrawData()->TotalVtxCount) }
+        , indSize { static_cast<std::size_t>(ImGui::GetDrawData()->TotalIdxCount) }
     {
     }
 
