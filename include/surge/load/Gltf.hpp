@@ -490,7 +490,7 @@ public:
                 vertexOffset += asset.accessors.at(primitive.findAttribute("POSITION")->accessorIndex).count;
             }
         }
-        return asset::Model { core::geometry::Shape { "asset", std::move(vertices), std::move(indices) }, command,
+        return asset::Model { command, core::geometry::Shape { "asset", std::move(vertices), std::move(indices) },
                               asset::Model::scene };
     }
 

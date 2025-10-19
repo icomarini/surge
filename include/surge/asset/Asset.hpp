@@ -10,27 +10,29 @@
 namespace surge::asset
 {
 
-class ShaderStorageBufferObject
+class ShaderStorageBufferObject : public core::Contextualized
 {
 public:
     using SSBODescr = core::Description<VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, core::Buffer>;
 
-    ShaderStorageBufferObject(const core::Size size, const VkDescriptorPool descriptorPool)
-        : buffer { size, core::Buffer::ssbo }
+    ShaderStorageBufferObject(const core::Context& context, const core::Size size,
+                              const VkDescriptorPool descriptorPool)
+        : Contextualized { context }
+        , buffer { size, core::Buffer::ssbo }
         , descriptorSetLayout { core::Descriptor::createDescriptorSetLayout<SSBODescr>(1) }
         , descriptorSet { core::Descriptor::createDescriptorSet(descriptorSetLayout, descriptorPool,
                                                                 SSBODescr { buffer }) }
     {
     }
 
-    ShaderStorageBufferObject(ShaderStorageBufferObject&& other)
-        : buffer { std::move(other.buffer) }
-        , descriptorSetLayout { other.descriptorSetLayout }
-        , descriptorSet { other.descriptorSet }
-    {
-        other.descriptorSetLayout = VK_NULL_HANDLE;
-        other.descriptorSet       = VK_NULL_HANDLE;
-    }
+    // ShaderStorageBufferObject(ShaderStorageBufferObject&& other)
+    //     : buffer { std::move(other.buffer) }
+    //     , descriptorSetLayout { other.descriptorSetLayout }
+    //     , descriptorSet { other.descriptorSet }
+    // {
+    //     other.descriptorSetLayout = VK_NULL_HANDLE;
+    //     other.descriptorSet       = VK_NULL_HANDLE;
+    // }
 
     core::Buffer          buffer;
     VkDescriptorSetLayout descriptorSetLayout;
@@ -38,11 +40,11 @@ public:
 
     ~ShaderStorageBufferObject()
     {
-        core::context().destroy(descriptorSetLayout);
+        context.destroy(descriptorSetLayout);
     }
 };
 
-class Asset
+class Asset : public core::Contextualized
 {
 public:
     std::string        name;
@@ -71,7 +73,8 @@ public:
 
     template<typename LoadedAsset>
     Asset(const core::Command& command, const LoadedAsset& loadedAsset)
-        : name { loadedAsset.name }
+        : Contextualized { command.context }
+        , name { loadedAsset.name }
         , shader { loadedAsset.shader() }
         , textures { loadedAsset.createTextures(command) }
         , descriptorPool { loadedAsset.createDescriptorPool() }
@@ -93,10 +96,10 @@ public:
     {
         if (jointMatricesDescriptorSetLayout.has_value())
         {
-            core::context().destroy(jointMatricesDescriptorSetLayout.value());
+            context.destroy(jointMatricesDescriptorSetLayout.value());
         }
-        core::context().destroy(materialDescriptorSetLayout);
-        core::context().destroy(descriptorPool);
+        context.destroy(materialDescriptorSetLayout);
+        context.destroy(descriptorPool);
     }
 
     const auto& mainScene() const

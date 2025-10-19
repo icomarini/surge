@@ -7,19 +7,20 @@
 
 namespace surge::core
 {
-class Command
+class Command : public Contextualized
 {
 public:
-    Command()
-        : graphicsQueue { getQueue(context().physicalDevice.graphicsFamilyIndex) }
-        , presentQueue { getQueue(context().physicalDevice.presentFamilyIndex) }
+    Command(const Context& context)
+        : Contextualized(context)
+        , graphicsQueue { getQueue(context.physicalDevice.graphicsFamilyIndex) }
+        , presentQueue { getQueue(context.physicalDevice.presentFamilyIndex) }
         , pool { createCommandPool() }
     {
     }
 
     VkCommandBuffer createCommandBuffer() const
     {
-        return context().create(VkCommandBufferAllocateInfo {
+        return context.create(VkCommandBufferAllocateInfo {
             .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
             .pNext              = nullptr,
             .commandPool        = pool,
@@ -59,7 +60,7 @@ public:
         vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
         vkQueueWaitIdle(graphicsQueue);
 
-        vkFreeCommandBuffers(context().device, pool, 1, &commandBuffer);
+        vkFreeCommandBuffers(context.device, pool, 1, &commandBuffer);
     }
 
 
@@ -176,7 +177,7 @@ public:
 
     ~Command()
     {
-        context().destroy(pool);
+        context.destroy(pool);
     }
 
 public:
@@ -193,17 +194,17 @@ private:
     VkQueue getQueue(const uint32_t index)
     {
         VkQueue queue;
-        vkGetDeviceQueue(context().device, index, 0, &queue);
+        vkGetDeviceQueue(context.device, index, 0, &queue);
         return queue;
     }
 
     VkCommandPool createCommandPool()
     {
-        return context().create(VkCommandPoolCreateInfo {
+        return context.create(VkCommandPoolCreateInfo {
             .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
             .pNext            = nullptr,
             .flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-            .queueFamilyIndex = context().physicalDevice.graphicsFamilyIndex,
+            .queueFamilyIndex = context.physicalDevice.graphicsFamilyIndex,
         });
     }
 };

@@ -7,16 +7,13 @@
 namespace surge::core
 {
 
-class Presenter
+class Presenter : public Contextualized
 {
 public:
-    // using DepthImageInfo =
-    //     ImageInfo<VkImageCreateFlags {}, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-    //               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_VIEW_TYPE_2D>;
-
     Presenter(const Command& command)
-        : swapchain { std::in_place }
-        , semaphores { createSemaphores(swapchain->imageCount()) }
+        : Contextualized { command.context }
+        , swapchain { std::in_place, context }
+        , semaphores { createSemaphores(context, swapchain->imageCount()) }
         , frames { createFrames(command) }
         , imageIndex {}
     {
@@ -50,12 +47,12 @@ public:
     InFlight acquire()
     {
         const auto [fence, commandBuffer] = frames.current();
-        vkWaitForFences(context().device, 1, &fence, VK_TRUE, UINT64_MAX);
-        vkResetFences(context().device, 1, &fence);
+        vkWaitForFences(context.device, 1, &fence, VK_TRUE, UINT64_MAX);
+        vkResetFences(context.device, 1, &fence);
 
         // acquire next image
         const auto presented = semaphores.current().presented;
-        const auto result    = vkAcquireNextImageKHR(context().device, swapchain->swapchain, UINT64_MAX, presented,
+        const auto result    = vkAcquireNextImageKHR(context.device, swapchain->swapchain, UINT64_MAX, presented,
                                                      VK_NULL_HANDLE, &imageIndex);
         switch (result)
         {
@@ -154,7 +151,7 @@ public:
         };
 
         auto beginRendering = reinterpret_cast<PFN_vkCmdBeginRenderingKHR>(
-            vkGetInstanceProcAddr(context().instance, "vkCmdBeginRenderingKHR"));
+            vkGetInstanceProcAddr(context.instance, "vkCmdBeginRenderingKHR"));
         beginRendering(commandBuffer, &renderInfo);
 
         // viewport and scissors
@@ -189,8 +186,8 @@ public:
         const auto& frame                 = swapchain->frames.at(imageIndex);
         const auto [fence, commandBuffer] = frames.current();
 
-        auto endRendering = reinterpret_cast<PFN_vkCmdEndRenderingKHR>(
-            vkGetInstanceProcAddr(context().instance, "vkCmdEndRenderingKHR"));
+        auto endRendering =
+            reinterpret_cast<PFN_vkCmdEndRenderingKHR>(vkGetInstanceProcAddr(context.instance, "vkCmdEndRenderingKHR"));
         endRendering(commandBuffer);
 
         const VkImageMemoryBarrier imageMemoryBarrierEnd {
@@ -268,13 +265,13 @@ public:
     {
         for (uint32_t i = 0; i < frames.size(); ++i)
         {
-            context().destroy(frames.current().fence);
+            context.destroy(frames.current().fence);
             frames.rotate();
         }
         for (uint32_t i = 0; i < semaphores.size(); ++i)
         {
-            context().destroy(semaphores.current().rendered);
-            context().destroy(semaphores.current().presented);
+            context.destroy(semaphores.current().rendered);
+            context.destroy(semaphores.current().presented);
             semaphores.rotate();
         }
     }
@@ -298,7 +295,7 @@ private:
     uint32_t                 imageIndex;
 
 private:
-    static utils::Cycle<Semaphores> createSemaphores(const uint32_t count)
+    static utils::Cycle<Semaphores> createSemaphores(const Context& context, const uint32_t count)
     {
         utils::Cycle<Semaphores> semaphores { count };
         for (uint32_t i = 0; i < count; ++i)
@@ -308,20 +305,20 @@ private:
                 .pNext = nullptr,
                 .flags = {},
             };
-            semaphores.set(i, Semaphores { .presented = context().create(semaphoreInfo),
-                                           .rendered  = context().create(semaphoreInfo) });
+            semaphores.set(i, Semaphores { .presented = context.create(semaphoreInfo),
+                                           .rendered  = context.create(semaphoreInfo) });
         }
         return semaphores;
     }
 
     static utils::Cycle<Frame> createFrames(const Command& command)
     {
-        const auto frameCount = context().frameBufferCount();
+        const auto frameCount = command.context.frameBufferCount();
 
         utils::Cycle<Frame> frames { frameCount };
         for (uint32_t i = 0; i < frameCount; ++i)
         {
-            frames.set(i, Frame { .fence         = context().create(VkFenceCreateInfo {
+            frames.set(i, Frame { .fence         = command.context.create(VkFenceCreateInfo {
                                               .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
                                               .pNext = nullptr,
                                               .flags = VK_FENCE_CREATE_SIGNALED_BIT,
@@ -333,8 +330,8 @@ private:
 
     void recreateSwapchain()
     {
-        vkDeviceWaitIdle(context().device);
-        swapchain.emplace();
+        vkDeviceWaitIdle(context.device);
+        swapchain.emplace(context);
     }
 };
 

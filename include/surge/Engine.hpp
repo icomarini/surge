@@ -57,11 +57,11 @@ public:
            const std::map<std::string, load::AssetHandle>& assetHandles)
         : input { resolution }
         , context { core::createContext(windowName, appName, resolution, createCallback(&input)) }
-        , command {}
+        , command { context }
         , presenter { command }
         , defaults { command, std::get<load::LoadedTexture::Handle>(assetHandles.at("default")) }
         , physics { physics::earthGravity }
-        , renderer { physics }
+        , renderer { context, physics }
         , overlay { command, assets }
     {
         resetPhysics();
@@ -213,12 +213,12 @@ public:
         auto skybox = createSkybox("skybox");
 
         log::checkpoint("Main loop start");
-        while (core::context().proceed())
+        while (context.proceed())
         {
             if (elapsedTime > 1.0 / 144.0)
             {
                 input.reset();
-                core::context().pollEvents();
+                context.pollEvents();
 
                 // === physics playground ===
                 using Action = core::input::Action;
@@ -272,7 +272,7 @@ public:
             const auto stop = std::chrono::high_resolution_clock::now();
             elapsedTime     = 1e-3 * std::chrono::duration<double, std::milli>(stop - start).count();
         }
-        vkDeviceWaitIdle(core::context().device);
+        vkDeviceWaitIdle(context.device);
         log::checkpoint("Main loop end");
     }
 

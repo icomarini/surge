@@ -18,7 +18,7 @@
 
 namespace surge::overlay
 {
-class Overlay
+class Overlay : public core::Contextualized
 {
 public:
     struct PushConstBlock
@@ -29,18 +29,20 @@ public:
 
 
     Overlay(const core::Command& command, const std::map<std::string, asset::Asset>& assets)
-        : imGuiContext { 1 }
+        : core::Contextualized { command.context }
+        , imGuiContext { 1 }
         , frameTimes {}
         , fontTexture { command, Font {}, load::Defaults::sampler, asset::Texture::texture2d }
         , model {}
         , descriptor { 1, asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT> { fontTexture } }
         , graphicsQueue { command.graphicsQueue }
         , pipelineLayout { core::createPipelineLayout(
-              core::createPushConstantRange<PushConstBlock>(VK_SHADER_STAGE_VERTEX_BIT), descriptor.setLayout) }
+              context, core::createPushConstantRange<PushConstBlock>(VK_SHADER_STAGE_VERTEX_BIT),
+              descriptor.setLayout) }
         , pipeline { core::createGraphicPipeline(
-              core::createVertexInputState<LoadedOverlay::Vertex>(), VK_NULL_HANDLE, pipelineLayout,
+              context, core::createVertexInputState<LoadedOverlay::Vertex>(), VK_NULL_HANDLE, pipelineLayout,
               core::shader::Shader {
-                  core::shader::ShaderInfo<core::shader::Type::ui, core::shader::Stage::vertex> { nullptr },
+                  context, core::shader::ShaderInfo<core::shader::Type::ui, core::shader::Stage::vertex> { nullptr },
                   core::shader::ShaderInfo<core::shader::Type::ui, core::shader::Stage::fragment> { nullptr } },
               VkPipelineRasterizationStateCreateInfo {
                   .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -87,11 +89,11 @@ public:
     }
 
 
-    static void newFrame(const float scale, std::array<float, 50>& frameTimes, const Input& input,
-                         const std::map<std::string, asset::Asset>& assets)
+    void newFrame(const float scale, std::array<float, 50>& frameTimes, const Input& input,
+                  const std::map<std::string, asset::Asset>& assets) const
     {
         ImGuiIO&    io             = ImGui::GetIO();
-        const auto& extent         = core::context().extent();
+        const auto& extent         = context.extent();
         io.DisplaySize             = ImVec2(extent.width, extent.height);
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
@@ -173,7 +175,7 @@ public:
         ImGui::Render();
     }
 
-    static void updateBuffers(const VkQueue graphicsQueue, std::optional<asset::Model>& model)
+    void updateBuffers(const VkQueue graphicsQueue, std::optional<asset::Model>& model) const
     {
         const ImDrawData* const imDrawData = ImGui::GetDrawData();
         if (imDrawData == nullptr)
@@ -196,7 +198,7 @@ public:
         if (!model || model->vertexCount != vertexCount || model->indexCount != indexCount)
         {
             vkQueueWaitIdle(graphicsQueue);
-            model.emplace(loadedOverlay,
+            model.emplace(context, loadedOverlay,
                           asset::Model::Info<VkBufferUsageFlags {}, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT> {});
         }
         model->transfer(loadedOverlay);
@@ -222,7 +224,7 @@ public:
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
         auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
-            vkGetInstanceProcAddr(core::context().instance, "vkCmdSetPolygonModeEXT"));
+            vkGetInstanceProcAddr(context.instance, "vkCmdSetPolygonModeEXT"));
         assert(setPolygonMode);
         setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
 
@@ -287,8 +289,8 @@ public:
     ~Overlay()
     {
         // ImGui::DestroyContext();
-        core::context().destroy(pipeline);
-        core::context().destroy(pipelineLayout);
+        context.destroy(pipeline);
+        context.destroy(pipelineLayout);
     }
 
 private:

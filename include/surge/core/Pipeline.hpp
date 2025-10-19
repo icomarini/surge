@@ -88,7 +88,6 @@ constexpr VkPipelineVertexInputStateCreateInfo createVertexInputState()
         .vertexAttributeDescriptionCount = 0,
         .pVertexAttributeDescriptions    = nullptr,
     };
-    // return vertexInputState;
 }
 
 template<typename Type>
@@ -102,32 +101,12 @@ constexpr VkPushConstantRange createPushConstantRange(const VkShaderStageFlags s
     };
 }
 
-VkPipelineLayout createPipelineLayout(const VkDescriptorSetLayout descriptorSetLayout);
 template<typename... DescriptorSetLayouts>
-VkPipelineLayout createPipelineLayout(const VkPushConstantRange pushConstantRange,
-                                      const DescriptorSetLayouts... descriptorSetLayouts);
-VkPipelineLayout createPipelineLayout(const VkPushConstantRange pushConstantRange);
-
-VkPipelineLayout createPipelineLayout(const VkDescriptorSetLayout descriptorSetLayout)
-{
-    return context().create(VkPipelineLayoutCreateInfo {
-        .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-        .pNext                  = nullptr,
-        .flags                  = {},
-        .setLayoutCount         = 1,
-        .pSetLayouts            = &descriptorSetLayout,
-        .pushConstantRangeCount = 0,
-        .pPushConstantRanges    = nullptr,
-    });
-}
-
-
-template<typename... DescriptorSetLayouts>
-VkPipelineLayout createPipelineLayout(const VkPushConstantRange pushConstantRange,
+VkPipelineLayout createPipelineLayout(const Context& context, const VkPushConstantRange pushConstantRange,
                                       const DescriptorSetLayouts... descriptorSetLayouts)
 {
     const std::array layouts { descriptorSetLayouts... };
-    return context().create(VkPipelineLayoutCreateInfo {
+    return context.create(VkPipelineLayoutCreateInfo {
         .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
         .pNext                  = nullptr,
         .flags                  = {},
@@ -138,9 +117,9 @@ VkPipelineLayout createPipelineLayout(const VkPushConstantRange pushConstantRang
     });
 }
 
-VkPipelineLayout createPipelineLayout(const VkPushConstantRange pushConstantRange)
+VkPipelineLayout createPipelineLayout(const Context& context, const VkPushConstantRange pushConstantRange)
 {
-    return context().create(VkPipelineLayoutCreateInfo {
+    return context.create(VkPipelineLayoutCreateInfo {
         .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
         .pNext                  = nullptr,
         .flags                  = {},
@@ -150,8 +129,6 @@ VkPipelineLayout createPipelineLayout(const VkPushConstantRange pushConstantRang
         .pPushConstantRanges    = &pushConstantRange,
     });
 }
-
-constexpr VkPipelineRasterizationStateCreateInfo createRasterizationStateInfo(const VkPolygonMode polygonMode);
 
 constexpr VkPipelineRasterizationStateCreateInfo createRasterizationStateInfo(const VkPolygonMode polygonMode)
 {
@@ -174,7 +151,7 @@ constexpr VkPipelineRasterizationStateCreateInfo createRasterizationStateInfo(co
 
 
 template<typename ShaderStages, typename... CreateInfos>
-VkPipeline createGraphicPipeline(const VkPipelineVertexInputStateCreateInfo vertexInputState,
+VkPipeline createGraphicPipeline(const Context& context, const VkPipelineVertexInputStateCreateInfo vertexInputState,
                                  const VkPipelineCache pipelineCache, const VkPipelineLayout pipelineLayout,
                                  const ShaderStages& shaderStages, CreateInfos... createInfos)
 {
@@ -322,7 +299,7 @@ VkPipeline createGraphicPipeline(const VkPipelineVertexInputStateCreateInfo vert
         .pNext                   = nullptr,
         .viewMask                = 0,
         .colorAttachmentCount    = 1,
-        .pColorAttachmentFormats = &context().physicalDevice.surfaceFormat.format,
+        .pColorAttachmentFormats = &context.physicalDevice.surfaceFormat.format,
         .depthAttachmentFormat   = VK_FORMAT_D32_SFLOAT,
         .stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
     };
@@ -351,61 +328,66 @@ VkPipeline createGraphicPipeline(const VkPipelineVertexInputStateCreateInfo vert
 
 
     VkPipeline pipeline;
-    if (vkCreateGraphicsPipelines(context().device, pipelineCache, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS)
+    if (vkCreateGraphicsPipelines(context.device, pipelineCache, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to create graphics pipeline");
     }
     return pipeline;
 }
 
-VkPipeline createGraphicPipeline(const VkPipelineVertexInputStateCreateInfo vertexInputState,
-                                 const VkPipelineLayout pipelineLayout, const shader::Type shaderType);
-VkPipeline createGraphicPipeline(const VkPipelineVertexInputStateCreateInfo vertexInputState,
+VkPipeline createGraphicPipeline(const Context& context, const VkPipelineVertexInputStateCreateInfo vertexInputState,
                                  const VkPipelineLayout pipelineLayout, const shader::Type shaderType)
 {
     switch (shaderType)
     {
     case shader::Type::gltfAnimated:
         return createGraphicPipeline(
-            vertexInputState, VK_NULL_HANDLE, pipelineLayout,
+            context, vertexInputState, VK_NULL_HANDLE, pipelineLayout,
             shader::Shader {
+                context,
                 shader::ShaderInfo<shader::Type::gltfAnimated, shader::Stage::vertex> { nullptr },
                 shader::ShaderInfo<shader::Type::gltfAnimated, shader::Stage::fragment> { nullptr },
             });
     case shader::Type::gltfStatic:
         return createGraphicPipeline(
-            vertexInputState, VK_NULL_HANDLE, pipelineLayout,
+            context, vertexInputState, VK_NULL_HANDLE, pipelineLayout,
             shader::Shader {
+                context,
                 shader::ShaderInfo<shader::Type::gltfStatic, shader::Stage::vertex> { nullptr },
                 shader::ShaderInfo<shader::Type::gltfStatic, shader::Stage::fragment> { nullptr },
             });
     case shader::Type::bbox:
-        return createGraphicPipeline(vertexInputState, VK_NULL_HANDLE, pipelineLayout,
+        return createGraphicPipeline(context, vertexInputState, VK_NULL_HANDLE, pipelineLayout,
                                      shader::Shader {
+                                         context,
                                          shader::ShaderInfo<shader::Type::bbox, shader::Stage::vertex> { nullptr },
                                          shader::ShaderInfo<shader::Type::bbox, shader::Stage::fragment> { nullptr },
                                      });
     case shader::Type::line:
-        return createGraphicPipeline(vertexInputState, VK_NULL_HANDLE, pipelineLayout,
+        return createGraphicPipeline(context, vertexInputState, VK_NULL_HANDLE, pipelineLayout,
                                      shader::Shader {
+                                         context,
                                          shader::ShaderInfo<shader::Type::line, shader::Stage::vertex> { nullptr },
                                          shader::ShaderInfo<shader::Type::line, shader::Stage::fragment> { nullptr },
                                      });
     case shader::Type::point:
-        return createGraphicPipeline(vertexInputState, VK_NULL_HANDLE, pipelineLayout,
+        return createGraphicPipeline(context, vertexInputState, VK_NULL_HANDLE, pipelineLayout,
                                      shader::Shader {
+                                         context,
                                          shader::ShaderInfo<shader::Type::point, shader::Stage::vertex> { nullptr },
                                          shader::ShaderInfo<shader::Type::point, shader::Stage::fragment> { nullptr },
                                      });
     case shader::Type::shader:
-        return createGraphicPipeline(vertexInputState, VK_NULL_HANDLE, pipelineLayout,
+        return createGraphicPipeline(context, vertexInputState, VK_NULL_HANDLE, pipelineLayout,
                                      shader::Shader {
+                                         context,
                                          shader::ShaderInfo<shader::Type::shader, shader::Stage::vertex> { nullptr },
                                          shader::ShaderInfo<shader::Type::shader, shader::Stage::fragment> { nullptr },
                                      });
     case shader::Type::skybox:
-        return createGraphicPipeline(vertexInputState, VK_NULL_HANDLE, pipelineLayout,
+        return createGraphicPipeline(context, vertexInputState, VK_NULL_HANDLE, pipelineLayout,
                                      shader::Shader {
+                                         context,
                                          shader::ShaderInfo<shader::Type::skybox, shader::Stage::vertex> { nullptr },
                                          shader::ShaderInfo<shader::Type::skybox, shader::Stage::fragment> { nullptr },
                                      },
@@ -439,8 +421,9 @@ VkPipeline createGraphicPipeline(const VkPipelineVertexInputStateCreateInfo vert
                                          .maxDepthBounds        = 1.0f,
                                      });
     case shader::Type::ui:
-        return createGraphicPipeline(vertexInputState, VK_NULL_HANDLE, pipelineLayout,
+        return createGraphicPipeline(context, vertexInputState, VK_NULL_HANDLE, pipelineLayout,
                                      shader::Shader {
+                                         context,
                                          shader::ShaderInfo<shader::Type::ui, shader::Stage::vertex> { nullptr },
                                          shader::ShaderInfo<shader::Type::ui, shader::Stage::fragment> { nullptr },
                                      });

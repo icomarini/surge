@@ -765,4 +765,14 @@ static const Context& context()
     return createContext("", "", { 0, 0 }, std::nullopt);
 };
 
+struct Contextualized
+{
+    Contextualized(const Context& context)
+        : context { context }
+    {
+    }
+
+    const Context& context;
+};
+
 }  // namespace surge::core

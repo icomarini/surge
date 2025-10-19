@@ -7,7 +7,7 @@
 
 namespace surge::asset
 {
-class Model
+class Model : public core::Contextualized
 {
 public:
     template<VkBufferUsageFlags usage, VkMemoryPropertyFlags property>
@@ -20,8 +20,9 @@ public:
     static constexpr auto scene = Info<VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT> {};
 
     template<typename LoadedModel, typename I>
-    Model(const LoadedModel& loadedModel, I)
-        : name { loadedModel.name }
+    Model(const core::Context& context, const LoadedModel& loadedModel, I)
+        : Contextualized { context }
+        , name { loadedModel.name }
         , vertexBuffer { loadedModel.vertexBufferSize(),
                          core::Buffer::Info<I::bufferUsageFlags | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                                             I::memoryPropertyFlags> {} }
@@ -34,8 +35,8 @@ public:
     }
 
     template<typename LoadedModel, typename I>
-    Model(const LoadedModel& loadedModel, const core::Command& command, I)
-        : Model(loadedModel, I {})
+    Model(const core::Command& command, const LoadedModel& loadedModel, I)
+        : Model(command.context, loadedModel, I {})
     {
         static_assert(I::memoryPropertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         command.transferBuffer(vertexBuffer.buffer, loadedModel.vertexData(), loadedModel.vertexBufferSize());
@@ -55,7 +56,7 @@ public:
             .offset = 0,
             .size   = VK_WHOLE_SIZE,
         };
-        if (vkFlushMappedMemoryRanges(core::context().device, 1, &vertexMappedRange) != VK_SUCCESS)
+        if (vkFlushMappedMemoryRanges(context.device, 1, &vertexMappedRange) != VK_SUCCESS)
         {
             throw std::runtime_error("Failed to flush vertex model");
         }
@@ -67,7 +68,7 @@ public:
             .offset = 0,
             .size   = VK_WHOLE_SIZE,
         };
-        if (vkFlushMappedMemoryRanges(core::context().device, 1, &indexMappedRange) != VK_SUCCESS)
+        if (vkFlushMappedMemoryRanges(context.device, 1, &indexMappedRange) != VK_SUCCESS)
         {
             throw std::runtime_error("Failed to flush index model");
         }

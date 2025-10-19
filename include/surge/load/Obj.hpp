@@ -209,7 +209,7 @@ public:
         std::vector<Index> indices(vertexCount);
         std::iota(indices.begin(), indices.end(), 0);
 
-        return asset::Model { core::geometry::Shape { "asset", std::move(vertices), std::move(indices) }, command,
+        return asset::Model { command, core::geometry::Shape { "asset", std::move(vertices), std::move(indices) },
                               asset::Model::scene };
     }
 

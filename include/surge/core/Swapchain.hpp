@@ -5,14 +5,15 @@
 namespace surge::core
 {
 
-class Swapchain
+class Swapchain : Contextualized
 {
 public:
-    Swapchain()
-        : extent { computeExtent() }
-        , swapchain { createSwapChain(extent) }
+    Swapchain(const Context& context)
+        : Contextualized { context }
+        , extent { computeExtent(context) }
+        , swapchain { createSwapChain(context, extent) }
         , depthImage { extent, Image::depth }
-        , frames { createFrames(swapchain) }
+        , frames { createFrames(context, swapchain) }
     {
     }
 
@@ -25,9 +26,9 @@ public:
     {
         for (const auto [_, imageView] : frames)
         {
-            context().destroy(imageView);
+            context.destroy(imageView);
         }
-        context().destroy(swapchain);
+        context.destroy(swapchain);
     }
 
 public:
@@ -47,10 +48,10 @@ public:
     std::vector<Frame> frames;
 
 private:
-    static VkExtent2D computeExtent()
+    static VkExtent2D computeExtent(const Context& context)
     {
-        const auto surfaceCapabilities = context().getSurfaceCapabilities();
-        const auto extent              = context().extent();
+        const auto surfaceCapabilities = context.getSurfaceCapabilities();
+        const auto extent              = context.extent();
         return surfaceCapabilities.currentExtent.width != std::numeric_limits<uint32_t>::max() ?
                    surfaceCapabilities.currentExtent :
                    VkExtent2D {
@@ -61,10 +62,10 @@ private:
                    };
     }
 
-    static VkSwapchainKHR createSwapChain(const VkExtent2D extent)
+    static VkSwapchainKHR createSwapChain(const Context& context, const VkExtent2D extent)
     {
-        const std::array indices { context().physicalDevice.graphicsFamilyIndex,
-                                   context().physicalDevice.presentFamilyIndex };
+        const std::array indices { context.physicalDevice.graphicsFamilyIndex,
+                                   context.physicalDevice.presentFamilyIndex };
         const auto       sameQueueFamilies = indices.at(0) == indices.at(1);
 
         constexpr VkSwapchainPresentScalingCreateInfoEXT presentScaling {
@@ -75,34 +76,34 @@ private:
             .presentGravityY = 0,
         };
 
-        return context().create(VkSwapchainCreateInfoKHR {
+        return context.create(VkSwapchainCreateInfoKHR {
             .sType                 = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
             .pNext                 = &presentScaling,
             .flags                 = {},
-            .surface               = context().surface,
-            .minImageCount         = context().frameBufferCount(),
-            .imageFormat           = context().physicalDevice.surfaceFormat.format,
-            .imageColorSpace       = context().physicalDevice.surfaceFormat.colorSpace,
+            .surface               = context.surface,
+            .minImageCount         = context.frameBufferCount(),
+            .imageFormat           = context.physicalDevice.surfaceFormat.format,
+            .imageColorSpace       = context.physicalDevice.surfaceFormat.colorSpace,
             .imageExtent           = extent,
             .imageArrayLayers      = 1,
             .imageUsage            = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             .imageSharingMode      = sameQueueFamilies ? VK_SHARING_MODE_EXCLUSIVE : VK_SHARING_MODE_CONCURRENT,
             .queueFamilyIndexCount = sameQueueFamilies ? 0U : static_cast<uint32_t>(indices.size()),
             .pQueueFamilyIndices   = sameQueueFamilies ? nullptr : indices.data(),
-            .preTransform          = context().getSurfaceCapabilities().currentTransform,
+            .preTransform          = context.getSurfaceCapabilities().currentTransform,
             .compositeAlpha        = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-            .presentMode           = context().physicalDevice.presentMode,
+            .presentMode           = context.physicalDevice.presentMode,
             .clipped               = VK_TRUE,
             .oldSwapchain          = VK_NULL_HANDLE,
         });
     }
 
-    static std::vector<Frame> createFrames(const VkSwapchainKHR swapchain)
+    static std::vector<Frame> createFrames(const Context& context, const VkSwapchainKHR swapchain)
     {
         uint32_t count {};
-        vkGetSwapchainImagesKHR(context().device, swapchain, &count, VK_NULL_HANDLE);
+        vkGetSwapchainImagesKHR(context.device, swapchain, &count, VK_NULL_HANDLE);
         std::vector<VkImage> images(count);
-        vkGetSwapchainImagesKHR(context().device, swapchain, &count, images.data());
+        vkGetSwapchainImagesKHR(context.device, swapchain, &count, images.data());
 
         std::vector<Frame> frames;
         frames.reserve(count);
@@ -115,13 +116,13 @@ private:
             //     .baseArrayLayer = 0,
             //     .layerCount     = 1,
             // };
-            const auto imageView = context().create(VkImageViewCreateInfo {
+            const auto imageView = context.create(VkImageViewCreateInfo {
                 .sType      = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                 .pNext      = nullptr,
                 .flags      = {},
                 .image      = image,
                 .viewType   = VK_IMAGE_VIEW_TYPE_2D,
-                .format     = context().physicalDevice.surfaceFormat.format,
+                .format     = context.physicalDevice.surfaceFormat.format,
                 .components = {},
                 .subresourceRange =
                     VkImageSubresourceRange {

@@ -10,8 +10,10 @@ struct Entity
 {
     struct Animation
     {
-        Animation(const VkDescriptorPool descriptorPool, const std::vector<asset::Skin>& skins)
-            : jointMatricesSSBO { sizeof(core::math::Matrix<4, 4>) *
+        Animation(const core::Context& context, const VkDescriptorPool descriptorPool,
+                  const std::vector<asset::Skin>& skins)
+            : jointMatricesSSBO { context,
+                                  sizeof(core::math::Matrix<4, 4>) *
                                       std::accumulate(skins.begin(), skins.end(), 0L,
                                                       [](const core::Size total, const asset::Skin& skin)
                                                       { return total + skin.joints.size(); }),
@@ -55,7 +57,7 @@ struct Entity
         , pipelineLayout { pipelineLayout }
         , pipeline { pipeline }
         , animation { !asset.skins.empty() ?
-                          std::optional<entity::Entity::Animation> { std::in_place, asset.descriptorPool,
+                          std::optional<entity::Entity::Animation> { std::in_place, asset.context, asset.descriptorPool,
                                                                      asset.skins } :
                           std::optional<entity::Entity::Animation> {} }
         , state { State {
@@ -71,7 +73,7 @@ struct Entity
         , pipelineLayout { other.pipelineLayout }
         , pipeline { other.pipeline }
         , animation { !other.asset.skins.empty() ?
-                          std::optional<entity::Entity::Animation> { std::in_place, asset.descriptorPool,
+                          std::optional<entity::Entity::Animation> { std::in_place, asset.context, asset.descriptorPool,
                                                                      asset.skins } :
                           std::optional<entity::Entity::Animation> {} }
         , state { State {

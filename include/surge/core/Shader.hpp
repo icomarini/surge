@@ -87,12 +87,13 @@ struct SpecializationEntry<void*>
 };
 
 template<typename... ShaderInfos>
-class Shader
+class Shader : public Contextualized
 {
 public:
-    Shader(const ShaderInfos&... shaderInfos)
-        : specializationEntries { shaderInfos.entry... }
-        , shaders { createShaderStages(specializationEntries, shaderInfos...) }
+    Shader(const Context& context, const ShaderInfos&... shaderInfos)
+        : Contextualized { context }
+        , specializationEntries { shaderInfos.entry... }
+        , shaders { createShaderStages(context, specializationEntries, shaderInfos...) }
     {
     }
 
@@ -103,16 +104,16 @@ public:
     {
         for (const auto& shader : shaders)
         {
-            context().destroy(shader.module);
+            context.destroy(shader.module);
         }
     }
 
     template<Type type, Stage stage>
-    static VkShaderModule createShaderModule()
+    static VkShaderModule createShaderModule(const Context& context)
     {
         constexpr auto shader = get(type, stage);
         static_assert(shader.data != nullptr);
-        return context().create(VkShaderModuleCreateInfo {
+        return context.create(VkShaderModuleCreateInfo {
             .sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
             .pNext    = nullptr,
             .flags    = {},
@@ -122,21 +123,23 @@ public:
     }
 
     template<Type type, Stage stage, typename SpecializationEntry>
-    static VkPipelineShaderStageCreateInfo createShaderStage(const SpecializationEntry& specializationEntry)
+    static VkPipelineShaderStageCreateInfo createShaderStage(const Context&             context,
+                                                             const SpecializationEntry& specializationEntry)
     {
         return VkPipelineShaderStageCreateInfo {
             .sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
             .pNext               = nullptr,
             .flags               = {},
             .stage               = translate(stage),
-            .module              = createShaderModule<type, stage>(),
+            .module              = createShaderModule<type, stage>(context),
             .pName               = "main",
             .pSpecializationInfo = specializationEntry.getInfo(),
         };
     }
 
     template<typename SpecializationEntries, typename... SI>
-    static auto createShaderStages(const SpecializationEntries& specializationEntries, const SI...)
+    static auto createShaderStages(const Context& context, const SpecializationEntries& specializationEntries,
+                                   const SI...)
     {
         constexpr auto                                    size = sizeof...(SI);
         std::array<VkPipelineShaderStageCreateInfo, size> stages;
@@ -145,7 +148,7 @@ public:
             {
                 using ShaderInfo                = std::tuple_element_t<index, std::tuple<SI...>>;
                 const auto& specializationEntry = std::get<index>(specializationEntries);
-                stages[index] = createShaderStage<ShaderInfo::type, ShaderInfo::stage>(specializationEntry);
+                stages[index] = createShaderStage<ShaderInfo::type, ShaderInfo::stage>(context, specializationEntry);
             });
         return stages;
     }

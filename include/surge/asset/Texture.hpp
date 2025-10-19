@@ -64,30 +64,6 @@ public:
     const VkDescriptorImageInfo info;
 
 private:
-    static VkSampler createSampler()
-    {
-        return core::context().create(VkSamplerCreateInfo {
-            .sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-            .pNext                   = nullptr,
-            .flags                   = {},
-            .magFilter               = VK_FILTER_LINEAR,
-            .minFilter               = VK_FILTER_LINEAR,
-            .mipmapMode              = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-            .addressModeU            = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeV            = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeW            = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .mipLodBias              = 0.0f,
-            .anisotropyEnable        = VK_TRUE,
-            .maxAnisotropy           = core::context().physicalDevice.maxSamplerAnisotropy,
-            .compareEnable           = false,
-            .compareOp               = {},
-            .minLod                  = 0.0f,
-            .maxLod                  = 0.0f,
-            .borderColor             = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
-            .unnormalizedCoordinates = VK_FALSE,
-        });
-    }
-
     static VkSampler createSampler(const Sampler& sampler)
     {
         return core::context().create(VkSamplerCreateInfo {

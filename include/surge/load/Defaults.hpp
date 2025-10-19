@@ -46,7 +46,7 @@ std::string baptize(const String& name, const uint32_t id)
     return name.size() > 0 ? std::string { name } : baptize<t>(id);
 }
 
-class Defaults
+class Defaults : public core::Contextualized
 {
 public:
     static constexpr asset::Texture::Sampler sampler {
@@ -79,7 +79,8 @@ public:
     };
 
     Defaults(const core::Command& command, const load::LoadedTexture::Handle& defaultTextureHandle)
-        : texture { command, load::LoadedTexture { defaultTextureHandle }, sampler, asset::Texture::texture2d }
+        : Contextualized { command.context }
+        , texture { command, load::LoadedTexture { defaultTextureHandle }, sampler, asset::Texture::texture2d }
         , descriptorPool { core::Descriptor::createDescriptorPool(
               5U, std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U }) }
         , descriptorSetLayout { core::Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture
@@ -110,12 +111,13 @@ public:
                          TextureDescr { texture }, TextureDescr { texture }, TextureDescr { texture },
                          TextureDescr { texture }, TextureDescr { texture }) }
         , descriptorlessPipelineLayout { core::createPipelineLayout(
+              context,
               core::createPushConstantRange<NodePushBlock>(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)) }
         , descriptorlessPipeline { core::createGraphicPipeline(
-              core::createVertexInputState<core::geometry::PositionAndColor>(), VK_NULL_HANDLE,
+              context, core::createVertexInputState<core::geometry::PositionAndColor>(), VK_NULL_HANDLE,
               descriptorlessPipelineLayout,
               core::shader::Shader {
-                  core::shader::ShaderInfo<core::shader::Type::bbox, core::shader::Stage::vertex> { nullptr },
+                  context, core::shader::ShaderInfo<core::shader::Type::bbox, core::shader::Stage::vertex> { nullptr },
                   core::shader::ShaderInfo<core::shader::Type::bbox, core::shader::Stage::fragment> { nullptr } },
               core::createRasterizationStateInfo(VK_POLYGON_MODE_LINE),
               VkPipelineInputAssemblyStateCreateInfo {
@@ -125,17 +127,17 @@ public:
                   .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
                   .primitiveRestartEnable = VK_FALSE,
               }) }
-        , coordinateSystem { core::geometry::coordinateSystem, command, asset::Model::scene }
-        , cube { core::geometry::cube, command, asset::Model::scene }
+        , coordinateSystem { command, core::geometry::coordinateSystem, asset::Model::scene }
+        , cube { command, core::geometry::cube, asset::Model::scene }
     {
     }
 
     ~Defaults()
     {
-        core::context().destroy(descriptorlessPipeline);
-        core::context().destroy(descriptorlessPipelineLayout);
-        core::context().destroy(descriptorSetLayout);
-        core::context().destroy(descriptorPool);
+        context.destroy(descriptorlessPipeline);
+        context.destroy(descriptorlessPipelineLayout);
+        context.destroy(descriptorSetLayout);
+        context.destroy(descriptorPool);
     }
 };
 
