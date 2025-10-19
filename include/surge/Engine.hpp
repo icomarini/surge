@@ -62,7 +62,7 @@ public:
         , defaults { command, std::get<load::LoadedTexture::Handle>(assetHandles.at("default")) }
         , physics { physics::earthGravity }
         , renderer { physics }
-        , overlay { command, input, assets }
+        , overlay { command, assets }
     {
         resetPhysics();
         log::checkpoint("The surge of urge to purge started");
@@ -104,8 +104,19 @@ public:
             core::overload {
                 [&](const load::LoadedTexture::Handle& handle)
                 {
-                    textures.emplace(std::piecewise_construct, std::forward_as_tuple(name),
-                                     std::forward_as_tuple(command, load::LoadedTexture { handle }, defaults.sampler));
+                    switch (handle.type)
+                    {
+                    case asset::Texture::Type::texture2d:
+                        textures.emplace(std::piecewise_construct, std::forward_as_tuple(name),
+                                         std::forward_as_tuple(command, load::LoadedTexture { handle },
+                                                               load::Defaults::sampler, asset::Texture::texture2d));
+                        break;
+                    case asset::Texture::Type::cube:
+                        textures.emplace(std::piecewise_construct, std::forward_as_tuple(name),
+                                         std::forward_as_tuple(command, load::LoadedTexture { handle },
+                                                               load::Defaults::sampler, asset::Texture::cube));
+                        break;
+                    }
                     log::info(core::math::toString(elapsed(start)) + " Loaded texture asset " + handle.path.string());
                 },
                 [&](const load::LoadedSkybox::Handle& handle)

@@ -42,7 +42,7 @@ public:
     std::vector<asset::Texture> createTextures(const core::Command& command) const
     {
         std::vector<asset::Texture> textures;
-        textures.emplace_back(command, loadedTexture);
+        textures.emplace_back(command, loadedTexture, load::Defaults::sampler, asset::Texture::cube);
         return textures;
     }
 

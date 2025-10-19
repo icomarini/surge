@@ -4,6 +4,8 @@
 #include "surge/Input.hpp"
 #include "surge/core/Command.hpp"
 
+#include "surge/load/Defaults.hpp"
+
 #include "surge/core/Pipeline.hpp"
 #include "surge/asset/Asset.hpp"
 
@@ -26,10 +28,10 @@ public:
     };
 
 
-    Overlay(const core::Command& command, Input&, const std::map<std::string, asset::Asset>& assets)
+    Overlay(const core::Command& command, const std::map<std::string, asset::Asset>& assets)
         : imGuiContext { 1 }
         , frameTimes {}
-        , fontTexture { command, Font {} }
+        , fontTexture { command, Font {}, load::Defaults::sampler, asset::Texture::texture2d }
         , model {}
         , descriptor { 1, asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT> { fontTexture } }
         , graphicsQueue { command.graphicsQueue }

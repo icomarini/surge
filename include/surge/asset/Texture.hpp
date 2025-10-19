@@ -23,38 +23,31 @@ class Texture
 public:
     enum class Type
     {
-        scene = 0,
+        texture2d = 0,
         cube,
     };
 
-    struct Data
+    template<typename ImageData, VkImageLayout layout>
+    struct Info
     {
-        core::Image::Data image;
-        VkImageLayout     layout;
+        static constexpr auto image       = ImageData {};
+        static constexpr auto imageLayout = layout;
     };
 
-    template<typename LoadedTexture>
-    Texture(const core::Command& command, const LoadedTexture& loadedTexture, const Sampler& sampler)
+    static constexpr auto texture2d = Info<decltype(core::Image::texture2d),  //
+                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL> {};
+
+    static constexpr auto cube = Info<decltype(core::Image::cube),  //
+                                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL> {};
+
+    template<typename LoadedTexture, typename I>
+    Texture(const core::Command& command, const LoadedTexture& loadedTexture, const Sampler& sampler, I)
         : name { loadedTexture.name }
-        , image { loadedTexture, convert(loadedTexture.type).image }
+        , image { loadedTexture, I::image }
         , sampler { createSampler(sampler) }
-        , info { .sampler = this->sampler, .imageView = image.view, .imageLayout = convert(loadedTexture.type).layout }
+        , info { .sampler = this->sampler, .imageView = image.view, .imageLayout = I::imageLayout }
     {
         command.transferImage(image.image, loadedTexture);
-    }
-
-    template<typename LoadedTexture>
-    Texture(const core::Command& command, const LoadedTexture& loadedTexture)
-        : Texture { command, loadedTexture,
-                    Sampler {
-                        .magFilter    = VK_FILTER_LINEAR,
-                        .minFilter    = VK_FILTER_LINEAR,
-                        .mipmapMode   = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-                        .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-                        .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-                        .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-                    } }
-    {
     }
 
     const VkDescriptorImageInfo* imageInfo() const
@@ -79,37 +72,6 @@ public:
     const VkDescriptorImageInfo info;
 
 private:
-    static Data convert(const Type type)
-    {
-        switch (type)
-        {
-        case asset::Texture::Type::scene:
-            return Data { .image =
-                              core::Image::Data {
-                                  .imageCreateFlags    = {},
-                                  .format              = VK_FORMAT_R8G8B8A8_SRGB,
-                                  .imageUsageFlags     = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                  .memoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                  .imageAspectFlags    = VK_IMAGE_ASPECT_COLOR_BIT,
-                                  .imageViewType       = VK_IMAGE_VIEW_TYPE_2D,
-                              },
-                          .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-        case asset::Texture::Type::cube:
-            return Data { .image =
-                              core::Image::Data {
-                                  .imageCreateFlags    = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT,
-                                  .format              = VK_FORMAT_R8G8B8A8_SRGB,
-                                  .imageUsageFlags     = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                  .memoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                  .imageAspectFlags    = VK_IMAGE_ASPECT_COLOR_BIT,
-                                  .imageViewType       = VK_IMAGE_VIEW_TYPE_CUBE,
-                              },
-                          .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-        default:
-            throw;
-        }
-    }
-
     static VkSampler createSampler()
     {
         return core::context().create(VkSamplerCreateInfo {

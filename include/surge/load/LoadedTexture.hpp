@@ -22,22 +22,6 @@ public:
         std::filesystem::path path;
     };
 
-    // const std::map<asset::Texture::Type, asset::TextureData> map {
-    //     { asset::Texture::Type::scene,
-    //       asset::Texture::Data {
-    //           .imageData =
-    //               core::Image::Data {
-    //                   .imageCreateFlags    = {},
-    //                   .format              = VK_FORMAT_R8G8B8A8_SRGB,
-    //                   .imageUsageFlags     = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-    //                   .memoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-    //                   .imageAspectFlags    = VK_IMAGE_ASPECT_COLOR_BIT,
-    //                   .imageViewType       = VK_IMAGE_VIEW_TYPE_2D,
-    //               },
-    //           .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-    //       } },
-    // };
-
     LoadedTexture(const Handle& handle)
         : width {}
         , height {}
@@ -94,7 +78,7 @@ public:
     }
 
     LoadedTexture(const std::filesystem::path& path)
-        : LoadedTexture(Handle { asset::Texture::Type::scene, path })
+        : LoadedTexture(Handle { asset::Texture::Type::texture2d, path })
     {
     }
 

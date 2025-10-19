@@ -184,17 +184,17 @@ public:
                 [](const auto&) -> LoadedTexture { throw std::runtime_error("Unsupported visitor"); },
                 [&](const fastgltf::sources::URI& uri) -> LoadedTexture
                 {
-                    return LoadedTexture { LoadedTexture::Handle { asset::Texture::Type::scene,
+                    return LoadedTexture { LoadedTexture::Handle { asset::Texture::Type::texture2d,
                                                                    path.parent_path() / uri.uri.path() } };
                 },
                 [&](const fastgltf::sources::Vector& vector) -> LoadedTexture
                 {
-                    return LoadedTexture { name, asset::Texture::Type::scene,
+                    return LoadedTexture { name, asset::Texture::Type::texture2d,
                                            reinterpret_cast<const uint8_t*>(vector.bytes.data()), vector.bytes.size() };
                 },
                 [&](const fastgltf::sources::Array& array) -> LoadedTexture
                 {
-                    return LoadedTexture { name, asset::Texture::Type::scene,
+                    return LoadedTexture { name, asset::Texture::Type::texture2d,
                                            reinterpret_cast<const uint8_t*>(array.bytes.data()), array.bytes.size() };
                 },
                 [&](const fastgltf::sources::BufferView& view) -> LoadedTexture
@@ -205,14 +205,14 @@ public:
                         [](const auto&) -> LoadedTexture { throw std::runtime_error("Unsupported visitor"); },
                         [&](const fastgltf::sources::Vector& vector) -> LoadedTexture
                         {
-                            return LoadedTexture { name, asset::Texture::Type::scene,
+                            return LoadedTexture { name, asset::Texture::Type::texture2d,
                                                    reinterpret_cast<const uint8_t*>(vector.bytes.data()) +
                                                        bufferView.byteOffset,
                                                    bufferView.byteLength };
                         },
                         [&](const fastgltf::sources::Array& array) -> LoadedTexture
                         {
-                            return LoadedTexture { name, asset::Texture::Type::scene,
+                            return LoadedTexture { name, asset::Texture::Type::texture2d,
                                                    reinterpret_cast<const uint8_t*>(array.bytes.data()) +
                                                        bufferView.byteOffset,
                                                    bufferView.byteLength };
@@ -222,16 +222,18 @@ public:
                 },
             };
 
-            const auto sampler = texture.samplerIndex ? createSampler(texture.samplerIndex.value()) : defaults.sampler;
+            const auto sampler =
+                texture.samplerIndex ? createSampler(texture.samplerIndex.value()) : load::Defaults::sampler;
 
-            textures.emplace_back(command, std::visit(visitor, image.data), sampler);
+            textures.emplace_back(command, std::visit(visitor, image.data), sampler, asset::Texture::texture2d);
         }
 
         // external textures
         for (const auto& [textureType, path] : externalTextures)
         {
-            textures.emplace_back(command, LoadedTexture(LoadedTexture::Handle { asset::Texture::Type::scene, path }),
-                                  defaults.sampler);
+            textures.emplace_back(command,
+                                  LoadedTexture(LoadedTexture::Handle { asset::Texture::Type::texture2d, path }),
+                                  load::Defaults::sampler, asset::Texture::texture2d);
         }
 
         return textures;

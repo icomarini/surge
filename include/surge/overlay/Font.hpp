@@ -14,7 +14,7 @@ public:
         , mipLevels { 1 }
         , arrayLayers { 1 }
         , name { "fonts" }
-        , type { asset::Texture::Type::scene }
+        , type { asset::Texture::Type::texture2d }
     {
         auto& io       = ImGui::GetIO();
         io.IniFilename = nullptr;

@@ -79,7 +79,7 @@ public:
     };
 
     Defaults(const core::Command& command, const load::LoadedTexture::Handle& defaultTextureHandle)
-        : texture { command, load::LoadedTexture { defaultTextureHandle } }
+        : texture { command, load::LoadedTexture { defaultTextureHandle }, sampler, asset::Texture::texture2d }
         , descriptorPool { core::Descriptor::createDescriptorPool(
               5U, std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U }) }
         , descriptorSetLayout { core::Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture

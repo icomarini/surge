@@ -67,7 +67,7 @@ public:
         std::vector<asset::Texture> textures;
         if (texture)
         {
-            textures.emplace_back(command, texture.value(), defaults.sampler);
+            textures.emplace_back(command, texture.value(), load::Defaults::sampler, asset::Texture::texture2d);
         }
         return textures;
     }

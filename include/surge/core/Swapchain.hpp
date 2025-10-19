@@ -11,15 +11,7 @@ public:
     Swapchain()
         : extent { computeExtent() }
         , swapchain { createSwapChain(extent) }
-        , depthImage { extent,
-                       Image::Data {
-                           .imageCreateFlags    = {},
-                           .format              = VK_FORMAT_D32_SFLOAT,
-                           .imageUsageFlags     = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                           .memoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                           .imageAspectFlags    = VK_IMAGE_ASPECT_DEPTH_BIT,
-                           .imageViewType       = VK_IMAGE_VIEW_TYPE_2D,
-                       } }
+        , depthImage { extent, Image::depth }
         , frames { createFrames(swapchain) }
     {
     }
