@@ -14,7 +14,6 @@ public:
         , mipLevels { 1 }
         , arrayLayers { 1 }
         , name { "fonts" }
-        , type { asset::Texture::Type::texture2d }
     {
         auto& io       = ImGui::GetIO();
         io.IniFilename = nullptr;
@@ -48,12 +47,11 @@ public:
         return { { 0, 0, 0 } };
     }
 
-    uint32_t             width;
-    uint32_t             height;
-    uint32_t             mipLevels;
-    uint32_t             arrayLayers;
-    std::string          name;
-    asset::Texture::Type type;
+    uint32_t    width;
+    uint32_t    height;
+    uint32_t    mipLevels;
+    uint32_t    arrayLayers;
+    std::string name;
 
 private:
     std::vector<unsigned char> fonts;

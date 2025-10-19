@@ -16,9 +16,15 @@ namespace surge::load
 class LoadedTexture
 {
 public:
+    enum class Type
+    {
+        texture2d = 0,
+        cube,
+    };
+
     struct Handle
     {
-        asset::Texture::Type  type;
+        Type                  type;
         std::filesystem::path path;
     };
 
@@ -28,7 +34,6 @@ public:
         , mipLevels { 1 }
         , arrayLayers { 1 }
         , name { handle.path.filename() }
-        , type { handle.type }
         , vOffsets { {} }
     {
         const auto fileExtension = handle.path.extension();
@@ -78,18 +83,16 @@ public:
     }
 
     LoadedTexture(const std::filesystem::path& path)
-        : LoadedTexture(Handle { asset::Texture::Type::texture2d, path })
+        : LoadedTexture(Handle { Type::texture2d, path })
     {
     }
 
-    LoadedTexture(const std::string& name, const asset::Texture::Type type, const uint8_t* const buffer,
-                  const uint64_t size)
+    LoadedTexture(const std::string& name, const uint8_t* const buffer, const uint64_t size)
         : width {}
         , height {}
         , mipLevels { 1 }
         , arrayLayers { 1 }
         , name { name }
-        , type { type }
         , pData {}
         , vOffsets { {} }
     {
@@ -140,12 +143,11 @@ public:
             pData);
     }
 
-    uint32_t             width;
-    uint32_t             height;
-    uint32_t             mipLevels;
-    uint32_t             arrayLayers;
-    std::string          name;
-    asset::Texture::Type type;
+    uint32_t    width;
+    uint32_t    height;
+    uint32_t    mipLevels;
+    uint32_t    arrayLayers;
+    std::string name;
 
 private:
     std::variant<stbi_uc*, ktxTexture*>                   pData;

@@ -106,12 +106,12 @@ public:
                 {
                     switch (handle.type)
                     {
-                    case asset::Texture::Type::texture2d:
+                    case load::LoadedTexture::Type::texture2d:
                         textures.emplace(std::piecewise_construct, std::forward_as_tuple(name),
                                          std::forward_as_tuple(command, load::LoadedTexture { handle },
                                                                load::Defaults::sampler, asset::Texture::texture2d));
                         break;
-                    case asset::Texture::Type::cube:
+                    case load::LoadedTexture::Type::cube:
                         textures.emplace(std::piecewise_construct, std::forward_as_tuple(name),
                                          std::forward_as_tuple(command, load::LoadedTexture { handle },
                                                                load::Defaults::sampler, asset::Texture::cube));

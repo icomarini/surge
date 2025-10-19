@@ -6,27 +6,9 @@
 
 namespace surge::asset
 {
-
-
-struct Sampler
-{
-    VkFilter             magFilter;
-    VkFilter             minFilter;
-    VkSamplerMipmapMode  mipmapMode;
-    VkSamplerAddressMode addressModeU;
-    VkSamplerAddressMode addressModeV;
-    VkSamplerAddressMode addressModeW;
-};
-
 class Texture
 {
 public:
-    enum class Type
-    {
-        texture2d = 0,
-        cube,
-    };
-
     template<typename ImageData, VkImageLayout layout>
     struct Info
     {
@@ -39,6 +21,16 @@ public:
 
     static constexpr auto cube = Info<decltype(core::Image::cube),  //
                                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL> {};
+
+    struct Sampler
+    {
+        VkFilter             magFilter;
+        VkFilter             minFilter;
+        VkSamplerMipmapMode  mipmapMode;
+        VkSamplerAddressMode addressModeU;
+        VkSamplerAddressMode addressModeV;
+        VkSamplerAddressMode addressModeW;
+    };
 
     template<typename LoadedTexture, typename I>
     Texture(const core::Command& command, const LoadedTexture& loadedTexture, const Sampler& sampler, I)

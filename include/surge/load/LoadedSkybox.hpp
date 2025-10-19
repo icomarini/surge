@@ -30,7 +30,7 @@ public:
         : name { handle.texturePath.filename() }
         , path { handle.texturePath }
         , defaults { defaults }
-        , loadedTexture { LoadedTexture::Handle { asset::Texture::Type::cube, handle.texturePath } }
+        , loadedTexture { LoadedTexture::Handle { LoadedTexture::Type::cube, handle.texturePath } }
     {
     }
 

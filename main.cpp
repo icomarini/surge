@@ -7,7 +7,7 @@ int main()
     {
         const std::filesystem::path                     home { "/home/ico/projects/" };
         std::map<std::string, surge::load::AssetHandle> assetHandles {
-            { "default", surge::load::LoadedTexture::Handle { surge::asset::Texture::Type::texture2d,
+            { "default", surge::load::LoadedTexture::Handle { surge::load::LoadedTexture::Type::texture2d,
                                                               home / "surge/textures/default.png" } },
         };
 

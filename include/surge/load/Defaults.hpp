@@ -49,7 +49,7 @@ std::string baptize(const String& name, const uint32_t id)
 class Defaults
 {
 public:
-    static constexpr asset::Sampler sampler {
+    static constexpr asset::Texture::Sampler sampler {
         .magFilter    = VK_FILTER_LINEAR,
         .minFilter    = VK_FILTER_LINEAR,
         .mipmapMode   = VK_SAMPLER_MIPMAP_MODE_LINEAR,
