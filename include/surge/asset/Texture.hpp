@@ -6,7 +6,7 @@
 
 namespace surge::asset
 {
-class Texture
+class Texture : public core::Contextualized
 {
 public:
     template<typename ImageData, VkImageLayout layout>
@@ -34,9 +34,10 @@ public:
 
     template<typename LoadedTexture, typename I>
     Texture(const core::Command& command, const LoadedTexture& loadedTexture, const Sampler& sampler, I)
-        : name { loadedTexture.name }
-        , image { loadedTexture, I::image }
-        , sampler { createSampler(sampler) }
+        : Contextualized { command.context }
+        , name { loadedTexture.name }
+        , image { context, loadedTexture, I::image }
+        , sampler { createSampler(context, sampler) }
         , info { .sampler = this->sampler, .imageView = image.view, .imageLayout = I::imageLayout }
     {
         command.transferImage(image.image, loadedTexture);
@@ -54,7 +55,7 @@ public:
 
     ~Texture()
     {
-        core::context().destroy(sampler);
+        context.destroy(sampler);
     }
 
 public:
@@ -64,9 +65,9 @@ public:
     const VkDescriptorImageInfo info;
 
 private:
-    static VkSampler createSampler(const Sampler& sampler)
+    static VkSampler createSampler(const core::Context& context, const Sampler& sampler)
     {
-        return core::context().create(VkSamplerCreateInfo {
+        return context.create(VkSamplerCreateInfo {
             .sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
             .pNext                   = nullptr,
             .flags                   = {},
@@ -78,7 +79,7 @@ private:
             .addressModeW            = sampler.addressModeW,
             .mipLodBias              = 0.0f,
             .anisotropyEnable        = VK_TRUE,
-            .maxAnisotropy           = core::context().physicalDevice.maxSamplerAnisotropy,
+            .maxAnisotropy           = context.physicalDevice.maxSamplerAnisotropy,
             .compareEnable           = false,
             .compareOp               = {},
             .minLod                  = 0.0f,

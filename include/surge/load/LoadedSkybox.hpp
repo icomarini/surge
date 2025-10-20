@@ -46,17 +46,18 @@ public:
         return textures;
     }
 
-    VkDescriptorPool createDescriptorPool() const
+    VkDescriptorPool createDescriptorPool(const core::Context& context) const
     {
-        return core::Descriptor::createDescriptorPool(1U, std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1U });
+        return core::Descriptor::createDescriptorPool(context, 1U,
+                                                      std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1U });
     }
 
-    VkDescriptorSetLayout createMaterialDescriptorSetLayout() const
+    VkDescriptorSetLayout createMaterialDescriptorSetLayout(const core::Context& context) const
     {
-        return core::Descriptor::createDescriptorSetLayout<TextureDescr>(1);
+        return core::Descriptor::createDescriptorSetLayout<TextureDescr>(context, 1);
     }
 
-    std::vector<asset::Material> createMaterials(const VkDescriptorPool             descriptorPool,
+    std::vector<asset::Material> createMaterials(const core::Context& context, const VkDescriptorPool descriptorPool,
                                                  const VkDescriptorSetLayout        materialDescriptorSetLayout,
                                                  const std::vector<asset::Texture>& textures) const
     {
@@ -80,7 +81,7 @@ public:
             .normalScale              = 1,
             .occlusionTexture         = TextureData { &defaults.texture, 0 },
             .occlusionStrength        = 1,
-            .descriptorSet = core::Descriptor::createDescriptorSet(materialDescriptorSetLayout, descriptorPool,
+            .descriptorSet = core::Descriptor::createDescriptorSet(context, materialDescriptorSetLayout, descriptorPool,
                                                                    TextureDescr { textures.front() }) } };
     }
 

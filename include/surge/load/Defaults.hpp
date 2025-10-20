@@ -82,13 +82,13 @@ public:
         : Contextualized { command.context }
         , texture { command, load::LoadedTexture { defaultTextureHandle }, sampler, asset::Texture::texture2d }
         , descriptorPool { core::Descriptor::createDescriptorPool(
-              5U, std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U }) }
+              context, 5U, std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U }) }
         , descriptorSetLayout { core::Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture
                                                                             TextureDescr,  // metallic/rough texture
                                                                             TextureDescr,  // normal texture
                                                                             TextureDescr,  // occlusion texture
                                                                             TextureDescr   // emissive texture
-                                                                            >(1) }
+                                                                            >(context, 1) }
         , material { .name                     = baptize<This::material>(),
                      .doubleSided              = false,
                      .unlit                    = false,
@@ -107,7 +107,7 @@ public:
                      .occlusionTexture         = asset::Material::TextureData { &texture, 0 },
                      .occlusionStrength        = 1,
                      .descriptorSet            = core::Descriptor::createDescriptorSet(
-                         descriptorSetLayout, descriptorPool,  //
+                         context, descriptorSetLayout, descriptorPool,  //
                          TextureDescr { texture }, TextureDescr { texture }, TextureDescr { texture },
                          TextureDescr { texture }, TextureDescr { texture }) }
         , descriptorlessPipelineLayout { core::createPipelineLayout(

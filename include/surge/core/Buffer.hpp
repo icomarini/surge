@@ -4,7 +4,7 @@
 
 namespace surge::core
 {
-class Buffer
+class Buffer : public Contextualized
 {
 public:
     template<VkBufferUsageFlags usage, VkMemoryPropertyFlags property>
@@ -22,11 +22,12 @@ public:
                                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT> {};
 
     template<typename I>
-    Buffer(const VkDeviceSize size, I)
-        : size { size }
-        , buffer { createBuffer<I::bufferUsageFlags>(size) }
-        , memory { createMemory<I::memoryPropertyFlags>(buffer) }
-        , mapped { mapMemory<I::memoryPropertyFlags>(memory) }
+    Buffer(const Context& context, const VkDeviceSize size, I)
+        : Contextualized { context }
+        , size { size }
+        , buffer { createBuffer<I::bufferUsageFlags>(context, size) }
+        , memory { createMemory<I::memoryPropertyFlags>(context, buffer) }
+        , mapped { mapMemory<I::memoryPropertyFlags>(context, memory) }
         , info { .buffer = buffer, .offset = 0, .range = size }
     {
     }
@@ -45,10 +46,10 @@ public:
     {
         if (mapped != nullptr)
         {
-            vkUnmapMemory(context().device, memory);
+            vkUnmapMemory(context.device, memory);
         }
-        context().destroy(buffer);
-        context().destroy(memory);
+        context.destroy(buffer);
+        context.destroy(memory);
     }
 
 public:
@@ -60,10 +61,10 @@ public:
 
 private:
     template<VkBufferUsageFlags bufferUsageFlags>
-    static VkBuffer createBuffer(const VkDeviceSize size)
+    static VkBuffer createBuffer(const Context& context, const VkDeviceSize size)
     {
         assert(size > 0);
-        return context().create(VkBufferCreateInfo {
+        return context.create(VkBufferCreateInfo {
             .sType                 = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             .pNext                 = nullptr,
             .flags                 = {},
@@ -76,18 +77,18 @@ private:
     }
 
     template<VkMemoryPropertyFlags memoryPropertyFlags>
-    static VkDeviceMemory createMemory(const VkBuffer buffer)
+    static VkDeviceMemory createMemory(const Context& context, const VkBuffer buffer)
     {
         VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(context().device, buffer, &memRequirements);
+        vkGetBufferMemoryRequirements(context.device, buffer, &memRequirements);
 
-        const auto memory = context().create(VkMemoryAllocateInfo {
+        const auto memory = context.create(VkMemoryAllocateInfo {
             .sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
             .pNext           = nullptr,
             .allocationSize  = memRequirements.size,
-            .memoryTypeIndex = context().findMemoryType<memoryPropertyFlags>(memRequirements.memoryTypeBits),
+            .memoryTypeIndex = context.findMemoryType<memoryPropertyFlags>(memRequirements.memoryTypeBits),
         });
-        if (vkBindBufferMemory(context().device, buffer, memory, 0) != VK_SUCCESS)
+        if (vkBindBufferMemory(context.device, buffer, memory, 0) != VK_SUCCESS)
         {
             throw std::runtime_error("Failed to bind buffer memory");
         }
@@ -95,12 +96,12 @@ private:
     }
 
     template<VkMemoryPropertyFlags memoryPropertyFlags>
-    void* mapMemory(const VkDeviceMemory memory)
+    void* mapMemory(const Context& context, const VkDeviceMemory memory)
     {
         void* mapped = nullptr;
         if constexpr (memoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
         {
-            vkMapMemory(context().device, memory, 0, VK_WHOLE_SIZE, 0, &mapped);
+            vkMapMemory(context.device, memory, 0, VK_WHOLE_SIZE, 0, &mapped);
         }
         return mapped;
     }

@@ -23,11 +23,11 @@ public:
     Model(const core::Context& context, const LoadedModel& loadedModel, I)
         : Contextualized { context }
         , name { loadedModel.name }
-        , vertexBuffer { loadedModel.vertexBufferSize(),
+        , vertexBuffer { context, loadedModel.vertexBufferSize(),
                          core::Buffer::Info<I::bufferUsageFlags | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                                             I::memoryPropertyFlags> {} }
         , vertexCount { static_cast<uint32_t>(loadedModel.vertexSize()) }
-        , indexBuffer { loadedModel.indexBufferSize(),
+        , indexBuffer { context, loadedModel.indexBufferSize(),
                         core::Buffer::Info<I::bufferUsageFlags | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                                            I::memoryPropertyFlags> {} }
         , indexCount { static_cast<uint32_t>(loadedModel.indexSize()) }

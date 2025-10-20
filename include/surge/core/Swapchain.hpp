@@ -12,7 +12,7 @@ public:
         : Contextualized { context }
         , extent { computeExtent(context) }
         , swapchain { createSwapChain(context, extent) }
-        , depthImage { extent, Image::depth }
+        , depthImage { context, extent, Image::depth }
         , frames { createFrames(context, swapchain) }
     {
     }

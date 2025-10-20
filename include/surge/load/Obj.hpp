@@ -72,22 +72,23 @@ public:
         return textures;
     }
 
-    VkDescriptorPool createDescriptorPool() const
+    VkDescriptorPool createDescriptorPool(const core::Context& context) const
     {
-        return core::Descriptor::createDescriptorPool(5U, std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U });
+        return core::Descriptor::createDescriptorPool(context, 5U,
+                                                      std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U });
     }
 
-    VkDescriptorSetLayout createMaterialDescriptorSetLayout() const
+    VkDescriptorSetLayout createMaterialDescriptorSetLayout(const core::Context& context) const
     {
         return core::Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture
                                                            TextureDescr,  // metallic/rough texture
                                                            TextureDescr,  // normal texture
                                                            TextureDescr,  // occlusion texture
                                                            TextureDescr   // emissive texture
-                                                           >(1);
+                                                           >(context, 1);
     }
 
-    std::vector<asset::Material> createMaterials(const VkDescriptorPool             descriptorPool,
+    std::vector<asset::Material> createMaterials(const core::Context& context, const VkDescriptorPool descriptorPool,
                                                  const VkDescriptorSetLayout        materialDescriptorSetLayout,
                                                  const std::vector<asset::Texture>& textures) const
     {
@@ -115,7 +116,7 @@ public:
                                    .occlusionTexture         = TextureData { &defaults.texture, 0 },
                                    .occlusionStrength        = 1,
                                    .descriptorSet            = core::Descriptor::createDescriptorSet(
-                                       materialDescriptorSetLayout, descriptorPool,  //
+                                       context, materialDescriptorSetLayout, descriptorPool,  //
                                        TextureDescr { textures.front() }, TextureDescr { defaults.texture },
                                        TextureDescr { defaults.texture }, TextureDescr { defaults.texture },
                                        TextureDescr { defaults.texture }) } };

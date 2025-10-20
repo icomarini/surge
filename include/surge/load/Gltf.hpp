@@ -239,23 +239,23 @@ public:
         return textures;
     }
 
-    VkDescriptorPool createDescriptorPool() const
+    VkDescriptorPool createDescriptorPool(const core::Context& context) const
     {
         return core::Descriptor::createDescriptorPool(
-            asset.materials.size() + asset.meshes.size() + asset.skins.size() + 32,
+            context, asset.materials.size() + asset.meshes.size() + asset.skins.size() + 32,
             std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(5 * asset.materials.size()) },
             std::pair { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, static_cast<uint32_t>(asset.meshes.size()) },
             std::pair { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, static_cast<uint32_t>(asset.skins.size() + 32) });
     }
 
-    VkDescriptorSetLayout createMaterialDescriptorSetLayout() const
+    VkDescriptorSetLayout createMaterialDescriptorSetLayout(const core::Context& context) const
     {
         return core::Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture
                                                            TextureDescr,  // metallic/rough texture
                                                            TextureDescr,  // normal texture
                                                            TextureDescr,  // occlusion texture
                                                            TextureDescr   // emissive texture
-                                                           >(1);
+                                                           >(context, 1);
     }
 
     std::map<TextureType, const asset::Texture*>
@@ -270,7 +270,7 @@ public:
         return map;
     }
 
-    std::vector<asset::Material> createMaterials(const VkDescriptorPool             descriptorPool,
+    std::vector<asset::Material> createMaterials(const core::Context& context, const VkDescriptorPool descriptorPool,
                                                  const VkDescriptorSetLayout        materialDescriptorSetLayout,
                                                  const std::vector<asset::Texture>& textures) const
     {
@@ -362,7 +362,7 @@ public:
                 .occlusionTexture         = occlusionTexture,
                 .occlusionStrength        = occlusionStrength,
                 .descriptorSet            = core::Descriptor::createDescriptorSet(
-                    materialDescriptorSetLayout, descriptorPool,  //
+                    context, materialDescriptorSetLayout, descriptorPool,  //
                     TextureDescr { *baseColorTexture.texture }, TextureDescr { *metallicRoughnessTexture.texture },
                     TextureDescr { *emissiveTexture.texture }, TextureDescr { *normalTexture.texture },
                     TextureDescr { *occlusionTexture.texture }),

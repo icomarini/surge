@@ -18,9 +18,9 @@ public:
     ShaderStorageBufferObject(const core::Context& context, const core::Size size,
                               const VkDescriptorPool descriptorPool)
         : Contextualized { context }
-        , buffer { size, core::Buffer::ssbo }
-        , descriptorSetLayout { core::Descriptor::createDescriptorSetLayout<SSBODescr>(1) }
-        , descriptorSet { core::Descriptor::createDescriptorSet(descriptorSetLayout, descriptorPool,
+        , buffer { context, size, core::Buffer::ssbo }
+        , descriptorSetLayout { core::Descriptor::createDescriptorSetLayout<SSBODescr>(context, 1) }
+        , descriptorSet { core::Descriptor::createDescriptorSet(context, descriptorSetLayout, descriptorPool,
                                                                 SSBODescr { buffer }) }
     {
     }
@@ -77,9 +77,9 @@ public:
         , name { loadedAsset.name }
         , shader { loadedAsset.shader() }
         , textures { loadedAsset.createTextures(command) }
-        , descriptorPool { loadedAsset.createDescriptorPool() }
-        , materialDescriptorSetLayout { loadedAsset.createMaterialDescriptorSetLayout() }
-        , materials { loadedAsset.createMaterials(descriptorPool, materialDescriptorSetLayout, textures) }
+        , descriptorPool { loadedAsset.createDescriptorPool(context) }
+        , materialDescriptorSetLayout { loadedAsset.createMaterialDescriptorSetLayout(context) }
+        , materials { loadedAsset.createMaterials(context, descriptorPool, materialDescriptorSetLayout, textures) }
         , meshes { loadedAsset.createMeshes(materials) }
         , vertexInputState { core::createVertexInputState<typename LoadedAsset::Vertex>() }
         , model { loadedAsset.createModel(command, meshes) }
@@ -87,7 +87,7 @@ public:
         , mainSceneIndex { loadedAsset.mainSceneIndex() }
         , skins { loadedAsset.createSkins() }
         , animations { loadedAsset.createAnimations() }
-        , jointMatricesDescriptorSetLayout { createJointMatricesDescriptorSetLayout(skins) }
+        , jointMatricesDescriptorSetLayout { createJointMatricesDescriptorSetLayout(context, skins) }
     {
         assert(scenes.size() > 0);
     }
@@ -111,10 +111,12 @@ public:
         return scenes.at(mainSceneIndex);
     }
 
-    static std::optional<VkDescriptorSetLayout> createJointMatricesDescriptorSetLayout(const std::vector<Skin>& skins)
+    static std::optional<VkDescriptorSetLayout> createJointMatricesDescriptorSetLayout(const core::Context&     context,
+                                                                                       const std::vector<Skin>& skins)
     {
         return !skins.empty() > 0 ?
-                   std::optional<VkDescriptorSetLayout> { core::Descriptor::createDescriptorSetLayout<SSBODescr>(1) } :
+                   std::optional<VkDescriptorSetLayout> { core::Descriptor::createDescriptorSetLayout<SSBODescr>(
+                       context, 1) } :
                    std::optional<VkDescriptorSetLayout> {};
     }
 };

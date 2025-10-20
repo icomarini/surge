@@ -79,6 +79,7 @@ public:
 #ifndef NDEBUG
         , debugMessenger { createDebugMessenger(instance) }
 #endif
+        , ext { instance }
     {
     }
 
@@ -95,6 +96,22 @@ public:
     void pollEvents() const
     {
         window.pollEvents();
+    }
+
+    struct Extern
+    {
+        static PFN_vkCmdSetPolygonModeEXT setPolygonMode;
+        Extern(VkInstance instance)
+        {
+            Extern::setPolygonMode =
+                reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(vkGetInstanceProcAddr(instance, "vkCmdSetPolygonModeEXT"));
+            assert(setPolygonMode);
+        }
+    };
+
+    static void setPolygoneMode(VkCommandBuffer commandBuffer, VkPolygonMode polygonMode)
+    {
+        Extern::setPolygonMode(commandBuffer, polygonMode);
     }
 
     VkSurfaceCapabilitiesKHR getSurfaceCapabilities() const
@@ -361,6 +378,7 @@ public:
 private:
     VkDebugUtilsMessengerEXT debugMessenger;
 #endif
+    Extern ext;
 
 private:
     template<typename Handle>
@@ -752,6 +770,8 @@ private:
     }
 };
 
+PFN_vkCmdSetPolygonModeEXT surge::core::Context::Extern::setPolygonMode;
+
 static const Context& createContext(const std::string& windowName, const std::string& appName,
                                     const Window::Resolution&              resolution,
                                     const std::optional<Window::Callback>& callback)
@@ -760,10 +780,10 @@ static const Context& createContext(const std::string& windowName, const std::st
     return context;
 };
 
-static const Context& context()
-{
-    return createContext("", "", { 0, 0 }, std::nullopt);
-};
+// static const Context& context()
+// {
+//     return createContext("", "", { 0, 0 }, std::nullopt);
+// };
 
 struct Contextualized
 {

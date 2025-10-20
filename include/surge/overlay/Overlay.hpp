@@ -34,7 +34,7 @@ public:
         , frameTimes {}
         , fontTexture { command, Font {}, load::Defaults::sampler, asset::Texture::texture2d }
         , model {}
-        , descriptor { 1, asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT> { fontTexture } }
+        , descriptor { context, 1, asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT> { fontTexture } }
         , graphicsQueue { command.graphicsQueue }
         , pipelineLayout { core::createPipelineLayout(
               context, core::createPushConstantRange<PushConstBlock>(VK_SHADER_STAGE_VERTEX_BIT),
@@ -223,10 +223,7 @@ public:
                                 0, nullptr);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-        auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
-            vkGetInstanceProcAddr(context.instance, "vkCmdSetPolygonModeEXT"));
-        assert(setPolygonMode);
-        setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+        core::Context::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
 
         // const VkViewport viewport {
         //     .x        = 0.0f,

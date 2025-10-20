@@ -16,8 +16,8 @@ public:
         : Contextualized { context }
         , physics { physics }
         , camera { 16.0 / 9.0, { 0.0f, 1.0f, 3.0f }, { 0.0f, 0.0f, -1.0f } }
-        , scene { 2 * sizeof(core::math::Matrix<4, 4>), core::Buffer::uniform }
-        , descriptor { 1,
+        , scene { context, 2 * sizeof(core::math::Matrix<4, 4>), core::Buffer::uniform }
+        , descriptor { context, 1,
                        core::Description<VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, core::Buffer> {
                            scene } }
         , pipelines { createPipelines(context, descriptor.setLayout) }

@@ -67,7 +67,7 @@ public:
     template<typename Type>
     void transferBuffer(const VkBuffer buffer, const Type* const data, const VkDeviceSize size) const
     {
-        const Buffer stagingBuffer { size, Buffer::staging };
+        const Buffer stagingBuffer { context, size, Buffer::staging };
         std::memcpy(stagingBuffer.mapped, data, size);
         singleTimeCommand(
             [&](const VkCommandBuffer commandBuffer)
@@ -84,7 +84,7 @@ public:
     template<typename LoadedTexture>
     void transferImage(const VkImage image, const LoadedTexture& loadedTexture) const
     {
-        const Buffer stagingBuffer { loadedTexture.memorySize(), Buffer::staging };
+        const Buffer stagingBuffer { context, loadedTexture.memorySize(), Buffer::staging };
         memcpy(stagingBuffer.mapped, loadedTexture.data(), static_cast<size_t>(loadedTexture.memorySize()));
 
         transitionImageLayout(image, loadedTexture, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);

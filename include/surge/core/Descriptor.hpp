@@ -13,21 +13,22 @@ struct Description
 };
 
 
-class Descriptor
+class Descriptor : public Contextualized
 {
 public:
     template<typename... Descriptions>
-    Descriptor(const uint32_t descriptorCount, Descriptions&&... descriptions)
-        : pool { createDescriptorPool<Descriptions::type...>(descriptorCount) }
-        , setLayout { createDescriptorSetLayout<Descriptions...>(descriptorCount) }
-        , set { createDescriptorSet(setLayout, pool, descriptions...) }
+    Descriptor(const Context& context, const uint32_t descriptorCount, Descriptions&&... descriptions)
+        : Contextualized { context }
+        , pool { createDescriptorPool<Descriptions::type...>(context, descriptorCount) }
+        , setLayout { createDescriptorSetLayout<Descriptions...>(context, descriptorCount) }
+        , set { createDescriptorSet(context, setLayout, pool, descriptions...) }
     {
     }
 
     ~Descriptor()
     {
-        context().destroy(pool);
-        context().destroy(setLayout);
+        context.destroy(pool);
+        context.destroy(setLayout);
     }
 
     VkDescriptorPool      pool;
@@ -36,13 +37,13 @@ public:
 
 public:
     template<VkDescriptorType... types>
-    static VkDescriptorPool createDescriptorPool(const uint32_t descriptorCount)
+    static VkDescriptorPool createDescriptorPool(const Context& context, const uint32_t descriptorCount)
     {
         const std::array<VkDescriptorPoolSize, sizeof...(types)> poolSizes { VkDescriptorPoolSize {
             .type            = types,
             .descriptorCount = descriptorCount,
         }... };
-        return context().create(VkDescriptorPoolCreateInfo {
+        return context.create(VkDescriptorPoolCreateInfo {
             .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
             .pNext         = nullptr,
             .flags         = {},
@@ -53,13 +54,14 @@ public:
     }
 
     template<typename... Pairs>
-    static VkDescriptorPool createDescriptorPool(const uint32_t maxSets, const Pairs... descriptorTypeAndCount)
+    static VkDescriptorPool createDescriptorPool(const Context& context, const uint32_t maxSets,
+                                                 const Pairs... descriptorTypeAndCount)
     {
         const std::array poolSizes { VkDescriptorPoolSize {
             .type            = descriptorTypeAndCount.first,
             .descriptorCount = descriptorTypeAndCount.second,
         }... };
-        return context().create(VkDescriptorPoolCreateInfo {
+        return context.create(VkDescriptorPoolCreateInfo {
             .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
             .pNext         = nullptr,
             .flags         = {},
@@ -70,7 +72,7 @@ public:
     }
 
     template<typename... Descriptions>
-    static VkDescriptorSetLayout createDescriptorSetLayout(const uint32_t descriptorCount)
+    static VkDescriptorSetLayout createDescriptorSetLayout(const Context& context, const uint32_t descriptorCount)
     {
         std::array<VkDescriptorSetLayoutBinding, sizeof...(Descriptions)> bindings;
         forEach<0, bindings.size()>(
@@ -85,7 +87,7 @@ public:
                     .pImmutableSamplers = nullptr,
                 };
             });
-        return context().create(VkDescriptorSetLayoutCreateInfo {
+        return context.create(VkDescriptorSetLayoutCreateInfo {
             .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
             .pNext        = nullptr,
             .flags        = {},
@@ -94,7 +96,7 @@ public:
         });
     }
 
-    static VkDescriptorSet allocateDescriptorSet(const VkDescriptorPool      descriptorPool,
+    static VkDescriptorSet allocateDescriptorSet(const Context& context, const VkDescriptorPool descriptorPool,
                                                  const VkDescriptorSetLayout descriptorSetLayout)
     {
         const VkDescriptorSetAllocateInfo allocInfo {
@@ -106,7 +108,7 @@ public:
         };
 
         VkDescriptorSet descriptorSet;
-        if (vkAllocateDescriptorSets(context().device, &allocInfo, &descriptorSet) != VK_SUCCESS)
+        if (vkAllocateDescriptorSets(context.device, &allocInfo, &descriptorSet) != VK_SUCCESS)
         {
             throw std::runtime_error("Failed to allocate descriptor sets");
         }
@@ -114,10 +116,10 @@ public:
     }
 
     template<typename... Descriptions>
-    static VkDescriptorSet createDescriptorSet(const VkDescriptorSetLayout descriptorSetLayout,
+    static VkDescriptorSet createDescriptorSet(const Context& context, const VkDescriptorSetLayout descriptorSetLayout,
                                                const VkDescriptorPool descriptorPool, Descriptions&&... descriptions)
     {
-        const auto descriptorSet = allocateDescriptorSet(descriptorPool, descriptorSetLayout);
+        const auto descriptorSet = allocateDescriptorSet(context, descriptorPool, descriptorSetLayout);
 
         std::array<VkWriteDescriptorSet, sizeof...(Descriptions)> descriptorWrites;
         forEach<0, descriptorWrites.size()>(
@@ -139,8 +141,8 @@ public:
                     .pTexelBufferView = nullptr,
                 };
             });
-        vkUpdateDescriptorSets(context().device, static_cast<uint32_t>(descriptorWrites.size()),
-                               descriptorWrites.data(), 0, nullptr);
+        vkUpdateDescriptorSets(context.device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),
+                               0, nullptr);
 
         return descriptorSet;
     }

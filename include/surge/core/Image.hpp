@@ -4,7 +4,7 @@
 
 namespace surge::core
 {
-class Image
+class Image : public Contextualized
 {
 public:
     template<VkImageCreateFlags    create,     //
@@ -46,30 +46,32 @@ public:
                                        VK_IMAGE_VIEW_TYPE_2D> {};
 
     template<typename LoadedTexture, typename I>
-    Image(const LoadedTexture& loadedTexture, I)
-        : extent { loadedTexture.width, loadedTexture.height }
-        , image { createImage<I::imageCreateFlags, I::format, I::imageUsageFlags>(extent, loadedTexture.mipLevels,
-                                                                                  loadedTexture.arrayLayers) }
-        , memory { createImageMemory<I::memoryPropertyFlags>(image) }
-        , view { createImageView<I::imageAspectFlags, I::imageViewType, I::format>(image, loadedTexture.mipLevels,
-                                                                                   loadedTexture.arrayLayers) }
+    Image(const Context& context, const LoadedTexture& loadedTexture, I)
+        : Contextualized { context }
+        , extent { loadedTexture.width, loadedTexture.height }
+        , image { createImage<I::imageCreateFlags, I::format, I::imageUsageFlags>(
+              context, extent, loadedTexture.mipLevels, loadedTexture.arrayLayers) }
+        , memory { createImageMemory<I::memoryPropertyFlags>(context, image) }
+        , view { createImageView<I::imageAspectFlags, I::imageViewType, I::format>(
+              context, image, loadedTexture.mipLevels, loadedTexture.arrayLayers) }
     {
     }
 
     template<typename I>
-    Image(const VkExtent2D& extent, I)
-        : extent { extent }
-        , image { createImage<I::imageCreateFlags, I::format, I::imageUsageFlags>(extent, 1, 1) }
-        , memory { createImageMemory<I::memoryPropertyFlags>(image) }
-        , view { createImageView<I::imageAspectFlags, I::imageViewType, I::format>(image, 1, 1) }
+    Image(const Context& context, const VkExtent2D& extent, I)
+        : Contextualized { context }
+        , extent { extent }
+        , image { createImage<I::imageCreateFlags, I::format, I::imageUsageFlags>(context, extent, 1, 1) }
+        , memory { createImageMemory<I::memoryPropertyFlags>(context, image) }
+        , view { createImageView<I::imageAspectFlags, I::imageViewType, I::format>(context, image, 1, 1) }
     {
     }
 
     ~Image()
     {
-        context().destroy(view);
-        context().destroy(memory);
-        context().destroy(image);
+        context.destroy(view);
+        context.destroy(memory);
+        context.destroy(image);
     }
 
 public:
@@ -80,9 +82,10 @@ public:
 
 private:
     template<VkImageCreateFlags imageCreateFlags, VkFormat format, VkImageUsageFlags imageUsageFlags>
-    static VkImage createImage(const VkExtent2D& extent, const uint32_t mipLevels, const uint32_t arrayLayers)
+    static VkImage createImage(const Context& context, const VkExtent2D& extent, const uint32_t mipLevels,
+                               const uint32_t arrayLayers)
     {
-        return context().create(VkImageCreateInfo {
+        return context.create(VkImageCreateInfo {
             .sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
             .pNext                 = nullptr,
             .flags                 = imageCreateFlags,
@@ -102,17 +105,17 @@ private:
     }
 
     template<VkMemoryPropertyFlags memoryPropertyFlags>
-    static VkDeviceMemory createImageMemory(const VkImage image)
+    static VkDeviceMemory createImageMemory(const Context& context, const VkImage image)
     {
         VkMemoryRequirements memRequirements;
-        vkGetImageMemoryRequirements(context().device, image, &memRequirements);
-        const auto memory = context().create(VkMemoryAllocateInfo {
+        vkGetImageMemoryRequirements(context.device, image, &memRequirements);
+        const auto memory = context.create(VkMemoryAllocateInfo {
             .sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
             .pNext           = nullptr,
             .allocationSize  = memRequirements.size,
-            .memoryTypeIndex = context().findMemoryType<memoryPropertyFlags>(memRequirements.memoryTypeBits),
+            .memoryTypeIndex = context.findMemoryType<memoryPropertyFlags>(memRequirements.memoryTypeBits),
         });
-        if (vkBindImageMemory(context().device, image, memory, 0) != VK_SUCCESS)
+        if (vkBindImageMemory(context.device, image, memory, 0) != VK_SUCCESS)
         {
             throw std::runtime_error("Failed to bind image memory");
         }
@@ -120,7 +123,8 @@ private:
     }
 
     template<VkImageAspectFlags imageAspectFlags, VkImageViewType imageViewType, VkFormat format>
-    static VkImageView createImageView(const VkImage image, const uint32_t mipLevels, const uint32_t arrayLayers)
+    static VkImageView createImageView(const Context& context, const VkImage image, const uint32_t mipLevels,
+                                       const uint32_t arrayLayers)
     {
         const VkImageSubresourceRange subresourceRange {
             .aspectMask     = imageAspectFlags,
@@ -129,7 +133,7 @@ private:
             .baseArrayLayer = 0,
             .layerCount     = arrayLayers,
         };
-        return context().create(VkImageViewCreateInfo {
+        return context.create(VkImageViewCreateInfo {
             .sType            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
             .pNext            = nullptr,
             .flags            = {},
