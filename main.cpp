@@ -11,10 +11,10 @@ int main()
                                                               home / "surge/textures/default.png" } },
         };
 
-        const std::string                                windowName = "A Surge Of Engine";
-        const std::string                                appName    = "aSurgeOfEngine";
-        static constexpr surge::core::Window::Resolution resolution { .width = 1600, .height = 900 };
-        surge::Engine                                    engine(windowName, appName, resolution, assetHandles);
+        const std::string                         windowName = "A Surge Of Engine";
+        const std::string                         appName    = "aSurgeOfEngine";
+        constexpr surge::core::Window::Resolution resolution { .width = 1600, .height = 900 };
+        surge::Engine                             engine(windowName, appName, resolution, assetHandles);
 
         using Gltf   = surge::load::Gltf::Handle;
         using Obj    = surge::load::Obj::Handle;

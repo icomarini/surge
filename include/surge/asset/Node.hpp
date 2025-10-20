@@ -52,10 +52,6 @@ struct Node
 
         for (const auto& primitive : mesh.primitives)
         {
-            // auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
-            //     vkGetInstanceProcAddr(core::context().instance, "vkCmdSetPolygonModeEXT"));
-            // assert(setPolygonMode);
-            // setPolygonMode(commandBuffer, core::translate(state.polygonMode));
             core::Context::Extern::setPolygonMode(commandBuffer, core::translate(state.polygonMode));
 
             // bind material

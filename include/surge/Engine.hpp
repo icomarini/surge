@@ -56,7 +56,7 @@ public:
     Engine(const std::string& windowName, const std::string& appName, const core::Window::Resolution& resolution,
            const std::map<std::string, load::AssetHandle>& assetHandles)
         : input { resolution }
-        , context { core::createContext(windowName, appName, resolution, createCallback(&input)) }
+        , context { windowName, appName, resolution, createCallback(&input) }
         , command { context }
         , presenter { command }
         , defaults { command, std::get<load::LoadedTexture::Handle>(assetHandles.at("default")) }
@@ -207,9 +207,6 @@ public:
             offsetX += stepX;
         }
 
-        // const auto [pipelineLayout, pipeline] = renderer.pipelines.at("skybox");
-        // entity::Skybox skybox { assets.at("skybox"), pipelineLayout, pipeline, core::math::identity<4> };
-
         auto skybox = createSkybox("skybox");
 
         log::checkpoint("Main loop start");
@@ -278,7 +275,7 @@ public:
 
 private:
     mutable Input                         input;
-    const core::Context&                  context;
+    core::Context                         context;
     core::Command                         command;
     core::Presenter                       presenter;
     load::Defaults                        defaults;

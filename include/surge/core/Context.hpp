@@ -772,19 +772,6 @@ private:
 
 PFN_vkCmdSetPolygonModeEXT surge::core::Context::Extern::setPolygonMode;
 
-static const Context& createContext(const std::string& windowName, const std::string& appName,
-                                    const Window::Resolution&              resolution,
-                                    const std::optional<Window::Callback>& callback)
-{
-    static Context context { windowName, appName, resolution, callback.value() };
-    return context;
-};
-
-// static const Context& context()
-// {
-//     return createContext("", "", { 0, 0 }, std::nullopt);
-// };
-
 struct Contextualized
 {
     Contextualized(const Context& context)
