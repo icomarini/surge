@@ -95,8 +95,9 @@ public:
         VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
     };
 
+    template<typename Callbacks>
     Context(const std::string& windowName, const std::string& appName, const Window::Resolution& resolution,
-            const Window::Callback& callback)
+            const Callbacks& callback)
         : window { windowName, resolution, callback }
         , instance { createInstance(appName, "surge", window.extensions()) }
         , surface { window.createSurface(instance) }

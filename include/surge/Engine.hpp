@@ -56,7 +56,7 @@ public:
     Engine(const std::string& windowName, const std::string& appName, const core::Window::Resolution& resolution,
            const std::map<std::string, load::AssetHandle>& assetHandles)
         : input { resolution }
-        , context { windowName, appName, resolution, createCallback(&input) }
+        , context { windowName, appName, resolution, Callbacks { input } /*createCallback(&input)*/ }
         , command { context }
         , presenter { command }
         , defaults { command, std::get<load::LoadedTexture::Handle>(assetHandles.at("default")) }
@@ -284,18 +284,5 @@ private:
     std::map<std::string, asset::Texture> textures;
     Renderer                              renderer;
     overlay::Overlay                      overlay;
-
-
-    static core::Window::Callback createCallback(Input* input)
-    {
-        return core::Window::Callback {
-            .opaquePtr     = input,
-            .framebuffer   = Input::framebufferCallback,
-            .keyboard      = Input::keyboardCallback,
-            .mousePosition = Input::mousePositionCallback,
-            .mouseButton   = Input::mouseButtonCallback,
-            .mouseWheel    = Input::mouseWheelCallback,
-        };
-    }
 };
 }  // namespace surge
