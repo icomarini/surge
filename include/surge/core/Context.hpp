@@ -2,6 +2,7 @@
 
 #include "surge/core/utils/utils.hpp"
 #include "surge/core/Window.hpp"
+#include "surge/Log.hpp"
 
 #ifndef NDEBUG
 #include "surge/core/debug.hpp"
@@ -33,6 +34,32 @@ constexpr VkPolygonMode translate(const PolygonMode polygonMode)
         throw;
     }
 }
+
+struct Extern
+{
+    static PFN_vkCmdSetPolygonModeEXT setPolygonMode;
+    static PFN_vkCmdBeginRenderingKHR beginRendering;
+    static PFN_vkCmdEndRenderingKHR   endRendering;
+
+    Extern(VkInstance instance)
+    {
+        Extern::setPolygonMode =
+            reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(vkGetInstanceProcAddr(instance, "vkCmdSetPolygonModeEXT"));
+        assert(setPolygonMode);
+
+        Extern::beginRendering =
+            reinterpret_cast<PFN_vkCmdBeginRenderingKHR>(vkGetInstanceProcAddr(instance, "vkCmdBeginRenderingKHR"));
+        assert(beginRendering);
+
+        Extern::endRendering =
+            reinterpret_cast<PFN_vkCmdEndRenderingKHR>(vkGetInstanceProcAddr(instance, "vkCmdEndRenderingKHR"));
+        assert(endRendering);
+    }
+};
+
+PFN_vkCmdSetPolygonModeEXT surge::core::Extern::setPolygonMode;
+PFN_vkCmdBeginRenderingKHR surge::core::Extern::beginRendering;
+PFN_vkCmdEndRenderingKHR   surge::core::Extern::endRendering;
 
 class Context
 {
@@ -97,17 +124,6 @@ public:
     {
         window.pollEvents();
     }
-
-    struct Extern
-    {
-        static PFN_vkCmdSetPolygonModeEXT setPolygonMode;
-        Extern(VkInstance instance)
-        {
-            Extern::setPolygonMode =
-                reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(vkGetInstanceProcAddr(instance, "vkCmdSetPolygonModeEXT"));
-            assert(setPolygonMode);
-        }
-    };
 
     static void setPolygoneMode(VkCommandBuffer commandBuffer, VkPolygonMode polygonMode)
     {
@@ -195,6 +211,8 @@ public:
     template<typename CreateInfo>
     auto create(const CreateInfo& createInfo, const VkAllocationCallbacks* allocator = nullptr) const
     {
+        // log::info(std::string("Creating ") + typeid(CreateInfo).name());
+
         if constexpr (std::is_same_v<CreateInfo, VkBufferCreateInfo>)
         {
             return construct<VkBuffer>(vkCreateBuffer, createInfo, allocator);
@@ -272,6 +290,8 @@ public:
     template<typename Type>
     void destroy(const Type type, const VkAllocationCallbacks* allocator = nullptr) const
     {
+        // log::info(std::string("Destroying ") + typeid(Type).name());
+
         if constexpr (std::is_same_v<Type, VkBuffer>)
         {
             vkDestroyBuffer(device, type, allocator);
@@ -769,8 +789,6 @@ private:
         return device;
     }
 };
-
-PFN_vkCmdSetPolygonModeEXT surge::core::Context::Extern::setPolygonMode;
 
 struct Contextualized
 {

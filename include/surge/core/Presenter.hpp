@@ -150,9 +150,7 @@ public:
             .pStencilAttachment   = VK_NULL_HANDLE,
         };
 
-        auto beginRendering = reinterpret_cast<PFN_vkCmdBeginRenderingKHR>(
-            vkGetInstanceProcAddr(context.instance, "vkCmdBeginRenderingKHR"));
-        beginRendering(commandBuffer, &renderInfo);
+        Extern::beginRendering(commandBuffer, &renderInfo);
 
         // viewport and scissors
         const VkViewport viewport {
@@ -186,9 +184,7 @@ public:
         const auto& frame                 = swapchain->frames.at(imageIndex);
         const auto [fence, commandBuffer] = frames.current();
 
-        auto endRendering =
-            reinterpret_cast<PFN_vkCmdEndRenderingKHR>(vkGetInstanceProcAddr(context.instance, "vkCmdEndRenderingKHR"));
-        endRendering(commandBuffer);
+        Extern::endRendering(commandBuffer);
 
         const VkImageMemoryBarrier imageMemoryBarrierEnd {
             .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,

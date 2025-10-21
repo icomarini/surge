@@ -52,7 +52,7 @@ struct Node
 
         for (const auto& primitive : mesh.primitives)
         {
-            core::Context::Extern::setPolygonMode(commandBuffer, core::translate(state.polygonMode));
+            core::Extern::setPolygonMode(commandBuffer, core::translate(state.polygonMode));
 
             // bind material
             constexpr uint32_t materialIndex = 1;

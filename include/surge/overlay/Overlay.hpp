@@ -223,7 +223,7 @@ public:
                                 0, nullptr);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-        core::Context::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+        core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
 
         // const VkViewport viewport {
         //     .x        = 0.0f,

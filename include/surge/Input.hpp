@@ -177,4 +177,88 @@ struct Input
     }
 };
 
+struct Callbacks
+{
+    Input& input;
+
+    static void framebufferCallback(core::Window& window, Input& input, const core::Window::Resolution& resolution)
+    {
+        input.resolution         = resolution;
+        input.framebufferResized = true;
+    }
+
+    static void keyboardCallback(core::Window& window, Input& input, const core::input::Key key,
+                                 const core::input::Action action)
+    {
+        if (key == core::input::Key::escape && action == core::input::Action::press)
+        {
+            window.exit();
+        }
+
+        if (key == core::input::Key::g && action == core::input::Action::press)
+        {
+            if (input.mouseActive)
+            {
+                window.deactivateCursor();
+                input.mouseActive = false;
+            }
+            else
+            {
+                window.activateCursor();
+                input.mouseActive = true;
+            }
+        }
+
+        if (key == core::input::Key::w)
+        {
+            input.keyboard.w = action;
+        }
+        if (key == core::input::Key::s)
+        {
+            input.keyboard.s = action;
+        }
+        if (key == core::input::Key::a)
+        {
+            input.keyboard.a = action;
+        }
+        if (key == core::input::Key::d)
+        {
+            input.keyboard.d = action;
+        }
+    }
+
+    static void mousePositionCallback(core::Window& window, Input& input, const core::input::Position& position)
+    {
+        input.mouse.offset   = position - input.mouse.position;
+        input.mouse.position = position;
+    }
+
+    static void mouseButtonCallback(core::Window& window, Input& input, core::input::Button button,
+                                    core::input::Action action)
+    {
+        switch (button)
+        {
+        case core::input::Button::left:
+        {
+            input.mouse.left = action;
+            break;
+        }
+        case core::input::Button::middle:
+        {
+            input.mouse.middle = action;
+            break;
+        }
+        case core::input::Button::right:
+        {
+            input.mouse.right = action;
+            break;
+        }
+        }
+    }
+
+    static void mouseWheelCallback(core::Window& window, Input& input, const core::input::Offset& offset)
+    {
+        input.mouse.wheel = offset;
+    }
+};
 }  // namespace surge

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "surge/core/input/input.hpp"
+#include "surge/Log.hpp"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -157,11 +158,6 @@ public:
     }
 
 private:
-    // static Callback& getCallback(GLFWwindow* window)
-    // {
-    //     return *reinterpret_cast<Callback*>(glfwGetWindowUserPointer(window));
-    // }
-
     static Window& self(GLFWwindow* window)
     {
         return *reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
@@ -176,11 +172,13 @@ private:
             glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
             glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
             glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
+            log::checkpoint("Window created");
         }
 
         ~GlfwContext()
         {
             glfwTerminate();
+            log::checkpoint("Window destroyed");
         }
     };
 

@@ -71,10 +71,7 @@ public:
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, sceneUniformIndex, 1,
                                 &sceneDescriptor, 0, nullptr);
 
-        auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
-            vkGetInstanceProcAddr(context.instance, "vkCmdSetPolygonModeEXT"));
-        assert(setPolygonMode);
-        setPolygonMode(commandBuffer, core::translate(core::PolygonMode::point));
+        core::Extern::setPolygonMode(commandBuffer, core::translate(core::PolygonMode::point));
 
         vkCmdSetLineWidth(commandBuffer, 1.0);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -109,10 +106,7 @@ public:
         constexpr uint32_t sceneUniformIndex = 0;
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, sceneUniformIndex, 1,
                                 &sceneDescriptor, 0, nullptr);
-        auto setPolygonMode = reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(
-            vkGetInstanceProcAddr(context.instance, "vkCmdSetPolygonModeEXT"));
-        assert(setPolygonMode);
-        setPolygonMode(commandBuffer, core::translate(core::PolygonMode::line));
+        core::Extern::setPolygonMode(commandBuffer, core::translate(core::PolygonMode::line));
 
         vkCmdSetLineWidth(commandBuffer, 1.0);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
