@@ -20,7 +20,7 @@ public:
         core::math::Matrix<4, 4> modelMatrix;
     };
 
-    mutable Camera<false, true>    camera;
+    mutable Camera<true, true>     camera;
     const asset::Asset&            asset;
     core::utils::Tree<asset::Node> nodes;
     VkPipelineLayout               pipelineLayout;
