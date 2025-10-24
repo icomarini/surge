@@ -33,34 +33,24 @@ struct Input
         core::input::Action d = core::input::Action::none;
     };
 
-    Input(const core::Window::Resolution& resolution)
+    Input()
         : start { std::chrono::high_resolution_clock::now() }
         , elapsedTime { 0.0 }
         , begin { std::chrono::high_resolution_clock::now() }
         , timer { 0.0 }
         , mouseActive { true }
-        , shadowMap { false }
-        , lightPos { 0.0f, 0.0f, 0.0f }
-        , wireframe { false }
+        , proceed { true }
     {
     }
 
-    std::chrono::system_clock::time_point start;
-    double                                elapsedTime;
-
+    std::chrono::system_clock::time_point       start;
+    double                                      elapsedTime;
     const std::chrono::system_clock::time_point begin;
     float                                       timer;
-
-    Mouse    mouse;
-    Keyboard keyboard;
-
-    bool mouseActive;
-
-    bool shadowMap;
-
-    core::math::Vector<3> lightPos;
-
-    bool wireframe;
+    Mouse                                       mouse;
+    Keyboard                                    keyboard;
+    bool                                        mouseActive;
+    bool                                        proceed;
 
     void reset()
     {
@@ -80,12 +70,6 @@ struct Input
         // keyboard.a          = KeyState::none;
         // keyboard.s          = KeyState::none;
         // keyboard.d          = KeyState::none;
-
-        lightPos = {
-            std::cos(core::math::deg2rad(timer * 90.0f)) * 10.0f,
-            10.0f + std::sin(core::math::deg2rad(timer * 90.0f)) * 5.0f,
-            -5.0f + std::sin(core::math::deg2rad(timer * 90.0f)) * 1.0f,
-        };
     }
 };
 
@@ -99,7 +83,7 @@ struct Callbacks
     {
         if (key == core::input::Key::escape && action == core::input::Action::press)
         {
-            window.exit();
+            input.proceed = false;
         }
 
         if (key == core::input::Key::g && action == core::input::Action::press)

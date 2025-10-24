@@ -108,26 +108,16 @@ public:
         glfwPollEvents();
     }
 
-    bool proceed() const
-    {
-        return !glfwWindowShouldClose(glfwWindow);
-    }
-
     void activateCursor()
     {
         glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        glfwSetInputMode(glfwWindow, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
+        // glfwSetInputMode(glfwWindow, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
     }
 
     void deactivateCursor()
     {
         glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        glfwSetInputMode(glfwWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-    }
-
-    void exit() const
-    {
-        glfwSetWindowShouldClose(glfwWindow, GL_TRUE);
+        // glfwSetInputMode(glfwWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
     }
 
     ~Window()

@@ -55,7 +55,7 @@ class Engine
 public:
     Engine(const std::string& windowName, const std::string& appName, const core::Window::Resolution& resolution,
            const std::map<std::string, load::AssetHandle>& assetHandles)
-        : input { resolution }
+        : input {}
         , context { windowName, appName, resolution, Callbacks { input } }
         , command { context }
         , presenter { command }
@@ -210,7 +210,7 @@ public:
         auto skybox = createSkybox("skybox");
 
         log::checkpoint("Main loop start");
-        while (context.proceed())
+        while (input.proceed)
         {
             if (elapsedTime > 1.0 / 144.0)
             {

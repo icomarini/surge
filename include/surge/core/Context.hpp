@@ -111,11 +111,6 @@ public:
     {
     }
 
-    bool proceed() const
-    {
-        return window.proceed();
-    }
-
     void pollEvents() const
     {
         window.pollEvents();
