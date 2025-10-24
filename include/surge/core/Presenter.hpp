@@ -19,15 +19,6 @@ public:
     {
     }
 
-    struct InFlight
-    {
-        VkExtent2D      extent;
-        VkImage         image;
-        VkImageView     imageView;
-        VkImageView     depthImageView;
-        VkCommandBuffer commandBuffer;
-    };
-
     static void prepareCommandBuffer(VkCommandBuffer commandBuffer)
     {
         vkResetCommandBuffer(commandBuffer, 0);
@@ -44,7 +35,7 @@ public:
         }
     }
 
-    InFlight acquire()
+    VkCommandBuffer acquire()
     {
         const auto [fence, commandBuffer] = frames.current();
         vkWaitForFences(context.device, 1, &fence, VK_TRUE, UINT64_MAX);
@@ -168,18 +159,10 @@ public:
         };
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-        const InFlight inFlight {
-            .extent         = swapchain->extent,
-            .image          = frame.image,
-            .imageView      = frame.imageView,
-            .depthImageView = swapchain->depthImage.view,
-            .commandBuffer  = commandBuffer,
-        };
-
-        return inFlight;
+        return commandBuffer;
     }
 
-    void present(const Command& command, const bool framebufferResized)
+    void present(const Command& command)
     {
         const auto& frame                 = swapchain->frames.at(imageIndex);
         const auto [fence, commandBuffer] = frames.current();
@@ -244,7 +227,7 @@ public:
             .pResults           = nullptr,
         };
         if (const auto result = vkQueuePresentKHR(command.presentQueue, &presentInfo);
-            result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized)
+            result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
         {
             recreateSwapchain();
         }

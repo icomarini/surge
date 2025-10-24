@@ -146,7 +146,7 @@ public:
 
     void update(const Input& input)
     {
-        camera.update(input);
+        camera.update(input, context.window.resolution);
         const std::array sceneMatrices {
             core::math::fullMatrix(camera.mats.perspective),
             core::math::fullMatrix(camera.mats.view),

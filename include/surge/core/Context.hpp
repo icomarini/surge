@@ -111,11 +111,6 @@ public:
     {
     }
 
-    VkExtent2D extent() const
-    {
-        return window.extent();
-    }
-
     bool proceed() const
     {
         return window.proceed();
@@ -378,10 +373,8 @@ public:
         vkDestroyInstance(instance, nullptr);
     }
 
-private:
-    Window window;
-
 public:
+    Window       window;
     VkInstance   instance;
     VkSurfaceKHR surface;
     struct PhysicalDevice

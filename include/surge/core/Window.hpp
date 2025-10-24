@@ -19,20 +19,8 @@ class Window
 public:
     struct Resolution
     {
-        std::size_t width;
-        std::size_t height;
-    };
-
-    static constexpr std::array<input::Action, 3> action {
-        input::Action::release,
-        input::Action::press,
-        input::Action::repeat,
-    };
-
-    static constexpr std::array button {
-        input::Button::left,
-        input::Button::right,
-        input::Button::middle,
+        uint32_t width;
+        uint32_t height;
     };
 
     template<typename Callbacks>
@@ -40,8 +28,21 @@ public:
         : glfwContext {}
         , glfwWindow { glfwCreateWindow(resolution.width, resolution.height, windowName.c_str(), nullptr, nullptr) }
         , inputPtr { &callbacks.input }
+        , resolution { resolution }
     {
         static auto castInput = [](void* input) { return reinterpret_cast<typename Callbacks::Type*>(input); };
+
+        static constexpr std::array<input::Action, 3> action {
+            input::Action::release,
+            input::Action::press,
+            input::Action::repeat,
+        };
+
+        static constexpr std::array button {
+            input::Button::left,
+            input::Button::right,
+            input::Button::middle,
+        };
 
         glfwSetWindowUserPointer(glfwWindow, this);
         glfwSetErrorCallback([](int error, const char* description)
@@ -49,12 +50,9 @@ public:
         glfwSetFramebufferSizeCallback(glfwWindow,
                                        [](GLFWwindow* glfwWindow, int width, int height)
                                        {
-                                           auto& window = Window::self(glfwWindow);
-                                           auto& input  = *castInput(window.inputPtr);
-                                           Callbacks::framebuffer(
-                                               window, input,
-                                               Resolution { .width  = static_cast<std::size_t>(width),
-                                                            .height = static_cast<std::size_t>(height) });
+                                           auto& window             = Window::self(glfwWindow);
+                                           window.resolution.width  = static_cast<std::size_t>(width);
+                                           window.resolution.height = static_cast<std::size_t>(height);
                                        });
         glfwSetKeyCallback(glfwWindow,
                            [](GLFWwindow* glfwWindow, int rawKey, int /*scancode*/, int rawAction, int /*mods*/)
@@ -93,18 +91,6 @@ public:
         uint32_t     count      = 0;
         const char** extensions = glfwGetRequiredInstanceExtensions(&count);
         return std::vector<const char*>(extensions, extensions + count);
-    }
-
-    VkExtent2D extent() const
-    {
-        int width = 0, height = 0;
-        glfwGetFramebufferSize(glfwWindow, &width, &height);
-        while (width == 0 || height == 0)
-        {
-            glfwGetFramebufferSize(glfwWindow, &width, &height);
-            glfwWaitEvents();
-        }
-        return { static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
     }
 
     VkSurfaceKHR createSurface(const VkInstance instance) const
@@ -149,7 +135,7 @@ public:
         glfwDestroyWindow(glfwWindow);
     }
 
-private:
+public:
     static Window& self(GLFWwindow* window)
     {
         return *reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
@@ -177,6 +163,7 @@ private:
     GlfwContext glfwContext;
     GLFWwindow* glfwWindow;
     void*       inputPtr;
+    Resolution  resolution;
 };
 
 }  // namespace surge::core

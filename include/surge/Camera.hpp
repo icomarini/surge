@@ -2,6 +2,7 @@
 
 #include "surge/Input.hpp"
 #include "surge/core/math/matrices.hpp"
+#include "surge/core/Window.hpp"
 
 #include <algorithm>
 #include <iomanip>
@@ -50,13 +51,10 @@ public:
         core::math::View<>             view;
     } mats;
 
-    void update(const Input& input)
+    void update(const Input& input, const core::Window::Resolution& resolution)
     {
-        if (input.framebufferResized)
-        {
-            aspect           = static_cast<float>(input.resolution.width) / input.resolution.height;
-            mats.perspective = core::math::Perspective<flipY> { core::math::deg2rad(45.0f), aspect, 0.1f, 100.0f };
-        }
+        aspect           = static_cast<float>(resolution.width) / resolution.height;
+        mats.perspective = core::math::Perspective<flipY> { core::math::deg2rad(45.0f), aspect, 0.1f, 100.0f };
 
         if (!input.mouseActive)
         {

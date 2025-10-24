@@ -41,9 +41,9 @@ public:
     {
     }
 
-    void update(const Input& input)
+    void update(const Input& input, const core::Window::Resolution& resolution)
     {
-        camera.update(input);
+        camera.update(input, resolution);
         state.modelMatrix = camera.mats.perspective * camera.mats.view;
         nodes.traverse<core::utils::Traversal::depthFirst>(&asset::Node::update, state.modelMatrix);
     }

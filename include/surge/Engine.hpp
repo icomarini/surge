@@ -56,7 +56,7 @@ public:
     Engine(const std::string& windowName, const std::string& appName, const core::Window::Resolution& resolution,
            const std::map<std::string, load::AssetHandle>& assetHandles)
         : input { resolution }
-        , context { windowName, appName, resolution, Callbacks { input } /*createCallback(&input)*/ }
+        , context { windowName, appName, resolution, Callbacks { input } }
         , command { context }
         , presenter { command }
         , defaults { command, std::get<load::LoadedTexture::Handle>(assetHandles.at("default")) }
@@ -245,22 +245,22 @@ public:
                 }
                 // === entity playground ===
 
-                skybox.update(input);
+                skybox.update(input, context.window.resolution);
                 renderer.update(input);
                 overlay.update(input);
 
                 // === rendering ===
-                const auto inFlight = presenter.acquire();
+                const auto commandBuffer = presenter.acquire();
 
-                skybox.draw(inFlight.commandBuffer, renderer.descriptor.set);
-                renderer.draw(inFlight.commandBuffer);
+                skybox.draw(commandBuffer, renderer.descriptor.set);
+                renderer.draw(commandBuffer);
                 for (const auto& entity : entities)
                 {
-                    entity.draw(inFlight.commandBuffer, renderer.descriptor.set);
+                    entity.draw(commandBuffer, renderer.descriptor.set);
                 }
-                overlay.draw(inFlight.commandBuffer);
+                overlay.draw(commandBuffer);
 
-                presenter.present(command, input.framebufferResized);
+                presenter.present(command);
                 // === rendering ===
 
                 start = std::chrono::high_resolution_clock::now();

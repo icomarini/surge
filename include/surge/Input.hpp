@@ -38,7 +38,6 @@ struct Input
         , elapsedTime { 0.0 }
         , begin { std::chrono::high_resolution_clock::now() }
         , timer { 0.0 }
-        , resolution { resolution }
         , mouseActive { true }
         , shadowMap { false }
         , lightPos { 0.0f, 0.0f, 0.0f }
@@ -54,9 +53,6 @@ struct Input
 
     Mouse    mouse;
     Keyboard keyboard;
-
-    core::Window::Resolution resolution;
-    bool                     framebufferResized;
 
     bool mouseActive;
 
@@ -84,7 +80,6 @@ struct Input
         // keyboard.a          = KeyState::none;
         // keyboard.s          = KeyState::none;
         // keyboard.d          = KeyState::none;
-        framebufferResized = false;
 
         lightPos = {
             std::cos(core::math::deg2rad(timer * 90.0f)) * 10.0f,
@@ -98,12 +93,6 @@ struct Callbacks
 {
     using Type = Input;
     Type& input;
-
-    static void framebuffer(core::Window& window, Input& input, const core::Window::Resolution& resolution)
-    {
-        input.resolution         = resolution;
-        input.framebufferResized = true;
-    }
 
     static void keyboard(core::Window& window, Input& input, const core::input::Key key,
                          const core::input::Action action)

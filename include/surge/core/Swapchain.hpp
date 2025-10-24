@@ -51,13 +51,12 @@ private:
     static VkExtent2D computeExtent(const Context& context)
     {
         const auto surfaceCapabilities = context.getSurfaceCapabilities();
-        const auto extent              = context.extent();
         return surfaceCapabilities.currentExtent.width != std::numeric_limits<uint32_t>::max() ?
                    surfaceCapabilities.currentExtent :
                    VkExtent2D {
-                       .width  = std::clamp(extent.width, surfaceCapabilities.minImageExtent.width,
+                       .width  = std::clamp(context.window.resolution.width, surfaceCapabilities.minImageExtent.width,
                                             surfaceCapabilities.maxImageExtent.width),
-                       .height = std::clamp(extent.height, surfaceCapabilities.minImageExtent.height,
+                       .height = std::clamp(context.window.resolution.height, surfaceCapabilities.minImageExtent.height,
                                             surfaceCapabilities.maxImageExtent.height),
                    };
     }
@@ -109,13 +108,6 @@ private:
         frames.reserve(count);
         for (const auto image : images)
         {
-            // constexpr VkImageSubresourceRange subresourceRange {
-            //     .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-            //     .baseMipLevel   = 0,
-            //     .levelCount     = 1,
-            //     .baseArrayLayer = 0,
-            //     .layerCount     = 1,
-            // };
             const auto imageView = context.create(VkImageViewCreateInfo {
                 .sType      = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                 .pNext      = nullptr,

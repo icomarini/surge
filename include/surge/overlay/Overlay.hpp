@@ -93,7 +93,7 @@ public:
                   const std::map<std::string, asset::Asset>& assets) const
     {
         ImGuiIO&    io             = ImGui::GetIO();
-        const auto& extent         = context.extent();
+        const auto& extent         = context.window.resolution;
         io.DisplaySize             = ImVec2(extent.width, extent.height);
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
