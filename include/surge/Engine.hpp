@@ -184,6 +184,9 @@ public:
 
         auto start = std::chrono::high_resolution_clock::now();
 
+        Camera<true, false> camera { 16.0 / 9.0, { 0.0f, 1.0f, 3.0f }, { 0.0f, 0.0f, -1.0f } };
+        Camera<true, false> lightSource { 16.0 / 9.0, { -1.0f, 5.0f, 3.0f }, { -1.0f, -1.0f, -1.0f } };
+
         std::vector<entity::Entity> entities;
         constexpr float             stepX = 2;
         constexpr float             stepY = 2;
@@ -206,8 +209,11 @@ public:
             }
             offsetX += stepX;
         }
-
         auto skybox = createSkybox("skybox");
+
+        // shadow map playground
+        core::Image shadowMapImage { context, VkExtent2D { .width = 1024, .height = 1024 }, core::Image::shadowMap };
+
 
         log::checkpoint("Main loop start");
         while (input.proceed)
@@ -245,12 +251,18 @@ public:
                 }
                 // === entity playground ===
 
+                camera.update(input, context.window.resolution);
+                lightSource.update(input.timer, context.window.resolution);
                 skybox.update(input, context.window.resolution);
-                renderer.update(input);
+                renderer.update(camera);
                 overlay.update(input);
 
                 // === rendering ===
                 const auto commandBuffer = presenter.acquire();
+                presenter.beginRendering();
+                presenter.endRendering();
+
+                presenter.beginRendering();
 
                 skybox.draw(commandBuffer, renderer.descriptor.set);
                 renderer.draw(commandBuffer);
@@ -260,6 +272,7 @@ public:
                 }
                 overlay.draw(commandBuffer);
 
+                presenter.endRendering();
                 presenter.present(command);
                 // === rendering ===
 

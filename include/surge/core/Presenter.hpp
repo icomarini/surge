@@ -35,6 +35,80 @@ public:
         }
     }
 
+    void beginRendering()
+    {
+        const auto& frame                 = swapchain->frames.at(imageIndex);
+        const auto [fence, commandBuffer] = frames.current();
+
+        const VkRenderingAttachmentInfo colorAttachmentInfo {
+            .sType              = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+            .pNext              = nullptr,
+            .imageView          = frame.imageView,
+            .imageLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            .resolveMode        = {},
+            .resolveImageView   = VK_NULL_HANDLE,
+            .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .loadOp             = VK_ATTACHMENT_LOAD_OP_CLEAR,
+            .storeOp            = VK_ATTACHMENT_STORE_OP_STORE,
+            .clearValue         = VkClearValue { .color = { { 0.0f, 0.0f, 0.0f, 1.0f } } },
+        };
+        const VkRenderingAttachmentInfo depthAttachmentInfo {
+            .sType              = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+            .pNext              = nullptr,
+            .imageView          = swapchain->depthImage.view,
+            .imageLayout        = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL,
+            .resolveMode        = {},
+            .resolveImageView   = VK_NULL_HANDLE,
+            .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .loadOp             = VK_ATTACHMENT_LOAD_OP_CLEAR,
+            .storeOp            = VK_ATTACHMENT_STORE_OP_STORE,
+            .clearValue         = VkClearValue { .depthStencil = { 1.0, 0 } },
+        };
+
+        const VkRenderingInfoKHR renderInfo {
+            .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
+            .pNext = nullptr,
+            .flags = 0,
+            .renderArea =
+                VkRect2D {
+                    .offset = { 0, 0 },
+                    .extent = swapchain->extent,
+                },
+            .layerCount           = 1,
+            .viewMask             = 0,
+            .colorAttachmentCount = 1,
+            .pColorAttachments    = &colorAttachmentInfo,
+            .pDepthAttachment     = &depthAttachmentInfo,
+            .pStencilAttachment   = VK_NULL_HANDLE,
+        };
+
+        // viewport and scissors
+        const VkViewport viewport {
+            .x        = 0.0f,
+            .y        = 0.0f,
+            .width    = static_cast<float>(swapchain->extent.width),
+            .height   = static_cast<float>(swapchain->extent.height),
+            .minDepth = 0.0f,
+            .maxDepth = 1.0f,
+        };
+        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+        const VkRect2D scissor {
+            .offset = { 0, 0 },
+            .extent = swapchain->extent,
+        };
+        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+        Extern::beginRendering(commandBuffer, &renderInfo);
+    }
+
+    void endRendering()
+    {
+        const auto& frame                 = swapchain->frames.at(imageIndex);
+        const auto [fence, commandBuffer] = frames.current();
+
+        Extern::endRendering(commandBuffer);
+    }
+
     VkCommandBuffer acquire()
     {
         const auto [fence, commandBuffer] = frames.current();
@@ -99,65 +173,65 @@ public:
                              &imageMemoryBarrierBegin);
 
         // begin rendering
-        const VkRenderingAttachmentInfo colorAttachmentInfo {
-            .sType              = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-            .pNext              = nullptr,
-            .imageView          = frame.imageView,
-            .imageLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            .resolveMode        = {},
-            .resolveImageView   = VK_NULL_HANDLE,
-            .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            .loadOp             = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp            = VK_ATTACHMENT_STORE_OP_STORE,
-            .clearValue         = VkClearValue { .color = { { 0.0f, 0.0f, 0.0f, 1.0f } } },
-        };
-        const VkRenderingAttachmentInfo depthAttachmentInfo {
-            .sType              = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-            .pNext              = nullptr,
-            .imageView          = swapchain->depthImage.view,
-            .imageLayout        = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL,
-            .resolveMode        = {},
-            .resolveImageView   = VK_NULL_HANDLE,
-            .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            .loadOp             = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp            = VK_ATTACHMENT_STORE_OP_STORE,
-            .clearValue         = VkClearValue { .depthStencil = { 1.0, 0 } },
-        };
+        // const VkRenderingAttachmentInfo colorAttachmentInfo {
+        //     .sType              = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+        //     .pNext              = nullptr,
+        //     .imageView          = frame.imageView,
+        //     .imageLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        //     .resolveMode        = {},
+        //     .resolveImageView   = VK_NULL_HANDLE,
+        //     .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        //     .loadOp             = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        //     .storeOp            = VK_ATTACHMENT_STORE_OP_STORE,
+        //     .clearValue         = VkClearValue { .color = { { 0.0f, 0.0f, 0.0f, 1.0f } } },
+        // };
+        // const VkRenderingAttachmentInfo depthAttachmentInfo {
+        //     .sType              = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+        //     .pNext              = nullptr,
+        //     .imageView          = swapchain->depthImage.view,
+        //     .imageLayout        = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL,
+        //     .resolveMode        = {},
+        //     .resolveImageView   = VK_NULL_HANDLE,
+        //     .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        //     .loadOp             = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        //     .storeOp            = VK_ATTACHMENT_STORE_OP_STORE,
+        //     .clearValue         = VkClearValue { .depthStencil = { 1.0, 0 } },
+        // };
 
-        const VkRenderingInfoKHR renderInfo {
-            .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
-            .pNext = nullptr,
-            .flags = 0,
-            .renderArea =
-                VkRect2D {
-                    .offset = { 0, 0 },
-                    .extent = swapchain->extent,
-                },
-            .layerCount           = 1,
-            .viewMask             = 0,
-            .colorAttachmentCount = 1,
-            .pColorAttachments    = &colorAttachmentInfo,
-            .pDepthAttachment     = &depthAttachmentInfo,
-            .pStencilAttachment   = VK_NULL_HANDLE,
-        };
+        // const VkRenderingInfoKHR renderInfo {
+        //     .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
+        //     .pNext = nullptr,
+        //     .flags = 0,
+        //     .renderArea =
+        //         VkRect2D {
+        //             .offset = { 0, 0 },
+        //             .extent = swapchain->extent,
+        //         },
+        //     .layerCount           = 1,
+        //     .viewMask             = 0,
+        //     .colorAttachmentCount = 1,
+        //     .pColorAttachments    = &colorAttachmentInfo,
+        //     .pDepthAttachment     = &depthAttachmentInfo,
+        //     .pStencilAttachment   = VK_NULL_HANDLE,
+        // };
 
-        Extern::beginRendering(commandBuffer, &renderInfo);
+        // Extern::beginRendering(commandBuffer, &renderInfo);
 
-        // viewport and scissors
-        const VkViewport viewport {
-            .x        = 0.0f,
-            .y        = 0.0f,
-            .width    = static_cast<float>(swapchain->extent.width),
-            .height   = static_cast<float>(swapchain->extent.height),
-            .minDepth = 0.0f,
-            .maxDepth = 1.0f,
-        };
-        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-        const VkRect2D scissor {
-            .offset = { 0, 0 },
-            .extent = swapchain->extent,
-        };
-        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+        // // viewport and scissors
+        // const VkViewport viewport {
+        //     .x        = 0.0f,
+        //     .y        = 0.0f,
+        //     .width    = static_cast<float>(swapchain->extent.width),
+        //     .height   = static_cast<float>(swapchain->extent.height),
+        //     .minDepth = 0.0f,
+        //     .maxDepth = 1.0f,
+        // };
+        // vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+        // const VkRect2D scissor {
+        //     .offset = { 0, 0 },
+        //     .extent = swapchain->extent,
+        // };
+        // vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
         return commandBuffer;
     }
@@ -167,7 +241,7 @@ public:
         const auto& frame                 = swapchain->frames.at(imageIndex);
         const auto [fence, commandBuffer] = frames.current();
 
-        Extern::endRendering(commandBuffer);
+        // Extern::endRendering(commandBuffer);
 
         const VkImageMemoryBarrier imageMemoryBarrierEnd {
             .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
