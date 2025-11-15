@@ -8,6 +8,45 @@
 
 namespace surge::core
 {
+class Pipeline : public Contextualized
+{
+    VkPipelineLayout pipelineLayout;
+    VkPipeline       pipeline;
+
+public:
+    template<typename... DescriptorSetLayouts>
+    Pipeline(const Context& context, const VkPipelineVertexInputStateCreateInfo& vertexInputState,
+             const VkPushConstantRange& pushConstantRange, const core::shader::Type shader,
+             const DescriptorSetLayouts... descriptorSetLayouts)
+        : Contextualized { context }
+        , pipelineLayout { createPipelineLayout(context, pushConstantRange, descriptorSetLayouts...) }
+    {
+    }
+
+    ~Pipeline()
+    {
+        context.destroy(pipeline);
+        context.destroy(pipelineLayout);
+    }
+
+private:
+    template<typename... DescriptorSetLayouts>
+    VkPipelineLayout createPipelineLayout(const Context& context, const VkPushConstantRange pushConstantRange,
+                                          const DescriptorSetLayouts... descriptorSetLayouts)
+    {
+        const std::array layouts { descriptorSetLayouts... };
+        return context.create(VkPipelineLayoutCreateInfo {
+            .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .pNext                  = nullptr,
+            .flags                  = {},
+            .setLayoutCount         = static_cast<uint32_t>(layouts.size()),
+            .pSetLayouts            = layouts.data(),
+            .pushConstantRangeCount = 1,
+            .pPushConstantRanges    = &pushConstantRange,
+        });
+    }
+};
+
 template<Size size, geometry::Format format>
 constexpr VkFormat extractFormat()
 {

@@ -12,9 +12,8 @@ namespace surge
 class Renderer : public core::Contextualized
 {
 public:
-    Renderer(const core::Context& context, const physics::Physics& physics)
+    Renderer(const core::Context& context)
         : Contextualized { context }
-        , physics { physics }
         , scene { context, 2 * sizeof(core::math::Matrix<4, 4>), core::Buffer::uniform }
         , descriptor { context, 1,
                        core::Description<VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, core::Buffer> {
@@ -59,10 +58,10 @@ public:
 
     void drawParticles(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const
     {
-        if (physics.particles.empty() && physics.anchors.empty())
-        {
-            return;
-        }
+        // if (physics.particles.empty() && physics.anchors.empty())
+        // {
+        //     return;
+        // }
 
         const auto [pipelineLayout, pipeline] = pipelines.at("point");
 
@@ -75,30 +74,30 @@ public:
         vkCmdSetLineWidth(commandBuffer, 1.0);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-        for (const auto& particle : physics.particles)
-        {
-            drawPoint(commandBuffer, pipelineLayout,
-                      asset::Point {
-                          .p     = particle.position,
-                          .color = core::Colors<core::Type::rgba>::green,
-                      });
-        }
-        for (const auto& anchor : physics.anchors)
-        {
-            drawPoint(commandBuffer, pipelineLayout,
-                      asset::Point {
-                          .p     = anchor.position,
-                          .color = core::Colors<core::Type::rgba>::red,
-                      });
-        }
+        // for (const auto& particle : physics.particles)
+        // {
+        //     drawPoint(commandBuffer, pipelineLayout,
+        //               asset::Point {
+        //                   .p     = particle.position,
+        //                   .color = core::Colors<core::Type::rgba>::green,
+        //               });
+        // }
+        // for (const auto& anchor : physics.anchors)
+        // {
+        //     drawPoint(commandBuffer, pipelineLayout,
+        //               asset::Point {
+        //                   .p     = anchor.position,
+        //                   .color = core::Colors<core::Type::rgba>::red,
+        //               });
+        // }
     }
 
     void drawSprings(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const
     {
-        if (physics.springs.empty() && physics.anchoredSprings.empty())
-        {
-            return;
-        }
+        // if (physics.springs.empty() && physics.anchoredSprings.empty())
+        // {
+        //     return;
+        // }
 
         const auto [pipelineLayout, pipeline] = pipelines.at("line");
 
@@ -110,24 +109,24 @@ public:
         vkCmdSetLineWidth(commandBuffer, 1.0);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-        for (const auto& spring : physics.springs)
-        {
-            drawLine(commandBuffer, pipelineLayout,
-                     asset::Line {
-                         .a     = spring.first.position,
-                         .b     = spring.second.position,
-                         .color = core::Colors<core::Type::rgba>::white,
-                     });
-        }
-        for (const auto& spring : physics.anchoredSprings)
-        {
-            drawLine(commandBuffer, pipelineLayout,
-                     asset::Line {
-                         .a     = spring.particle.position,
-                         .b     = spring.anchor.position,
-                         .color = core::Colors<core::Type::rgba>::white,
-                     });
-        }
+        // for (const auto& spring : physics.springs)
+        // {
+        //     drawLine(commandBuffer, pipelineLayout,
+        //              asset::Line {
+        //                  .a     = spring.first.position,
+        //                  .b     = spring.second.position,
+        //                  .color = core::Colors<core::Type::rgba>::white,
+        //              });
+        // }
+        // for (const auto& spring : physics.anchoredSprings)
+        // {
+        //     drawLine(commandBuffer, pipelineLayout,
+        //              asset::Line {
+        //                  .a     = spring.particle.position,
+        //                  .b     = spring.anchor.position,
+        //                  .color = core::Colors<core::Type::rgba>::white,
+        //              });
+        // }
     }
 
     void drawPoint(const VkCommandBuffer commandBuffer, const VkPipelineLayout pipelineLayout,
@@ -137,7 +136,6 @@ public:
         vkCmdDraw(commandBuffer, 1, 1, 0, 0);
     }
 
-    const physics::Physics&                                        physics;
     core::Buffer                                                   scene;
     core::Descriptor                                               descriptor;
     std::map<std::string, std::pair<VkPipelineLayout, VkPipeline>> pipelines;

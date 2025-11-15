@@ -20,7 +20,6 @@ public:
         core::math::Matrix<4, 4> modelMatrix;
     };
 
-    mutable Camera<true, true>     camera;
     const asset::Asset&            asset;
     core::utils::Tree<asset::Node> nodes;
     VkPipelineLayout               pipelineLayout;
@@ -29,8 +28,7 @@ public:
 
     Skybox(const asset::Asset& asset, const VkPipelineLayout pipelineLayout, const VkPipeline pipeline,
            const core::math::StaticMatrix auto& modelMatrix)
-        : camera { 16.0 / 9.0, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } }
-        , asset { asset }
+        : asset { asset }
         , nodes { asset.mainScene().treenNodes }
         , pipelineLayout { pipelineLayout }
         , pipeline { pipeline }
@@ -41,9 +39,9 @@ public:
     {
     }
 
-    void update(const Input& input, const core::Window::Resolution& resolution)
+    template<typename Camera>
+    void update(const Camera& camera)
     {
-        camera.update(input, resolution);
         state.modelMatrix = camera.mats.perspective * camera.mats.view;
         nodes.traverse<core::utils::Traversal::depthFirst>(&asset::Node::update, state.modelMatrix);
     }

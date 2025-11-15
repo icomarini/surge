@@ -15,35 +15,6 @@
 namespace surge
 {
 
-void createRope(physics::Physics& physics, const physics::Position& first, const physics::Position& second,
-                const int size)
-{
-    auto& firstAnchor  = physics.addAnchor(first);
-    auto& secondAnchor = physics.addAnchor(second);
-
-    const auto trajectory = second - first;
-    const auto distance   = core::math::norm(trajectory);
-    const auto direction  = core::math::normalize(trajectory);
-
-    std::vector<physics::Particle*> particles;
-    particles.reserve(size - 2);
-    for (int index = 1; index < size - 1; ++index)
-    {
-        const auto step     = index * distance / size;
-        const auto position = first + step * direction;
-        particles.emplace_back(&physics.addParticle(physics::Mass { 0.01 }, position));
-    };
-    constexpr physics::Scalar springConstant = 0.1;
-    constexpr physics::Scalar restLength     = 0.0;
-    // const physics::Scalar     restLength     = distance / size;
-    physics.addAnchoredSpring(firstAnchor, *particles.front(), springConstant, restLength);
-    physics.addAnchoredSpring(secondAnchor, *particles.back(), springConstant, restLength);
-    for (int index = 0; index < size - 3; ++index)
-    {
-        physics.addSpring(*particles.at(index), *particles.at(index + 1), springConstant, restLength);
-    };
-}
-
 double elapsed(auto start)
 {
     const auto stop = std::chrono::high_resolution_clock::now();
@@ -60,37 +31,11 @@ public:
         , command { context }
         , presenter { command }
         , defaults { command, std::get<load::LoadedTexture::Handle>(assetHandles.at("default")) }
-        , physics { physics::earthGravity }
-        , renderer { context, physics }
+        // , physics { physics::earthGravity }
+        , renderer { context }
         , overlay { command, assets }
     {
-        resetPhysics();
         log::checkpoint("The surge of urge to purge started");
-    }
-
-    void resetPhysics()
-    {
-        using namespace physics;
-        physics.clear();
-
-        auto& anchor1   = physics.addAnchor(Position { 0, 0.5, 0 });
-        auto& anchor2   = physics.addAnchor(Position { 0, 0.5, 1 });
-        auto& anchor3   = physics.addAnchor(Position { 1, 0.5, 0 });
-        auto& anchor4   = physics.addAnchor(Position { 1, 0.5, 1 });
-        auto& particle1 = physics.addParticle(Mass { 1 }, Position { 0.4, 1.0, 0.5 });
-
-        constexpr Scalar springConstant = 0.5;
-        constexpr Scalar restLength     = 1;
-        physics.addAnchoredSpring(anchor1, particle1, springConstant, restLength);
-        physics.addAnchoredSpring(anchor2, particle1, springConstant, restLength);
-        physics.addAnchoredSpring(anchor3, particle1, springConstant, restLength);
-        physics.addAnchoredSpring(anchor4, particle1, springConstant, restLength);
-
-        auto& particle2 = physics.addParticle(Mass { 0.1 }, Position { -1.4, 1.0, 0.5 });
-        physics.addSpring(particle1, particle2, springConstant, restLength);
-
-        createRope(physics, Position { -10, 0, 0 }, Position { 0, 0, -10 }, 32);
-        createRope(physics, Position { -9, 0, 0 }, Position { 0, 0, -9 }, 32);
     }
 
     void loadAsset(const std::string& name, const load::AssetHandle& handle)
@@ -179,21 +124,27 @@ public:
 
     void run()
     {
-        double elapsedTime   = {};
-        bool   physicsActive = false;
+        double elapsedTime = {};
+        // bool   physicsActive = false;
 
         auto start = std::chrono::high_resolution_clock::now();
 
-        Camera<true, false> camera { 16.0 / 9.0, { 0.0f, 1.0f, 3.0f }, { 0.0f, 0.0f, -1.0f } };
-        Camera<true, false> lightSource { 16.0 / 9.0, { -1.0f, 5.0f, 3.0f }, { -1.0f, -1.0f, -1.0f } };
+        Camera<true, false> playerCamera { 16.0 / 9.0, { 0.0f, 1.0f, 3.0f }, { 0.0f, 0.0f, -1.0f } };
+        Camera<true, true>  skyboxCamera { 16.0 / 9.0, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } };
+        Camera<true, false> lightCamera { 16.0 / 9.0, { -1.0f, 5.0f, 3.0f }, { -1.0f, -1.0f, -1.0f } };
+
+        constexpr std::array assetNames {
+            // "man",
+            "dragon",
+        };
 
         std::vector<entity::Entity> entities;
         constexpr float             stepX = 2;
         constexpr float             stepY = 2;
-        constexpr core::Size        sizeY = 10;
+        constexpr core::Size        sizeY = 1;
         entities.reserve(assets.size() * sizeY + 1);
         float offsetX = 0;
-        for (const auto& [name, asset] : assets)
+        for (const auto& name : assetNames)
         {
             float offsetY = 0;
             for (float y = 0; y < sizeY; ++y)
@@ -223,26 +174,6 @@ public:
                 input.reset();
                 context.pollEvents();
 
-                // === physics playground ===
-                using Action = core::input::Action;
-                if (!physicsActive && input.mouse.left == Action::press)
-                {
-                    physicsActive = true;
-                }
-
-                if (physicsActive)
-                {
-                    const auto duration = input.elapsedTime;
-
-                    if (input.mouse.right == Action::press)
-                    {
-                        resetPhysics();
-                        physicsActive = false;
-                    }
-
-                    physics.update(duration);
-                }
-                // === physics playground ===
 
                 // === entity playground ===
                 for (auto& entity : entities)
@@ -251,10 +182,11 @@ public:
                 }
                 // === entity playground ===
 
-                camera.update(input, context.window.resolution);
-                lightSource.update(input.timer, context.window.resolution);
-                skybox.update(input, context.window.resolution);
-                renderer.update(camera);
+                playerCamera.update(input, context.window.resolution);
+                skyboxCamera.update(input, context.window.resolution);
+                lightCamera.update(input.timer, context.window.resolution);
+                skybox.update(skyboxCamera);
+                renderer.update(playerCamera);
                 overlay.update(input);
 
                 // === rendering ===
@@ -265,7 +197,7 @@ public:
                 presenter.beginRendering();
 
                 skybox.draw(commandBuffer, renderer.descriptor.set);
-                renderer.draw(commandBuffer);
+                // renderer.draw(commandBuffer);
                 for (const auto& entity : entities)
                 {
                     entity.draw(commandBuffer, renderer.descriptor.set);
@@ -292,7 +224,6 @@ private:
     core::Command                         command;
     core::Presenter                       presenter;
     load::Defaults                        defaults;
-    physics::Physics                      physics;
     std::map<std::string, asset::Asset>   assets;
     std::map<std::string, asset::Texture> textures;
     Renderer                              renderer;
