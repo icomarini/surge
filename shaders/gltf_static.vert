@@ -12,8 +12,8 @@ layout(push_constant) uniform PushConstants
 {
     mat4 model;
     vec4 baseColorFactor;
-    uint vertexStageFlag;
-    uint fragmentStageFlag;
+    uint isLight;
+    // uint fragmentStageFlag;
 };
 
 layout(set = 0, binding = 0) uniform Scene

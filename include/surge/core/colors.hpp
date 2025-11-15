@@ -23,6 +23,7 @@ struct Colors<Type::rgba>
     static constexpr Format red { 1, 0, 0, 1 };
     static constexpr Format green { 0, 1, 0, 1 };
     static constexpr Format blue { 0, 0, 1, 1 };
+    static constexpr Format coral { 1, 0.5, 0.31, 1 };
 };
 
 template<>

@@ -67,26 +67,26 @@ static void overlay(const asset::Node& node, uint32_t& nodeId)
                 }
             }
 
-            std::vector<const char*> items { "texCoord", "color", "normal", "none" };
-            const char*              currentItem = items.at(node.state.fragmentStageFlag);
-            if (ImGui::BeginCombo((nodeName).c_str(), currentItem))
-            {
-                uint32_t itemId = 0;
-                for (const auto item : items)
-                {
-                    const bool selected = (currentItem == item);
-                    if (ImGui::Selectable(item, selected))
-                    {
-                        node.state.fragmentStageFlag = itemId;
-                    }
-                    if (selected)
-                    {
-                        ImGui::SetItemDefaultFocus();
-                    }
-                    ++itemId;
-                }
-                ImGui::EndCombo();
-            }
+            // std::vector<const char*> items { "texCoord", "color", "normal", "none" };
+            // const char*              currentItem = items.at(node.state.fragmentStageFlag);
+            // if (ImGui::BeginCombo((nodeName).c_str(), currentItem))
+            // {
+            //     uint32_t itemId = 0;
+            //     for (const auto item : items)
+            //     {
+            //         const bool selected = (currentItem == item);
+            //         if (ImGui::Selectable(item, selected))
+            //         {
+            //             node.state.fragmentStageFlag = itemId;
+            //         }
+            //         if (selected)
+            //         {
+            //             ImGui::SetItemDefaultFocus();
+            //         }
+            //         ++itemId;
+            //     }
+            //     ImGui::EndCombo();
+            // }
 
             // slider("rotation    ", node.name, node.state.rotation, xyzw);
             // slider("attitude    ", node.name, node.state.attitude, ypr, -180.0f, 180.0f);

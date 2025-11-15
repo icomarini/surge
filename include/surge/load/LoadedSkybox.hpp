@@ -121,18 +121,20 @@ public:
             nodes.reserve(1);
             nodes.emplace_back(
                 asset::Node {
-                    std::optional<core::Index> { 0 },
-                    std::optional<core::Index> {},
-                    asset::Node::State {
-                        .active            = true,
-                        .polygonMode       = core::PolygonMode::fill,
-                        .vertexStageFlag   = 0,
-                        .fragmentStageFlag = 0,
-                        .translation       = { 0, 0, 0 },
-                        .scale             = { 1, 1, 1 },
-                        .localMatrix       = core::math::Matrix<4, 4> {},
-                        .globalMatrix      = core::math::Matrix<4, 4> {},
-                    },
+                    .meshIndex = std::optional<core::Index> { 0 },
+                    .skinIndex = std::optional<core::Index> {},
+                    .isLight   = false,
+                    .state =
+                        asset::Node::State {
+                            .active      = true,
+                            .polygonMode = core::PolygonMode::fill,
+                            // .vertexStageFlag   = 0,
+                            // .fragmentStageFlag = 0,
+                            .translation  = { 0, 0, 0 },
+                            .scale        = { 1, 1, 1 },
+                            .localMatrix  = core::math::Matrix<4, 4> {},
+                            .globalMatrix = core::math::Matrix<4, 4> {},
+                        },
                 },
                 std::vector<core::Index> {});
             return nodes;

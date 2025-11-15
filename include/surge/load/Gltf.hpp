@@ -548,23 +548,27 @@ public:
 
                 nodes.emplace_back(
                     asset::Node {
-                        gltfNode.meshIndex ? std::optional<Index> { static_cast<Index>(gltfNode.meshIndex.value()) } :
-                                             std::optional<Index> {},
-                        gltfNode.skinIndex ? std::optional<Index> { static_cast<Index>(gltfNode.skinIndex.value()) } :
-                                             std::optional<Index> {},
-                        asset::Node::State {
-                            .active            = true,
-                            .polygonMode       = core::PolygonMode::fill,
-                            .vertexStageFlag   = 0,
-                            .fragmentStageFlag = 0,
-                            .translation =
-                                core::math::Vector<3> { trs.translation.x(), trs.translation.y(), trs.translation.z() },
-                            .rotation = core::math::Quaternion<> { trs.rotation.x(), trs.rotation.y(), trs.rotation.z(),
-                                                                   trs.rotation.w() },
-                            .scale    = core::math::Vector<3> { trs.scale.x(), trs.scale.y(), trs.scale.z() },
-                            .localMatrix  = core::math::Matrix<4, 4> {},
-                            .globalMatrix = core::math::Matrix<4, 4> {},
-                        } },
+                        .meshIndex = gltfNode.meshIndex ?
+                                         std::optional<Index> { static_cast<Index>(gltfNode.meshIndex.value()) } :
+                                         std::optional<Index> {},
+                        .skinIndex = gltfNode.skinIndex ?
+                                         std::optional<Index> { static_cast<Index>(gltfNode.skinIndex.value()) } :
+                                         std::optional<Index> {},
+                        .isLight   = 0,
+                        .state =
+                            asset::Node::State {
+                                .active      = true,
+                                .polygonMode = core::PolygonMode::fill,
+                                // .vertexStageFlag   = 0,
+                                // .fragmentStageFlag = 0,
+                                .translation  = core::math::Vector<3> { trs.translation.x(), trs.translation.y(),
+                                                                        trs.translation.z() },
+                                .rotation     = core::math::Quaternion<> { trs.rotation.x(), trs.rotation.y(),
+                                                                           trs.rotation.z(), trs.rotation.w() },
+                                .scale        = core::math::Vector<3> { trs.scale.x(), trs.scale.y(), trs.scale.z() },
+                                .localMatrix  = core::math::Matrix<4, 4> {},
+                                .globalMatrix = core::math::Matrix<4, 4> {},
+                            } },
                     std::vector<Index> { gltfNode.children.begin(), gltfNode.children.end() });
             }
             return nodes;

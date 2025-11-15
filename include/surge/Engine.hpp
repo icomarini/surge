@@ -158,10 +158,17 @@ public:
             }
             offsetX += stepX;
         }
+        entities.back().nodes.get(0).color   = core::Colors<core::Type::rgba>::coral;
+        entities.back().nodes.get(1).color   = core::Colors<core::Type::rgba>::white;
+        entities.back().nodes.get(1).isLight = 1;
+
+
+        // entities.back().nodes.get(1).isLight = 1;
+
         auto skybox = createSkybox("skybox");
 
         // shadow map playground
-        core::Image shadowMapImage { context, VkExtent2D { .width = 1024, .height = 1024 }, core::Image::shadowMap };
+        // core::Image shadowMapImage { context, VkExtent2D { .width = 1024, .height = 1024 }, core::Image::shadowMap };
 
 
         log::checkpoint("Main loop start");
@@ -189,13 +196,12 @@ public:
 
                 // === rendering ===
                 const auto commandBuffer = presenter.acquire();
-                presenter.beginRendering();
-                presenter.endRendering();
+                // presenter.beginRendering();
+                // presenter.endRendering();
 
                 presenter.beginRendering();
 
                 skybox.draw(commandBuffer, renderer.descriptor.set);
-                // renderer.draw(commandBuffer);
                 for (const auto& entity : entities)
                 {
                     entity.draw(commandBuffer, renderer.descriptor.set);
@@ -226,5 +232,8 @@ private:
     std::map<std::string, asset::Texture> textures;
     Renderer                              renderer;
     overlay::Overlay                      overlay;
+    // std::map<std::string, Material>       materials;
+    // std::map<std::string, Model>          models;
+    // std::map<std::string, Animations>     animations;
 };
 }  // namespace surge

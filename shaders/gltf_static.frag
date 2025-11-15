@@ -8,9 +8,9 @@ layout(location = 2) in vec3 fragNormal;
 layout(push_constant) uniform PushConstants
 {
     mat4 model;
-    vec4 baseColorFactor;
-    uint vertexStageFlag;
-    uint fragmentStageFlag;
+    vec4 color;
+    uint isLight;
+    // uint fragmentStageFlag;
 };
 
 layout(set = 1, binding = 0) uniform sampler2D texSampler;
@@ -20,20 +20,28 @@ layout(location = 0) out vec4 outColor;
 
 void main()
 {
-    if (fragmentStageFlag == 0)
-    {
-        outColor = texture(texSampler, fragTexCoord);
-    }
-    else if (fragmentStageFlag == 1)
+    // if (fragmentStageFlag == 0)
+    // {
+    //     outColor = texture(texSampler, fragTexCoord);
+    // }
+    // else if (fragmentStageFlag == 1)
+    // {
+    //     outColor = vec4(fragColor, 1.0);
+    // }
+    // else if (fragmentStageFlag == 2)
+    // {
+    //     outColor = vec4(fragNormal, 1.0);
+    // }
+    // else
+    // {
+    //     outColor = vec4(1.0, 1.0, 1.0, 1.0);
+    // }
+    if (isLight == 1)
     {
         outColor = vec4(fragColor, 1.0);
     }
-    else if (fragmentStageFlag == 2)
-    {
-        outColor = vec4(fragNormal, 1.0);
-    }
     else
     {
-        outColor = vec4(1.0, 1.0, 1.0, 1.0);
+        outColor = texture(texSampler, fragTexCoord) * color;
     }
 }

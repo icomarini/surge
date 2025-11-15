@@ -13,16 +13,16 @@ struct Node
     {
         core::math::Matrix<4, 4> matrix;
         core::math::Vector<4>    baseColorFactor;
-        uint32_t                 vertexStageFlag;
-        uint32_t                 fragmentStageFlag;
+        uint32_t                 isLight;
+        // uint32_t                 fragmentStageFlag;
     };
 
     struct State
     {
-        bool                     active;
-        core::PolygonMode        polygonMode;
-        uint32_t                 vertexStageFlag;
-        uint32_t                 fragmentStageFlag;
+        bool              active;
+        core::PolygonMode polygonMode;
+        // uint32_t                 vertexStageFlag;
+        // uint32_t                 fragmentStageFlag;
         core::math::Vector<3>    translation { 0, 0, 0 };
         core::math::Quaternion<> rotation { 0, 0, 0, 0 };
         core::math::Vector<3>    scale { 1, 1, 1 };
@@ -32,6 +32,8 @@ struct Node
 
     const std::optional<core::Index> meshIndex;
     const std::optional<core::Index> skinIndex;
+    core::math::Vector<4>            color;
+    uint32_t                         isLight;
     mutable State                    state;
 
     static auto update(Node& node, const core::math::Matrix<4, 4>& parentMatrix)
@@ -60,10 +62,8 @@ struct Node
                                     &primitive.material.descriptorSet, 0, nullptr);
 
             const PushConstants pushConstants {
-                .matrix            = state.globalMatrix,
-                .baseColorFactor   = primitive.material.baseColorFactor,
-                .vertexStageFlag   = state.vertexStageFlag,
-                .fragmentStageFlag = state.fragmentStageFlag,
+                .matrix = state.globalMatrix, .baseColorFactor = color, .isLight = isLight,
+                // .fragmentStageFlag = state.fragmentStageFlag,
             };
             vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
                                0, sizeof(PushConstants), &pushConstants);
