@@ -14,10 +14,11 @@
 namespace surge
 {
 
-template<bool flipY, bool fixed>
+template<bool fixed>
 class Camera
 {
 public:
+    static constexpr auto flipY { true };
     Camera(const float aspect, const core::math::Vector<3>& position, const core::math::Vector<3>& front)
         : sensitivity { 0.1f }
         , speed { 2.5f }

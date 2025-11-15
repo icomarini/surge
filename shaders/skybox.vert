@@ -20,5 +20,5 @@ layout(location = 0) out vec3 outUVW;
 void main()
 {
     outUVW      = inPosition;
-    gl_Position = vec4(inPosition.xyz, 1.0) * model;
+    gl_Position = vec4(inPosition, 1.0) * model;
 }

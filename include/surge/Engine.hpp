@@ -127,9 +127,9 @@ public:
 
         auto start = std::chrono::high_resolution_clock::now();
 
-        Camera<true, false> playerCamera { 16.0 / 9.0, { 0.0f, 1.0f, 3.0f }, { 0.0f, 0.0f, -1.0f } };
-        Camera<true, true>  skyboxCamera { 16.0 / 9.0, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } };
-        Camera<true, false> lightCamera { 16.0 / 9.0, { -1.0f, 5.0f, 3.0f }, { -1.0f, -1.0f, -1.0f } };
+        Camera<false> playerCamera { 16.0 / 9.0, { 0.0f, 1.0f, 3.0f }, { 0.0f, 0.0f, -1.0f } };
+        Camera<true>  skyboxCamera { 16.0 / 9.0, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } };
+        Camera<false> lightCamera { 16.0 / 9.0, { -1.0f, 5.0f, 3.0f }, { -1.0f, -1.0f, -1.0f } };
 
         constexpr std::array assetNames {
             // "man",
@@ -162,7 +162,8 @@ public:
         entities.back().nodes.get(1).color   = core::Colors<core::Type::rgba>::white;
         entities.back().nodes.get(1).isLight = 1;
 
-
+        renderer.lightColor    = core::Colors<core::Type::rgba>::grey;
+        renderer.lightPosition = { 0, 0, 0 };
         // entities.back().nodes.get(1).isLight = 1;
 
         auto skybox = createSkybox("skybox");
@@ -190,9 +191,14 @@ public:
                 playerCamera.update(input, context.window.resolution);
                 skyboxCamera.update(input, context.window.resolution);
                 lightCamera.update(input.timer, context.window.resolution);
+                renderer.lightPosition = lightCamera.vecs.position;
                 skybox.update(skyboxCamera);
                 renderer.update(playerCamera);
                 overlay.update(input);
+
+                // renderer.lightColor =
+                //     (0.25f + 0.5f * std::pow(std::sin(core::math::deg2rad(input.timer * 36.0f)), 2.0f)) *
+                //     core::Colors<core::Type::rgba>::white;
 
                 // === rendering ===
                 const auto commandBuffer = presenter.acquire();

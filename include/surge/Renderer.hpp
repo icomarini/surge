@@ -12,13 +12,25 @@ namespace surge
 class Renderer : public core::Contextualized
 {
 public:
+    struct SceneBuffer
+    {
+        core::math::Matrix<4, 4> perspective;
+        core::math::Matrix<4, 4> view;
+        core::math::Vector<4>    lightColor;
+        core::math::Vector<3>    lightPosition;
+    };
+
+
     Renderer(const core::Context& context)
         : Contextualized { context }
-        , scene { context, 2 * sizeof(core::math::Matrix<4, 4>), core::Buffer::uniform }
+        , scene { context, sizeof(SceneBuffer), core::Buffer::uniform }
         , descriptor { context, 1,
-                       core::Description<VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, core::Buffer> {
+                       core::Description<VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                         VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, core::Buffer> {
                            scene } }
         , pipelines { createPipelines(context, descriptor.setLayout) }
+        , lightColor { core::Colors<core::Type::rgba>::white }
+        , lightPosition {}
     {
     }
 
@@ -139,14 +151,15 @@ public:
     core::Buffer                                                   scene;
     core::Descriptor                                               descriptor;
     std::map<std::string, std::pair<VkPipelineLayout, VkPipeline>> pipelines;
+    core::math::Vector<4>                                          lightColor;
+    core::math::Vector<3>                                          lightPosition;
 
-    void update(const Camera<true, false>& camera)
+
+    void update(const Camera<false>& camera)
     {
-        const std::array sceneMatrices {
-            core::math::fullMatrix(camera.mats.perspective),
-            core::math::fullMatrix(camera.mats.view),
-        };
-        memcpy(scene.mapped, sceneMatrices.data(), 2 * sizeof(core::math::Matrix<4, 4>));
+        const SceneBuffer sceneMatrices { core::math::fullMatrix(camera.mats.perspective),
+                                          core::math::fullMatrix(camera.mats.view), lightColor, lightPosition };
+        memcpy(scene.mapped, &sceneMatrices, sizeof(SceneBuffer));
     }
 
     void draw(const VkCommandBuffer commandBuffer) const
