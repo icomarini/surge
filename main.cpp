@@ -81,16 +81,12 @@ int main()
 {
     try
     {
-        const std::filesystem::path                     home { "/home/ico/projects/" };
-        std::map<std::string, surge::load::AssetHandle> assetHandles {
-            { "default", surge::load::LoadedTexture::Handle { surge::load::LoadedTexture::Type::texture2d,
-                                                              home / "surge/textures/default.png" } },
-        };
+        const std::filesystem::path home { "/home/ico/projects/" };
 
         const std::string                         windowName = "A Surge Of Engine";
         const std::string                         appName    = "aSurgeOfEngine";
         constexpr surge::core::Window::Resolution resolution { .width = 1600, .height = 900 };
-        surge::Engine                             engine(windowName, appName, resolution, assetHandles);
+        surge::Engine                             engine(windowName, appName, resolution);
 
         using Gltf   = surge::load::Gltf::Handle;
         using Obj    = surge::load::Obj::Handle;

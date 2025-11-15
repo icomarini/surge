@@ -24,14 +24,12 @@ double elapsed(auto start)
 class Engine
 {
 public:
-    Engine(const std::string& windowName, const std::string& appName, const core::Window::Resolution& resolution,
-           const std::map<std::string, load::AssetHandle>& assetHandles)
+    Engine(const std::string& windowName, const std::string& appName, const core::Window::Resolution& resolution)
         : input {}
         , context { windowName, appName, resolution, Callbacks { input } }
         , command { context }
         , presenter { command }
-        , defaults { command, std::get<load::LoadedTexture::Handle>(assetHandles.at("default")) }
-        // , physics { physics::earthGravity }
+        , defaults { command }
         , renderer { context }
         , overlay { command, assets }
     {

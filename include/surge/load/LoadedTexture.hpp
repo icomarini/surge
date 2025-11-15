@@ -1,6 +1,7 @@
 #pragma once
 
 #include "surge/asset/Texture.hpp"
+#include "surge/Log.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -9,6 +10,7 @@
 
 #include <filesystem>
 #include <variant>
+#include <span>
 
 namespace surge::load
 {
@@ -75,6 +77,36 @@ public:
             {
                 throw std::runtime_error("Failed to load texture " + handle.path.string());
             }
+
+            // static constexpr auto defaultTexture = textureData();
+            // constexpr std::span   staticSpan { defaultTexture.front().data(), sizeof(decltype(defaultTexture)) };
+            // const std::span       dynamicSpan { data, texWidth * texHeight * 4 };
+            // assert(staticSpan.size() == dynamicSpan.size());
+
+            // std::string msg = "";
+            // for (std::size_t i = 0; i < dynamicSpan.size(); ++i)
+            // {
+            //     // log::info(std::to_string(static_cast<int>(dynamicSpan[i])));
+            //     msg += " " + std::to_string(static_cast<int>(dynamicSpan[i]));
+            // }
+            // log::info("Dynamic Span: " + msg);
+
+            // msg = "";
+            // for (std::size_t i = 0; i < staticSpan.size(); ++i)
+            // {
+            //     // log::info(std::to_string(static_cast<int>(staticSpan[i])));
+            //     msg += " " + std::to_string(static_cast<int>(staticSpan[i]));
+            // }
+            // log::info("Static Span: " + msg);
+
+            // for (std::size_t i = 0; i < staticSpan.size(); ++i)
+            // {
+            //     assert(staticSpan[i] == dynamicSpan[i]);
+            //     // std::cout << static_cast<int>(c);
+            // }
+
+            // std::cout << std::endl;
+
             pData    = data;
             width    = static_cast<uint32_t>(texWidth);
             height   = static_cast<uint32_t>(texHeight);
@@ -84,6 +116,17 @@ public:
 
     LoadedTexture(const std::filesystem::path& path)
         : LoadedTexture(Handle { Type::texture2d, path })
+    {
+    }
+
+    LoadedTexture(const std::string& name, const uint8_t* const buffer, const uint32_t width, const uint32_t height)
+        : width { width }
+        , height { height }
+        , mipLevels { 1 }
+        , arrayLayers { 1 }
+        , name { name }
+        , pData { buffer }
+        , vOffsets { {} }
     {
     }
 
@@ -112,6 +155,7 @@ public:
     {
         std::visit(
             core::overload {
+                [](const uint8_t*) {},
                 [](stbi_uc* data) { stbi_image_free(data); },
                 [](ktxTexture* data) { ktxTexture_Destroy(data); },
             },
@@ -122,6 +166,7 @@ public:
     {
         return std::visit(
             core::overload {
+                [](const uint8_t* data) { return static_cast<const void*>(data); },
                 [](stbi_uc* data) { return static_cast<const void*>(data); },
                 [](ktxTexture* data) { return static_cast<const void*>(ktxTexture_GetData(data)); },
             },
@@ -137,6 +182,7 @@ public:
     {
         return std::visit(
             core::overload {
+                [&](const uint8_t*) { return static_cast<uint64_t>(width * height * 4); },
                 [&](stbi_uc*) { return static_cast<uint64_t>(width * height * 4); },
                 [](ktxTexture* data) { return static_cast<uint64_t>(ktxTexture_GetDataSize(data)); },
             },
@@ -150,7 +196,7 @@ public:
     std::string name;
 
 private:
-    std::variant<stbi_uc*, ktxTexture*>                   pData;
+    std::variant<const uint8_t*, stbi_uc*, ktxTexture*>   pData;
     std::vector<std::tuple<uint32_t, uint32_t, uint64_t>> vOffsets;
 };
 

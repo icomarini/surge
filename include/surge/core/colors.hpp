@@ -18,6 +18,7 @@ struct Colors<Type::rgba>
 {
     using Format = math::Vector<4>;
     static constexpr Format black { 0, 0, 0, 1 };
+    static constexpr Format grey { 0.5, 0.5, 0.5, 1 };
     static constexpr Format white { 1, 1, 1, 1 };
     static constexpr Format red { 1, 0, 0, 1 };
     static constexpr Format green { 0, 1, 0, 1 };
