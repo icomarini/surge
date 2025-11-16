@@ -51,13 +51,21 @@ void main()
     }
     else
     {
+        vec3 normal         = normalize(inNormal);
+        vec3 lightDirection = normalize(lightPosition - inPosition);
+
         float ambientStrength = 0.1;
         vec3  ambient         = ambientStrength * lightColor.rgb;
 
-        vec3 norm     = normalize(inNormal);
-        vec3 lightDir = normalize(lightPosition - inPosition);
-        vec3 diffuse  = max(dot(norm, lightDir), 0.0) * lightColor.rgb;
-        outColor      = vec4((ambient + diffuse) * color.rgb, 1.0);
+        vec3 diffuse = max(dot(normal, lightDirection), 0.0) * lightColor.rgb;
+
+        float specularStrength = 0.5;
+        vec3  viewPosition     = vec3(view[0][3], view[1][3], view[2][3]);
+        vec3  viewDirection    = normalize(inPosition - viewPosition);
+        vec3  reflectDirection = reflect(-lightDirection, normal);
+        vec3  specular = specularStrength * pow(max(dot(viewDirection, reflectDirection), 0.0), 32) * lightColor.rgb;
+
+        outColor = vec4((ambient + diffuse + specular) * color.rgb, 1.0);
         // outColor      = lightColor * color;
     }
 }

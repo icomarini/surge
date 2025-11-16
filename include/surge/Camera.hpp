@@ -90,7 +90,10 @@ public:
         //     -5.0f + std::sin(core::math::deg2rad(elapsedTime * 360.0f)) * 2.0f,
         //     2.50f + std::sin(core::math::deg2rad(elapsedTime * 360.0f)) * 0.5f,
         // };
-        vecs.position[0] += 0.1 * std::sin(core::math::deg2rad(elapsedTime * 36.0f));
+        vecs.position[0] += 0.06 * std::sin(core::math::deg2rad(elapsedTime * 100.0f));
+        vecs.position[1] = 0;
+        vecs.position[2] += 0.06 * std::cos(core::math::deg2rad(elapsedTime * 100.0f));
+
         mats.view = core::math::View { vecs.position, vecs.position + vecs.front, vecs.up };
     }
 

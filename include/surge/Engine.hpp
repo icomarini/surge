@@ -170,7 +170,7 @@ public:
 
         // shadow map playground
         // core::Image shadowMapImage { context, VkExtent2D { .width = 1024, .height = 1024 }, core::Image::shadowMap };
-
+        entities.back().nodes.get(1).state.translation = core::math::Vector<3> { 0, 0, 0 };
 
         log::checkpoint("Main loop start");
         while (input.proceed)
@@ -182,6 +182,8 @@ public:
 
 
                 // === entity playground ===
+                entities.back().nodes.get(1).state.translation = lightCamera.vecs.position;
+
                 for (auto& entity : entities)
                 {
                     entity.update(0, elapsedTime);
