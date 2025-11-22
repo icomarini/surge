@@ -1,7 +1,7 @@
 #pragma once
 
 #include "surge/asset/Material.hpp"
-#include "surge/core/math/BoundingBox.hpp"
+#include "surge/core/geometry/BoundingBox.hpp"
 
 namespace surge::asset
 {
@@ -21,7 +21,7 @@ struct Mesh
         using Attributes = std::map<core::geometry::Attribute, bool>;
         const Attributes attributes;
 
-        core::math::BoundingBox bb;
+        core::geometry::BoundingBox bb;
 
         struct State
         {

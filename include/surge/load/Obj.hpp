@@ -151,7 +151,7 @@ public:
         // constexpr bool          color    = false;
         // constexpr bool          normal   = false;
         // const bool              texCoord = materials.size() > 0;
-        const core::math::BoundingBox bbox { .min = min, .max = max };
+        const core::geometry::BoundingBox bbox { .min = min, .max = max };
 
         std::vector<asset::Mesh> meshes;
         auto&                    mesh = meshes.emplace_back(baptize<This::mesh>(0));

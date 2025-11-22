@@ -2,6 +2,7 @@
 
 #include "surge/overlay/LoadedOverlay.hpp"
 #include "surge/Input.hpp"
+#include "surge/Camera.hpp"
 #include "surge/core/Command.hpp"
 
 #include "surge/load/Defaults.hpp"
@@ -90,7 +91,7 @@ public:
 
 
     void newFrame(const float scale, std::array<float, 50>& frameTimes, const Input& input,
-                  const std::map<std::string, asset::Asset>& assets) const
+                  const std::map<std::string, asset::Asset>& assets, const Camera<false>& camera) const
     {
         ImGuiIO&    io             = ImGui::GetIO();
         const auto& extent         = context.window.resolution;
@@ -132,6 +133,9 @@ public:
 
         ImGui::Text("Mouse position: %f %f", input.mouse.position.at(0), input.mouse.position.at(1));
         ImGui::Text("Mouse wheel:    %f %f", input.mouse.wheel.at(0), input.mouse.wheel.at(1));
+
+        ImGui::Text("Camera position: %f %f %f", camera.vecs.position.at(0), camera.vecs.position.at(1),
+                    camera.vecs.position.at(2));
 
         // ImGui::Text("Cam.pos  %f, %f, %f", ui.firstPersonCamera.position.x, ui.firstPersonCamera.position.y,
         //             ui.firstPersonCamera.position.z);
@@ -204,9 +208,9 @@ public:
         model->transfer(loadedOverlay);
     }
 
-    void update(const Input& input) const
+    void update(const Input& input, const Camera<false>& camera) const
     {
-        newFrame(imGuiContext.scale, frameTimes, input, assets);
+        newFrame(imGuiContext.scale, frameTimes, input, assets, camera);
         updateBuffers(graphicsQueue, model);
     }
 

@@ -94,7 +94,7 @@ static constexpr auto createAttributeDescriptions(geometry::Vertex<Attributes...
 }
 
 template<typename Vertex>
-VkPipelineVertexInputStateCreateInfo createVertexInputState()
+constexpr VkPipelineVertexInputStateCreateInfo createVertexInputState()
 {
     static constexpr VkVertexInputBindingDescription bindingDescription {
         .binding   = 0,

@@ -218,26 +218,18 @@ constexpr auto& get(const Scaling<T>& t)
 }
 
 // implementation: Perspective
-template<bool _flipY, typename T = Float32>
+template<typename T = Float32>
 class Perspective
 {
 public:
     using value_type = T;
 
-    static constexpr auto flipY = _flipY;
-    // static constexpr std::size_t rows  = 4;
-    // static constexpr std::size_t cols  = 4;
-
     constexpr Perspective(const T& fovy, const T& aspect, const T& zNear, const T& zFar)
-        : a11 { 1 / std::tan(fovy / 2) }
-        , a00 { a11 / aspect }
+        : a11 { -1 / std::tan(fovy / 2) }
+        , a00 { -a11 / aspect }
         , a22 { zFar / (zNear - zFar) }
         , a23 { -(zFar * zNear) / (zFar - zNear) }
     {
-        if constexpr (flipY)
-        {
-            a11 *= -1;
-        }
     }
 
     T a11;
@@ -246,20 +238,20 @@ public:
     T a23;
 };
 
-template<bool flipY, typename T>
-constexpr Size rows<Perspective<flipY, T>> = 4;
+template<typename T>
+constexpr Size rows<Perspective<T>> = 4;
 
-template<bool flipY, typename T>
-constexpr Size cols<Perspective<flipY, T>> = 4;
+template<typename T>
+constexpr Size cols<Perspective<T>> = 4;
 
-template<Size row, Size col, bool flipY, typename T>
-constexpr bool nonzero<row, col, Perspective<flipY, T>> =
+template<Size row, Size col, typename T>
+constexpr bool nonzero<row, col, Perspective<T>> =
     ((row == 0 && col == 0) || (row == 1 && col == 1) || (row == 2 && col == 2) || (row == 3 && col == 2) ||
      (row == 2 && col == 3));
 
-template<Size row, Size col, bool flipY, typename T>
-    requires ValidIndices<row, col, Perspective<flipY, T>>
-constexpr auto& get(const Perspective<flipY, T>& t)
+template<Size row, Size col, typename T>
+    requires ValidIndices<row, col, Perspective<T>>
+constexpr auto& get(const Perspective<T>& t)
 {
     if constexpr (row == 0 && col == 0)
     {

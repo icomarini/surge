@@ -425,7 +425,7 @@ public:
                         { core::geometry::Attribute::jointIndex, primitive.findAttribute("JOINTS_0") != end },
                         { core::geometry::Attribute::jointWeight, primitive.findAttribute("WEIGHTS_0") != end },
                     },
-                    core::math::BoundingBox { min, max }, asset::Mesh::Primitive::State { false });
+                    core::geometry::BoundingBox { min, max }, asset::Mesh::Primitive::State { false });
 
                 partialIndexCount += indexCount;
             }

@@ -1,14 +1,13 @@
 #pragma once
 
 #include "surge/core/math/Vector.hpp"
-// #include "glm/glm.hpp"
 
-namespace surge::core::math
+namespace surge::core::geometry
 {
 struct BoundingBox
 {
-    Vector<3> min;
-    Vector<3> max;
+    math::Vector<3> min;
+    math::Vector<3> max;
     // bool      valid = false;
     // BoundingBox()
     // {
@@ -46,4 +45,4 @@ struct BoundingBox
     //     return BoundingBox(min, max);
     // }
 };
-}  // namespace surge::core::math
+}  // namespace surge::core::geometry

@@ -89,9 +89,9 @@ public:
     {
         const auto& material = materials.size() > 0 ? materials.front() : defaults.material;
 
-        core::math::Vector<3>         min { -1, -1, -1 };
-        core::math::Vector<3>         max { 1, 1, 1 };
-        const core::math::BoundingBox bbox { .min = min, .max = max };
+        core::math::Vector<3>             min { -1, -1, -1 };
+        core::math::Vector<3>             max { 1, 1, 1 };
+        const core::geometry::BoundingBox bbox { .min = min, .max = max };
 
         std::vector<asset::Mesh> meshes;
         auto&                    mesh = meshes.emplace_back(baptize<This::mesh>(0));

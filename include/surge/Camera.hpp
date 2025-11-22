@@ -48,14 +48,14 @@ public:
 
     struct
     {
-        core::math::Perspective<flipY> perspective;
-        core::math::View<>             view;
+        core::math::Perspective<> perspective;
+        core::math::View<>        view;
     } mats;
 
     void update(const Input& input, const core::Window::Resolution& resolution)
     {
         aspect           = static_cast<float>(resolution.width) / resolution.height;
-        mats.perspective = core::math::Perspective<flipY> { core::math::deg2rad(45.0f), aspect, 0.1f, 100.0f };
+        mats.perspective = core::math::Perspective<> { core::math::deg2rad(45.0f), aspect, 0.1f, 100.0f };
 
         if (!input.mouseActive)
         {
@@ -84,7 +84,7 @@ public:
     void update(const float elapsedTime, const core::Window::Resolution& resolution)
     {
         aspect           = static_cast<float>(resolution.width) / resolution.height;
-        mats.perspective = core::math::Perspective<flipY> { core::math::deg2rad(45.0f), aspect, 0.1f, 100.0f };
+        mats.perspective = core::math::Perspective { core::math::deg2rad(45.0f), aspect, 0.1f, 100.0f };
         // vecs.position    = {
         //     std::cos(core::math::deg2rad(elapsedTime * 360.0f)) * 4.0f,
         //     -5.0f + std::sin(core::math::deg2rad(elapsedTime * 360.0f)) * 2.0f,

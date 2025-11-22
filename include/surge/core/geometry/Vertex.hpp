@@ -72,6 +72,12 @@ public:
     }
 
     template<geometry::Attribute requested>
+    constexpr auto& get() const
+    {
+        return Attribute<Vertex::attributeIndex<requested>()>::value;
+    }
+
+    template<geometry::Attribute requested>
     // requires(hasAttribute<Requested>)
     static constexpr UInt32 attributeIndex()
     {

@@ -120,6 +120,10 @@ public:
         log::checkpoint("The surge of urge to purge terminated");
     }
 
+    void drawCube()
+    {
+    }
+
     void run()
     {
         double elapsedTime = {};
@@ -172,6 +176,31 @@ public:
         // core::Image shadowMapImage { context, VkExtent2D { .width = 1024, .height = 1024 }, core::Image::shadowMap };
         entities.back().nodes.get(1).state.translation = core::math::Vector<3> { 0, 0, 0 };
 
+        // === initialize ===
+        struct PushConstants
+        {
+            core::math::Matrix<4, 4> matrix;
+            core::math::Vector<4>    baseColor;
+            uint32_t                 isLight;
+        };
+
+        // cube
+        asset::Model cube { command, core::geometry::cube2, asset::Model::scene };
+
+        constexpr VkShaderStageFlags  shaderStages { VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT };
+        constexpr VkPushConstantRange pushConstantRange { core::createPushConstantRange<PushConstants>(shaderStages) };
+
+        // using Vertex = core::geometry::Vertex<core::geometry::AttributeSlot<
+        //     core::geometry::Attribute::position, core::math::Vector<3>, 3, core::geometry::Format::sfloat>>;
+        using Vertex                                                = decltype(core::geometry::cube2)::Vertex;
+        const VkPipelineVertexInputStateCreateInfo vertexInputState = core::createVertexInputState<Vertex>();
+
+        const VkPipelineLayout pipelineLayout =
+            core::createPipelineLayout(context, pushConstantRange, renderer.descriptor.setLayout);
+        const VkPipeline pipeline =
+            core::createGraphicPipeline(context, vertexInputState, pipelineLayout, core::shader::Type::shader);
+        // === initialize ===
+
         log::checkpoint("Main loop start");
         while (input.proceed)
         {
@@ -196,7 +225,7 @@ public:
                 renderer.lightPosition = lightCamera.vecs.position;
                 skybox.update(skyboxCamera);
                 renderer.update(playerCamera);
-                overlay.update(input);
+                overlay.update(input, playerCamera);
 
                 // renderer.lightColor =
                 //     (0.25f + 0.5f * std::pow(std::sin(core::math::deg2rad(input.timer * 36.0f)), 2.0f)) *
@@ -208,12 +237,79 @@ public:
                 // presenter.endRendering();
 
                 presenter.beginRendering();
-
                 skybox.draw(commandBuffer, renderer.descriptor.set);
-                for (const auto& entity : entities)
+
+                // === draw ===
+                constexpr auto bindPoint { VK_PIPELINE_BIND_POINT_GRAPHICS };
+
+                // bind cube pipeline
+                core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+                vkCmdBindPipeline(commandBuffer, bindPoint, pipeline);
+                vkCmdBindDescriptorSets(commandBuffer, bindPoint, pipelineLayout, 0, 1, &renderer.descriptor.set, 0,
+                                        nullptr);
+
+                // bind cube mesh
+                constexpr VkDeviceSize offset { 0 };
+                vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cube.vertexBuffer.buffer, &offset);
+                vkCmdBindIndexBuffer(commandBuffer, cube.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+                // draw cube
+                const PushConstants cubePushConstants {
+                    .matrix    = core::math::fullMatrix(core::math::identity<4>),
+                    .baseColor = core::Colors<core::Type::rgba>::coral,
+                    .isLight   = false,
+                };
+                vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                                   &cubePushConstants);
+                vkCmdDrawIndexed(commandBuffer, cube.indexCount, 1, 0, 0, 0);
+
+                // draw light
+                constexpr core::math::Vector<3> scaling { 0.1, 0.1, 0.1 };
+                const PushConstants             lightPushConstants {
+                                .matrix = core::math::Translation { lightCamera.vecs.position } * core::math::Scaling { scaling },
+                                .baseColor = core::Colors<core::Type::rgba>::white,
+                                .isLight   = true,
+                };
+                vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                                   &lightPushConstants);
+                vkCmdDrawIndexed(commandBuffer, cube.indexCount, 1, 0, 0, 0);
+
+                // draw normals
+                if constexpr (1 == 1)
                 {
-                    entity.draw(commandBuffer, renderer.descriptor.set);
+                    const auto [linePipelineLayout, linePipeline] = renderer.pipelines.at("line");
+                    core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+                    vkCmdSetLineWidth(commandBuffer, 1.0);
+                    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, linePipeline);
+                    vkCmdBindDescriptorSets(commandBuffer, bindPoint, linePipelineLayout, 0, 1,
+                                            &renderer.descriptor.set, 0, nullptr);
+                    core::forEach<0, 3, 0, 8>(
+                        [&]<int dimension, int vertex>()
+                        {
+                            constexpr std::array colors { core::Colors<core::Type::rgba>::red,
+                                                          core::Colors<core::Type::rgba>::green,
+                                                          core::Colors<core::Type::rgba>::blue };
+
+                            using namespace core::geometry;
+                            constexpr auto        index    = dimension * 8 + vertex;
+                            constexpr auto        position = cube2.vertices.at(index).get<Attribute::position>();
+                            constexpr auto        normal   = cube2.vertices.at(index).get<Attribute::normal>();
+                            constexpr asset::Line line {
+                                .a     = position,
+                                .b     = position + normal,
+                                .color = colors.at(dimension),
+                            };
+                            vkCmdPushConstants(commandBuffer, linePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+                                               sizeof(asset::Line), &line);
+                            vkCmdDraw(commandBuffer, 2, 1, 0, 0);
+                        });
                 }
+                // === draw ===
+
+                // for (const auto& entity : entities)
+                // {
+                //     entity.draw(commandBuffer, renderer.descriptor.set);
+                // }
                 overlay.draw(commandBuffer);
 
                 presenter.endRendering();
@@ -226,8 +322,14 @@ public:
             const auto stop = std::chrono::high_resolution_clock::now();
             elapsedTime     = 1e-3 * std::chrono::duration<double, std::milli>(stop - start).count();
         }
-        vkDeviceWaitIdle(context.device);
         log::checkpoint("Main loop end");
+
+        vkDeviceWaitIdle(context.device);
+
+        // === finalize ===
+        context.destroy(pipeline);
+        context.destroy(pipelineLayout);
+        // === finalize ===
     }
 
 private:
