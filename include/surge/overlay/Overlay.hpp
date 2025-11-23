@@ -31,7 +31,7 @@ public:
 
     Overlay(const core::Command& command, const std::map<std::string, asset::Asset>& assets)
         : core::Contextualized { command.context }
-        , imGuiContext { 1 }
+        , imGuiContext { 1.5 }
         , frameTimes {}
         , fontTexture { command, Font {}, load::Defaults::sampler, asset::Texture::texture2d }
         , model {}
@@ -98,8 +98,8 @@ public:
         io.DisplaySize             = ImVec2(extent.width, extent.height);
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
-        constexpr float scaling = 2;
-        // constexpr float scaling = 1;
+        // constexpr float scaling = 2;
+        constexpr float scaling = 1;
         io.AddMousePosEvent(scaling * static_cast<float>(input.mouse.position.at(0)),
                             scaling * static_cast<float>(input.mouse.position.at(1)));
         io.AddMouseWheelEvent(input.mouse.wheel.at(0), input.mouse.wheel.at(1));

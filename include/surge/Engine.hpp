@@ -166,7 +166,8 @@ public:
         entities.back().nodes.get(1).color   = core::Colors<core::Type::rgba>::white;
         entities.back().nodes.get(1).isLight = 1;
 
-        renderer.lightColor    = core::Colors<core::Type::rgba>::grey;
+        renderer.lightColor = core::Colors<core::Type::rgba>::white;
+        // renderer.lightColor    = { 0.2, 2.0, 1.0, 1.0 };
         renderer.lightPosition = { 0, 0, 0 };
         // entities.back().nodes.get(1).isLight = 1;
 
@@ -185,29 +186,40 @@ public:
         };
 
         // cube
+
         asset::Model cube { command, core::geometry::cube2, asset::Model::scene };
+
+        const load::LoadedTexture::Handle diffuseTextureHandle {
+            .type = load::LoadedTexture::Type::texture2d,
+            .path = "/home/ico/projects/surge/textures/container_diffuse.png"
+        };
+        asset::Texture   diffuseTexture { command, load::LoadedTexture { diffuseTextureHandle },
+                                        asset::Texture::texture2d };
+        core::Descriptor diffuseDescriptor {
+            context, 1, asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT> { diffuseTexture }
+        };
+
+        const load::LoadedTexture::Handle specularTextureHandle {
+            .type = load::LoadedTexture::Type::texture2d,
+            .path = "/home/ico/projects/surge/textures/container_specular.png"
+        };
+        asset::Texture   specularTexture { command, load::LoadedTexture { specularTextureHandle },
+                                         asset::Texture::texture2d };
+        core::Descriptor specularDescriptor {
+            context, 1, asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT> { specularTexture }
+        };
 
         constexpr VkShaderStageFlags  shaderStages { VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT };
         constexpr VkPushConstantRange pushConstantRange { core::createPushConstantRange<PushConstants>(shaderStages) };
 
-        // using Vertex = core::geometry::Vertex<core::geometry::AttributeSlot<
-        //     core::geometry::Attribute::position, core::math::Vector<3>, 3, core::geometry::Format::sfloat>>;
-        using Vertex                                                = decltype(core::geometry::cube2)::Vertex;
-        const VkPipelineVertexInputStateCreateInfo vertexInputState = core::createVertexInputState<Vertex>();
+        using Vertex                = decltype(core::geometry::cube2)::Vertex;
+        const auto vertexInputState = core::createVertexInputState<Vertex>();
 
-        const VkPipelineLayout pipelineLayout =
-            core::createPipelineLayout(context, pushConstantRange, renderer.descriptor.setLayout);
-        const VkPipeline pipeline =
+        const auto pipelineLayout =
+            core::createPipelineLayout(context, pushConstantRange, renderer.descriptor.setLayout,
+                                       diffuseDescriptor.setLayout, specularDescriptor.setLayout);
+        const auto pipeline =
             core::createGraphicPipeline(context, vertexInputState, pipelineLayout, core::shader::Type::shader);
-
-        std::array drawTriangle {
-            false, false,  //
-            false, false,  //
-            false, false,  //
-            false, false,  //
-            false, false,  //
-            false, false,  //
-        };
         // === initialize ===
 
         log::checkpoint("Main loop start");
@@ -236,92 +248,89 @@ public:
                 renderer.update(playerCamera);
                 overlay.update(input, playerCamera);
 
-                // renderer.lightColor =
-                //     (0.25f + 0.5f * std::pow(std::sin(core::math::deg2rad(input.timer * 36.0f)), 2.0f)) *
-                //     core::Colors<core::Type::rgba>::white;
-
                 // === rendering ===
                 const auto commandBuffer = presenter.acquire();
-                // presenter.beginRendering();
-                // presenter.endRendering();
 
                 presenter.beginRendering();
                 skybox.draw(commandBuffer, renderer.descriptor.set);
 
                 // === draw ===
-                constexpr auto bindPoint { VK_PIPELINE_BIND_POINT_GRAPHICS };
 
-                // bind cube pipeline
+                // bind pipeline
+                constexpr auto bindPoint { VK_PIPELINE_BIND_POINT_GRAPHICS };
                 core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
                 vkCmdBindPipeline(commandBuffer, bindPoint, pipeline);
                 vkCmdBindDescriptorSets(commandBuffer, bindPoint, pipelineLayout, 0, 1, &renderer.descriptor.set, 0,
                                         nullptr);
 
-                // bind cube mesh
-                constexpr VkDeviceSize cubeOffset { 0 };
-                vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cube.vertexBuffer.buffer, &cubeOffset);
-                vkCmdBindIndexBuffer(commandBuffer, cube.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                {  // bind cube
+                    constexpr VkDeviceSize cubeOffset { 0 };
+                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cube.vertexBuffer.buffer, &cubeOffset);
+                    vkCmdBindIndexBuffer(commandBuffer, cube.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                    constexpr uint32_t diffuseIndex { 1 };
+                    vkCmdBindDescriptorSets(commandBuffer, bindPoint, pipelineLayout, diffuseIndex, 1,
+                                            &diffuseDescriptor.set, 0, nullptr);
+                    constexpr uint32_t specularIndex { 2 };
+                    vkCmdBindDescriptorSets(commandBuffer, bindPoint, pipelineLayout, specularIndex, 1,
+                                            &specularDescriptor.set, 0, nullptr);
 
-                // draw cube
-                const PushConstants cubePushConstants {
-                    .matrix    = core::math::fullMatrix(core::math::identity<4>),
-                    .baseColor = core::Colors<core::Type::rgba>::coral,
-                    .isLight   = false,
-                };
-                vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
-                                   &cubePushConstants);
-                vkCmdDrawIndexed(commandBuffer, cube.indexCount, 1, 0, 0, 0);
-                // vkCmdDrawIndexed(commandBuffer, 3, 1, 0, 0, 0);
-                // vkCmdDrawIndexed(commandBuffer, 3, 1, 3, 0, 0);
-                // vkCmdDrawIndexed(commandBuffer, 3, 1, 6, 0, 0);
-                // vkCmdDrawIndexed(commandBuffer, 3, 1, 9, 0, 0);
-                // vkCmdDrawIndexed(commandBuffer, 3, 1, 12, 0, 0);
-                // vkCmdDrawIndexed(commandBuffer, 3, 1, 15, 0, 0);
-                // vkCmdDrawIndexed(commandBuffer, 3, 1, 18, 0, 0);
-                // vkCmdDrawIndexed(commandBuffer, 3, 1, 21, 0, 0);
-                // vkCmdDrawIndexed(commandBuffer, 3, 1, 24, 0, 0);
-                // vkCmdDrawIndexed(commandBuffer, 3, 1, 27, 0, 0);
-                // vkCmdDrawIndexed(commandBuffer, 3, 1, 30, 0, 0);
-                // vkCmdDrawIndexed(commandBuffer, 3, 1, 33, 0, 0);
+                    {  // draw cube
+                        const PushConstants cubePushConstants {
+                            .matrix    = core::math::fullMatrix(core::math::identity<4>),
+                            .baseColor = core::Colors<core::Type::rgba>::coral,
+                            .isLight   = false,
+                        };
+                        vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                                           &cubePushConstants);
+                        vkCmdDrawIndexed(commandBuffer, cube.indexCount, 1, 0, 0, 0);
+                    }
 
-                // draw light
-                constexpr core::math::Vector<3> lightScaling { 0.1, 0.1, 0.1 };
-                const PushConstants             lightPushConstants {
-                                .matrix =
-                        core::math::Translation { lightCamera.vecs.position } * core::math::Scaling { lightScaling },
-                                .baseColor = core::Colors<core::Type::rgba>::white,
-                                .isLight   = true,
-                };
-                vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
-                                   &lightPushConstants);
-                vkCmdDrawIndexed(commandBuffer, cube.indexCount, 1, 0, 0, 0);
+                    {  // draw light
+                        constexpr core::math::Vector<3> lightScaling { 0.1, 0.1, 0.1 };
+                        const PushConstants             lightPushConstants {
+                                        .matrix = core::math::Translation { lightCamera.vecs.position } *
+                                      core::math::Scaling { lightScaling },
+                                        .baseColor = renderer.lightColor,
+                                        .isLight   = true,
+                        };
+                        vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                                           &lightPushConstants);
+                        vkCmdDrawIndexed(commandBuffer, cube.indexCount, 1, 0, 0, 0);
+                    }
+                }
 
-                // bind dragon mesh
-                constexpr VkDeviceSize dragonOffset { 0 };
-                const auto&            dragonAsset     = assets.at("dragon");
-                const auto&            dragonModel     = dragonAsset.model;
-                const auto&            dragonPrimitive = dragonAsset.meshes.front().primitives.front();
-                vkCmdBindVertexBuffers(commandBuffer, 0, 1, &dragonModel.vertexBuffer.buffer, &dragonOffset);
-                vkCmdBindIndexBuffer(commandBuffer, dragonModel.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                if (0 == 1)
+                {  // bind dragon mesh
+                    constexpr VkDeviceSize dragonOffset { 0 };
+                    const auto&            dragonAsset     = assets.at("dragon");
+                    const auto&            dragonModel     = dragonAsset.model;
+                    const auto&            dragonPrimitive = dragonAsset.meshes.front().primitives.front();
+                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &dragonModel.vertexBuffer.buffer, &dragonOffset);
+                    vkCmdBindIndexBuffer(commandBuffer, dragonModel.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-                // draw dragon
-                const core::math::Vector<3> dragonTranslation { 0.0, 0.1 * dragonPrimitive.boundingBox.min.at(1) + 0.8,
-                                                                0.0 };
-                constexpr core::math::Quaternion<> dragonRotation { std::sqrt(2) / 2, 0, 0, std::sqrt(2) / 2 };
-                constexpr core::math::Vector<3>    dragonScaling { 0.1, 0.1, 0.1 };
+                    // draw dragon
+                    {
+                        const core::math::Vector<3> dragonTranslation {
+                            0.0, 0.1 * dragonPrimitive.boundingBox.min.at(1) + 0.8, 0.0
+                        };
+                        constexpr core::math::Quaternion<> dragonRotation { std::sqrt(2) / 2, 0, 0, std::sqrt(2) / 2 };
+                        constexpr core::math::Vector<3>    dragonScaling { 0.1, 0.1, 0.1 };
 
-                const PushConstants dragonPushConstants {
-                    .matrix = core::math::Translation { dragonTranslation } * core::math::Rotation { dragonRotation } *
-                              core::math::Scaling { dragonScaling },
-                    .baseColor = core::Colors<core::Type::rgba>::red,
-                    .isLight   = false,
-                };
-                vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
-                                   &dragonPushConstants);
-                vkCmdDrawIndexed(commandBuffer, dragonPrimitive.indexCount, 1, dragonPrimitive.firstIndex, 0, 0);
+                        const PushConstants dragonPushConstants {
+                            .matrix = core::math::Translation { dragonTranslation } *
+                                      core::math::Rotation { dragonRotation } * core::math::Scaling { dragonScaling },
+                            .baseColor = core::Colors<core::Type::rgba>::red,
+                            .isLight   = false,
+                        };
+                        vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                                           &dragonPushConstants);
+                        vkCmdDrawIndexed(commandBuffer, dragonPrimitive.indexCount, 1, dragonPrimitive.firstIndex, 0,
+                                         0);
+                    }
+                }
 
                 // draw normals
-                if constexpr (1 == 1)
+                if constexpr (1 == 0)
                 {
                     const auto [linePipelineLayout, linePipeline] = renderer.pipelines.at("line");
                     core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);

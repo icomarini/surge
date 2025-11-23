@@ -43,6 +43,21 @@ public:
         command.transferImage(image.image, loadedTexture);
     }
 
+    template<typename LoadedTexture, typename I>
+    Texture(const core::Command& command, const LoadedTexture& loadedTexture, I)
+        : Texture { command, loadedTexture,
+                    Sampler {
+                        .magFilter    = VK_FILTER_LINEAR,
+                        .minFilter    = VK_FILTER_LINEAR,
+                        .mipmapMode   = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+                        .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+                        .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+                        .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+                    },
+                    I {} }
+    {
+    }
+
     const VkDescriptorImageInfo* imageInfo() const
     {
         return &info;

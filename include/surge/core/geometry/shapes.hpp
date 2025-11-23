@@ -8,8 +8,9 @@ namespace surge::core::geometry
 // using PositionAndColor = Vertex<Attribute::position, Attribute::color>;
 using Position = Vertex<AttributeSlot<Attribute::position, math::Vector<3>, 3, Format::sfloat>>;
 
-using PositionAndNormal = Vertex<AttributeSlot<Attribute::position, math::Vector<3>, 3, Format::sfloat>,
-                                 AttributeSlot<Attribute::normal, core::math::Vector<3>, 3, Format::sfloat>>;
+using PositionNormalTexture = Vertex<AttributeSlot<Attribute::position, math::Vector<3>, 3, Format::sfloat>,
+                                     AttributeSlot<Attribute::normal, core::math::Vector<3>, 3, Format::sfloat>,
+                                     AttributeSlot<Attribute::texCoord, core::math::Vector<2>, 2, Format::sfloat>>;
 
 using PositionAndColor = geometry::Vertex<
     geometry::AttributeSlot<geometry::Attribute::position, math::Vector<3>, 3, geometry::Format::sfloat>,
@@ -76,6 +77,11 @@ static constexpr math::Vector<3> vertex101 { +0.5, -0.5, +0.5 };
 static constexpr math::Vector<3> vertex110 { +0.5, +0.5, -0.5 };
 static constexpr math::Vector<3> vertex111 { +0.5, +0.5, +0.5 };
 
+static constexpr math::Vector<2> texture00 { 0, 0 };
+static constexpr math::Vector<2> texture01 { 0, 1 };
+static constexpr math::Vector<2> texture10 { 1, 0 };
+static constexpr math::Vector<2> texture11 { 1, 1 };
+
 static constexpr Shape cube2 { "cube2",
                                std::array {
                                    //               3----------7
@@ -87,15 +93,15 @@ static constexpr Shape cube2 { "cube2",
                                    //  |/        | /        | /
                                    //  O---x     |/         |/
                                    //            O----------4
-                                   PositionAndNormal { vertex000, -basisI },  //  0: x = -0.5
-                                   PositionAndNormal { vertex001, -basisI },  //  1: x = -0.5
-                                   PositionAndNormal { vertex010, -basisI },  //  2: x = -0.5
-                                   PositionAndNormal { vertex011, -basisI },  //  3: x = -0.5
-                                   PositionAndNormal { vertex100, +basisI },  //  4: x = +0.5
-                                   PositionAndNormal { vertex101, +basisI },  //  5: x = +0.5
-                                   PositionAndNormal { vertex110, +basisI },  //  6: x = +0.5
-                                   PositionAndNormal { vertex111, +basisI },  //  7: x = +0.5
-                                                                              /**/
+                                   PositionNormalTexture { vertex000, -basisI, texture00 },  //  0: x = -0.5
+                                   PositionNormalTexture { vertex001, -basisI, texture01 },  //  1: x = -0.5
+                                   PositionNormalTexture { vertex010, -basisI, texture10 },  //  2: x = -0.5
+                                   PositionNormalTexture { vertex011, -basisI, texture11 },  //  3: x = -0.5
+                                   PositionNormalTexture { vertex100, +basisI, texture00 },  //  4: x = +0.5
+                                   PositionNormalTexture { vertex101, +basisI, texture01 },  //  5: x = +0.5
+                                   PositionNormalTexture { vertex110, +basisI, texture10 },  //  6: x = +0.5
+                                   PositionNormalTexture { vertex111, +basisI, texture11 },  //  7: x = +0.5
+                                                                                             /**/
                                    //               13---------15
                                    //              /|         /|
                                    //             / |        / |
@@ -105,15 +111,15 @@ static constexpr Shape cube2 { "cube2",
                                    //  |/        | /        | /
                                    //  O---x     |/         |/
                                    //            8----------10
-                                   PositionAndNormal { vertex000, -basisJ },  //  8: y = -0.5
-                                   PositionAndNormal { vertex001, -basisJ },  //  9: y = -0.5
-                                   PositionAndNormal { vertex100, -basisJ },  // 10: y = -0.5
-                                   PositionAndNormal { vertex101, -basisJ },  // 11: y = -0.5
-                                   PositionAndNormal { vertex010, +basisJ },  // 12: y = +0.5
-                                   PositionAndNormal { vertex011, +basisJ },  // 13: y = +0.5
-                                   PositionAndNormal { vertex110, +basisJ },  // 14: y = +0.5
-                                   PositionAndNormal { vertex111, +basisJ },  // 15: y = +0.5
-                                                                              /**/
+                                   PositionNormalTexture { vertex000, -basisJ, texture00 },  //  8: y = -0.5
+                                   PositionNormalTexture { vertex001, -basisJ, texture01 },  //  9: y = -0.5
+                                   PositionNormalTexture { vertex100, -basisJ, texture10 },  // 10: y = -0.5
+                                   PositionNormalTexture { vertex101, -basisJ, texture11 },  // 11: y = -0.5
+                                   PositionNormalTexture { vertex010, +basisJ, texture00 },  // 12: y = +0.5
+                                   PositionNormalTexture { vertex011, +basisJ, texture01 },  // 13: y = +0.5
+                                   PositionNormalTexture { vertex110, +basisJ, texture10 },  // 14: y = +0.5
+                                   PositionNormalTexture { vertex111, +basisJ, texture11 },  // 15: y = +0.5
+                                                                                             /**/
                                    //               21---------23
                                    //              /|         /|
                                    //             / |        / |
@@ -123,15 +129,15 @@ static constexpr Shape cube2 { "cube2",
                                    //  |/        | /        | /
                                    //  O---x     |/         |/
                                    //            16---------18
-                                   PositionAndNormal { vertex000, -basisK },  // 16: z = -0.5
-                                   PositionAndNormal { vertex010, -basisK },  // 17: z = -0.5
-                                   PositionAndNormal { vertex100, -basisK },  // 18: z = -0.5
-                                   PositionAndNormal { vertex110, -basisK },  // 19: z = -0.5
-                                   PositionAndNormal { vertex001, +basisK },  // 20: z = +0.5
-                                   PositionAndNormal { vertex011, +basisK },  // 21: z = +0.5
-                                   PositionAndNormal { vertex101, +basisK },  // 22: z = +0.5
-                                   PositionAndNormal { vertex111, +basisK },  // 23: z = +0.5
-                                                                              /**/
+                                   PositionNormalTexture { vertex000, -basisK, texture00 },  // 16: z = -0.5
+                                   PositionNormalTexture { vertex010, -basisK, texture01 },  // 17: z = -0.5
+                                   PositionNormalTexture { vertex100, -basisK, texture10 },  // 18: z = -0.5
+                                   PositionNormalTexture { vertex110, -basisK, texture11 },  // 19: z = -0.5
+                                   PositionNormalTexture { vertex001, +basisK, texture00 },  // 20: z = +0.5
+                                   PositionNormalTexture { vertex011, +basisK, texture01 },  // 21: z = +0.5
+                                   PositionNormalTexture { vertex101, +basisK, texture10 },  // 22: z = +0.5
+                                   PositionNormalTexture { vertex111, +basisK, texture11 },  // 23: z = +0.5
+                                                                                             /**/
                                },
                                std::array {
                                    0,  1,  2,  1,  3,  2,   // x = -0.5

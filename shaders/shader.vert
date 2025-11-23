@@ -3,7 +3,7 @@
 // input ========================================
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
-// layout(location = 3) in vec2 inTexCoord;
+layout(location = 2) in vec2 inTextureCoordinate;
 
 layout(push_constant) uniform PushConstants
 {
@@ -23,16 +23,17 @@ layout(set = 0, binding = 0) uniform Scene
 // output =======================================
 layout(location = 0) out vec3 outPosition;
 layout(location = 1) out vec3 outNormal;
-layout(location = 2) out vec3 outLightPosition;
+layout(location = 2) out vec2 outTextureCoordinate;
+layout(location = 3) out vec3 outLightPosition;
 // layout(location = 2) out vec3 outColor;
-// layout(location = 3) out vec2 outTexCoord;
 
 void main()
 {
-    gl_Position      = vec4(inPosition, 1.0) * model * view * projection;
-    outPosition      = vec3(vec4(inPosition, 1.0) * model * view);
-    outNormal        = mat3(inverse(model * view)) * inNormal;
-    outLightPosition = vec3(vec4(lightPosition, 1.0) * view);
+    gl_Position          = vec4(inPosition, 1.0) * model * view * projection;
+    outPosition          = vec3(vec4(inPosition, 1.0) * model * view);
+    outNormal            = mat3(inverse(model * view)) * inNormal;
+    outTextureCoordinate = inTextureCoordinate;
+    outLightPosition     = vec3(vec4(lightPosition, 1.0) * view);
     // outColor    = baseColor;
     // outTexCoord = inTexCoord;
 }
