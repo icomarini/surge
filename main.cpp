@@ -99,19 +99,21 @@ int main()
         // engine.loadAsset("viking",
         //  Obj { home / "surge/models/viking_room.obj", home / "surge/textures/viking_room.png" });
         // engine.loadAsset("robot", Gltf { home / "uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" });
-        // engine.loadAsset("cerberus", Gltf { home / "extern/Vulkan/assets/models/cerberus/cerberus.gltf",
-        // {
-        // { surge::load::Gltf::TextureType::baseColorTexture,
-        //   home / "extern/Vulkan/assets/models/cerberus/albedo.ktx" },
-        //  { surge::asset::GltfAsset::TextureType::metallicRoughnessTexture,
-        //    home / "extern/Vulkan/assets/models/cerberus/roughness.ktx" },
-        //  { surge::asset::GltfAsset::TextureType::emissiveTexture,
-        //    home / "extern/Vulkan/assets/models/cerberus/metallic.ktx" },
-        //  { surge::asset::GltfAsset::TextureType::normalTexture,
-        //    home / "extern/Vulkan/assets/models/cerberus/normal.ktx" },
-        //  { surge::asset::GltfAsset::TextureType::occlusionTexture,
-        //    home / "extern/Vulkan/assets/models/cerberus/ao.ktx" },
-        // } });
+        engine.loadAsset("cerberus", Gltf {
+                                         home / "extern/Vulkan/assets/models/cerberus/cerberus.gltf",
+                                         // {
+                                         //     { surge::load::Gltf::TextureType::baseColorTexture,
+                                         //       home / "extern/Vulkan/assets/models/cerberus/albedo.ktx" },
+                                         //     { surge::load::Gltf::TextureType::metallicRoughnessTexture,
+                                         //       home / "extern/Vulkan/assets/models/cerberus/roughness.ktx" },
+                                         //     { surge::load::Gltf::TextureType::emissiveTexture,
+                                         //       home / "extern/Vulkan/assets/models/cerberus/metallic.ktx" },
+                                         //     { surge::load::Gltf::TextureType::normalTexture,
+                                         //       home / "extern/Vulkan/assets/models/cerberus/normal.ktx" },
+                                         //     { surge::load::Gltf::TextureType::occlusionTexture,
+                                         //       home / "extern/Vulkan/assets/models/cerberus/ao.ktx" },
+                                         // }
+                                     });
 
         engine.run();
     }

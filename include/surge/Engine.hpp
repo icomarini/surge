@@ -21,6 +21,87 @@ double elapsed(auto start)
     return 1e-3 * std::chrono::duration<double, std::milli>(stop - start).count();
 }
 
+template<typename... Textures>
+auto createDescriptorSet(const core::Context& context, const Textures&... textures)
+{
+    constexpr uint32_t texturesCount { sizeof...(Textures) };
+
+    // descriptor pool
+    const std::array poolSizes { VkDescriptorPoolSize {
+        .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .descriptorCount = sizeof...(Textures),
+    } };
+    const auto       descriptorPool = context.create(VkDescriptorPoolCreateInfo {
+              .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+              .pNext         = nullptr,
+              .flags         = {},
+              .maxSets       = 1,
+              .poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
+              .pPoolSizes    = poolSizes.data(),
+    });
+
+    // descriptor set layout
+    std::array<VkDescriptorSetLayoutBinding, texturesCount> bindings;
+    core::forEach<0, bindings.size()>(
+        [&]<int binding>()
+        {
+            bindings[binding] = VkDescriptorSetLayoutBinding {
+                .binding            = binding,
+                .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .descriptorCount    = 1,
+                .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
+                .pImmutableSamplers = nullptr,
+            };
+        });
+    const auto descriptorSetLayout = context.create(VkDescriptorSetLayoutCreateInfo {
+        .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        .pNext        = nullptr,
+        .flags        = {},
+        .bindingCount = static_cast<uint32_t>(bindings.size()),
+        .pBindings    = bindings.data(),
+    });
+
+    // descriptor set
+    const VkDescriptorSetAllocateInfo allocInfo {
+        .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        .pNext              = nullptr,
+        .descriptorPool     = descriptorPool,
+        .descriptorSetCount = 1,
+        .pSetLayouts        = &descriptorSetLayout,
+    };
+
+    VkDescriptorSet descriptorSet;
+    if (vkAllocateDescriptorSets(context.device, &allocInfo, &descriptorSet) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to allocate descriptor sets");
+    }
+
+    // write descriptor set
+    std::array<VkWriteDescriptorSet, texturesCount> descriptorWrites;
+    core::forEach<0, descriptorWrites.size()>(
+        [&]<int binding>()
+        {
+            const auto& texture = std::get<binding>(std::forward_as_tuple(textures...));
+
+            descriptorWrites[binding] = VkWriteDescriptorSet {
+                .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .pNext            = nullptr,
+                .dstSet           = descriptorSet,
+                .dstBinding       = binding,
+                .dstArrayElement  = 0,
+                .descriptorCount  = 1,
+                .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .pImageInfo       = texture.imageInfo(),
+                .pBufferInfo      = texture.bufferInfo(),
+                .pTexelBufferView = nullptr,
+            };
+        });
+    vkUpdateDescriptorSets(context.device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0,
+                           nullptr);
+
+    return std::make_tuple(descriptorPool, descriptorSetLayout, descriptorSet);
+}
+
 class Engine
 {
 public:
@@ -186,38 +267,59 @@ public:
         };
 
         // cube
+        const asset::Model cube { command, core::geometry::cube2, asset::Model::scene };
 
-        asset::Model cube { command, core::geometry::cube2, asset::Model::scene };
-
-        const load::LoadedTexture::Handle diffuseTextureHandle {
+        const load::LoadedTexture::Handle cubeDiffuseTextureHandle {
             .type = load::LoadedTexture::Type::texture2d,
             .path = "/home/ico/projects/surge/textures/container_diffuse.png"
         };
-        asset::Texture   diffuseTexture { command, load::LoadedTexture { diffuseTextureHandle },
-                                        asset::Texture::texture2d };
-        core::Descriptor diffuseDescriptor {
-            context, 1, asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT> { diffuseTexture }
-        };
+        const asset::Texture cubeDiffuseTexture { command, load::LoadedTexture { cubeDiffuseTextureHandle },
+                                                  asset::Texture::texture2d };
 
-        const load::LoadedTexture::Handle specularTextureHandle {
+        const load::LoadedTexture::Handle cubeSpecularTextureHandle {
             .type = load::LoadedTexture::Type::texture2d,
             .path = "/home/ico/projects/surge/textures/container_specular.png"
         };
-        asset::Texture   specularTexture { command, load::LoadedTexture { specularTextureHandle },
-                                         asset::Texture::texture2d };
-        core::Descriptor specularDescriptor {
-            context, 1, asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT> { specularTexture }
-        };
+        const asset::Texture cubeSpecularTexture { command, load::LoadedTexture { cubeSpecularTextureHandle },
+                                                   asset::Texture::texture2d };
 
+        const auto [cubeDescriptorPool, cubeDescriptorSetLayout, cubeDescriptorSet] =
+            createDescriptorSet(context, cubeDiffuseTexture, cubeSpecularTexture);
+
+        // cerberus
+        const load::LoadedTexture::Handle cerberusDiffuseTextureHandle {
+            .type = load::LoadedTexture::Type::texture2d,
+            .path = "/home/ico/projects/extern/Vulkan/assets/models/cerberus/albedo.ktx"
+        };
+        const asset::Texture cerberusDiffuseTexture { command, load::LoadedTexture { cerberusDiffuseTextureHandle },
+                                                      asset::Texture::texture2d };
+
+        const load::LoadedTexture::Handle cerberusSpecularTextureHandle {
+            .type = load::LoadedTexture::Type::texture2d,
+            .path = "/home/ico/projects/extern/Vulkan/assets/models/cerberus/metallic.ktx"
+        };
+        const asset::Texture cerberusSpecularTexture { command, load::LoadedTexture { cerberusSpecularTextureHandle },
+                                                       asset::Texture::texture2d };
+
+        const auto [cerberusDescriptorPool, cerberusDescriptorSetLayout, cerberusDescriptorSet] =
+            createDescriptorSet(context, cerberusDiffuseTexture, cerberusSpecularTexture);
+
+        // dragon
+        const auto [dragonDescriptorPool, dragonDescriptorSetLayout, dragonDescriptorSet] =
+            createDescriptorSet(context, defaults.texture, defaults.texture);
+
+        // pipeline
         constexpr VkShaderStageFlags  shaderStages { VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT };
         constexpr VkPushConstantRange pushConstantRange { core::createPushConstantRange<PushConstants>(shaderStages) };
 
         using Vertex                = decltype(core::geometry::cube2)::Vertex;
         const auto vertexInputState = core::createVertexInputState<Vertex>();
 
-        const auto pipelineLayout =
-            core::createPipelineLayout(context, pushConstantRange, renderer.descriptor.setLayout,
-                                       diffuseDescriptor.setLayout, specularDescriptor.setLayout);
+        // const auto pipelineLayout =
+        //     core::createPipelineLayout(context, pushConstantRange, renderer.descriptor.setLayout,
+        //                                diffuseDescriptor.setLayout, specularDescriptor.setLayout);
+        const auto pipelineLayout = core::createPipelineLayout(context, pushConstantRange,
+                                                               renderer.descriptor.setLayout, cubeDescriptorSetLayout);
         const auto pipeline =
             core::createGraphicPipeline(context, vertexInputState, pipelineLayout, core::shader::Type::shader);
         // === initialize ===
@@ -260,19 +362,18 @@ public:
                 constexpr auto bindPoint { VK_PIPELINE_BIND_POINT_GRAPHICS };
                 core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
                 vkCmdBindPipeline(commandBuffer, bindPoint, pipeline);
-                vkCmdBindDescriptorSets(commandBuffer, bindPoint, pipelineLayout, 0, 1, &renderer.descriptor.set, 0,
-                                        nullptr);
+                constexpr uint32_t sceneIndex { 0 };
+                vkCmdBindDescriptorSets(commandBuffer, bindPoint, pipelineLayout, sceneIndex, 1,
+                                        &renderer.descriptor.set, 0, nullptr);
 
+                if constexpr (1 == 1)
                 {  // bind cube
                     constexpr VkDeviceSize cubeOffset { 0 };
                     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cube.vertexBuffer.buffer, &cubeOffset);
                     vkCmdBindIndexBuffer(commandBuffer, cube.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-                    constexpr uint32_t diffuseIndex { 1 };
-                    vkCmdBindDescriptorSets(commandBuffer, bindPoint, pipelineLayout, diffuseIndex, 1,
-                                            &diffuseDescriptor.set, 0, nullptr);
-                    constexpr uint32_t specularIndex { 2 };
-                    vkCmdBindDescriptorSets(commandBuffer, bindPoint, pipelineLayout, specularIndex, 1,
-                                            &specularDescriptor.set, 0, nullptr);
+                    constexpr uint32_t materialIndex { 1 };
+                    vkCmdBindDescriptorSets(commandBuffer, bindPoint, pipelineLayout, materialIndex, 1,
+                                            &cubeDescriptorSet, 0, nullptr);
 
                     {  // draw cube
                         const PushConstants cubePushConstants {
@@ -299,7 +400,41 @@ public:
                     }
                 }
 
-                if (0 == 1)
+                if constexpr (1 == 1)
+                {  // bind cerberus
+                    constexpr VkDeviceSize cerberusOffset { 0 };
+                    const auto&            cerberusAsset     = assets.at("cerberus");
+                    const auto&            cerberusModel     = cerberusAsset.model;
+                    const auto&            cerberusPrimitive = cerberusAsset.meshes.front().primitives.front();
+                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cerberusModel.vertexBuffer.buffer, &cerberusOffset);
+                    vkCmdBindIndexBuffer(commandBuffer, cerberusModel.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                    constexpr uint32_t materialIndex { 1 };
+                    vkCmdBindDescriptorSets(commandBuffer, bindPoint, pipelineLayout, materialIndex, 1,
+                                            &cerberusDescriptorSet, 0, nullptr);
+
+                    {  // draw cerberus
+                        const core::math::Vector<3> cerberusTranslation {
+                            1.0, 0.1 * cerberusPrimitive.boundingBox.min.at(1) + 0.8, 0.0
+                        };
+                        constexpr core::math::Quaternion<> cerberusRotation1 { std::sqrt(2) / 2, 0, 0,
+                                                                               std::sqrt(2) / 2 };
+                        constexpr core::math::Quaternion<> cerberusRotation2 { std::sqrt(2) / 2, 0, std::sqrt(2) / 2,
+                                                                               0 };
+                        const PushConstants                cerberusPushConstants {
+                                           .matrix = core::math::Translation { cerberusTranslation } *
+                                      core::math::Rotation { cerberusRotation1 } *
+                                      core::math::Rotation { cerberusRotation2 },
+                                           .baseColor = core::Colors<core::Type::rgba>::red,
+                                           .isLight   = false,
+                        };
+                        vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                                           &cerberusPushConstants);
+                        vkCmdDrawIndexed(commandBuffer, cerberusPrimitive.indexCount, 1, cerberusPrimitive.firstIndex,
+                                         0, 0);
+                    }
+                }
+
+                if constexpr (1 == 1)
                 {  // bind dragon mesh
                     constexpr VkDeviceSize dragonOffset { 0 };
                     const auto&            dragonAsset     = assets.at("dragon");
@@ -307,6 +442,9 @@ public:
                     const auto&            dragonPrimitive = dragonAsset.meshes.front().primitives.front();
                     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &dragonModel.vertexBuffer.buffer, &dragonOffset);
                     vkCmdBindIndexBuffer(commandBuffer, dragonModel.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                    constexpr uint32_t materialIndex { 1 };
+                    vkCmdBindDescriptorSets(commandBuffer, bindPoint, pipelineLayout, materialIndex, 1,
+                                            &dragonDescriptorSet, 0, nullptr);
 
                     // draw dragon
                     {
@@ -384,6 +522,12 @@ public:
         // === finalize ===
         context.destroy(pipeline);
         context.destroy(pipelineLayout);
+        context.destroy(cubeDescriptorSetLayout);
+        context.destroy(cubeDescriptorPool);
+        context.destroy(cerberusDescriptorSetLayout);
+        context.destroy(cerberusDescriptorPool);
+        context.destroy(dragonDescriptorSetLayout);
+        context.destroy(dragonDescriptorPool);
         // === finalize ===
     }
 

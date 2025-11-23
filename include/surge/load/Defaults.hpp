@@ -46,46 +46,27 @@ std::string baptize(const String& name, const uint32_t id)
     return name.size() > 0 ? std::string { name } : baptize<t>(id);
 }
 
+constexpr auto toUint8(const core::Colors<core::Type::rgba>::Format& color)
+{
+    using SrcValue = core::math::ValueType<core::Colors<core::Type::rgba>::Format>;
+    using DstValue = unsigned char;
+
+    const auto max  = std::numeric_limits<DstValue>::max();
+    const auto zero = core::math::zero<SrcValue>;
+    const auto one  = core::math::one<SrcValue>;
+
+    return std::array {
+        static_cast<DstValue>(max * std::clamp(core::math::get<0>(color), zero, one)),
+        static_cast<DstValue>(max * std::clamp(core::math::get<1>(color), zero, one)),
+        static_cast<DstValue>(max * std::clamp(core::math::get<2>(color), zero, one)),
+        static_cast<DstValue>(max * std::clamp(core::math::get<3>(color), zero, one)),
+    };
+};
+
 static constexpr auto textureData()
 {
-    auto toUint8 = [](const core::Colors<core::Type::rgba>::Format& color)
-    {
-        using SrcValue = core::math::ValueType<core::Colors<core::Type::rgba>::Format>;
-        using DstValue = unsigned char;
-
-        const auto max  = std::numeric_limits<DstValue>::max();
-        const auto zero = core::math::zero<SrcValue>;
-        const auto one  = core::math::one<SrcValue>;
-
-        return std::array {
-            static_cast<DstValue>(max * std::clamp(core::math::get<0>(color), zero, one)),
-            static_cast<DstValue>(max * std::clamp(core::math::get<1>(color), zero, one)),
-            static_cast<DstValue>(max * std::clamp(core::math::get<2>(color), zero, one)),
-            static_cast<DstValue>(max * std::clamp(core::math::get<3>(color), zero, one)),
-        };
-    };
-
     const auto g = toUint8(core::Colors<core::Type::rgba>::grey);
     const auto w = toUint8(core::Colors<core::Type::rgba>::white);
-    // return core::math::Matrix<16, 16, decltype(g)> {
-    //     g, g, g, g, g, g, g, g, g, g, g, g, g, g, g, g,  //
-    //     g, w, w, w, w, w, w, w, w, w, w, w, w, w, w, g,  //
-    //     g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-    //     g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-    //     g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-    //     g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-    //     g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-    //     g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-    //     g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-    //     g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-    //     g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-    //     g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-    //     g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-    //     g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-    //     g, w, w, w, w, w, w, w, w, w, w, w, w, w, w, g,  //
-    //     g, g, g, g, g, g, g, g, g, g, g, g, g, g, g, g,  //
-    // };
-
     return std::array {
         g, g, g, g, g, g, g, g, g, g, g, g, g, g, g, g,  //
         g, w, w, w, w, w, w, w, w, w, w, w, w, w, w, g,  //
@@ -104,6 +85,12 @@ static constexpr auto textureData()
         g, w, w, w, w, w, w, w, w, w, w, w, w, w, w, g,  //
         g, g, g, g, g, g, g, g, g, g, g, g, g, g, g, g,  //
     };
+}
+
+static constexpr auto textureData2()
+{
+    const auto w = toUint8(core::Colors<core::Type::rgba>::white);
+    return std::array<decltype(w), 1> { w };
 }
 
 class Defaults : public core::Contextualized
@@ -143,7 +130,7 @@ public:
 
     Defaults(const core::Command& command)
         : Contextualized { command.context }
-        , texture { command, load::LoadedTexture { "default", defaultTexture.front().data(), 16, 16 }, sampler,
+        , texture { command, load::LoadedTexture { "default", defaultTexture.front().data(), 1, 1 }, sampler,
                     asset::Texture::texture2d }
         , descriptorPool { core::Descriptor::createDescriptorPool(
               context, 5U, std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U }) }
