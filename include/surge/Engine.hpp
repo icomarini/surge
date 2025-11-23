@@ -133,7 +133,7 @@ public:
 
         Camera<false> playerCamera { 16.0 / 9.0, { 0.0f, 1.0f, 3.0f }, { 0.0f, 0.0f, -1.0f } };
         Camera<true>  skyboxCamera { 16.0 / 9.0, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } };
-        Camera<false> lightCamera { 16.0 / 9.0, { -1.0f, 5.0f, 3.0f }, { -1.0f, -1.0f, -1.0f } };
+        Camera<false> lightCamera { 16.0 / 9.0, { -1.0f, 1.0f, 3.0f }, { -1.0f, -1.0f, -1.0f } };
 
         constexpr std::array assetNames {
             // "man",
@@ -199,6 +199,15 @@ public:
             core::createPipelineLayout(context, pushConstantRange, renderer.descriptor.setLayout);
         const VkPipeline pipeline =
             core::createGraphicPipeline(context, vertexInputState, pipelineLayout, core::shader::Type::shader);
+
+        std::array drawTriangle {
+            false, false,  //
+            false, false,  //
+            false, false,  //
+            false, false,  //
+            false, false,  //
+            false, false,  //
+        };
         // === initialize ===
 
         log::checkpoint("Main loop start");
@@ -221,7 +230,7 @@ public:
 
                 playerCamera.update(input, context.window.resolution);
                 skyboxCamera.update(input, context.window.resolution);
-                lightCamera.update(input.timer, context.window.resolution);
+                // lightCamera.update(input.timer, context.window.resolution);
                 renderer.lightPosition = lightCamera.vecs.position;
                 skybox.update(skyboxCamera);
                 renderer.update(playerCamera);
@@ -249,8 +258,8 @@ public:
                                         nullptr);
 
                 // bind cube mesh
-                constexpr VkDeviceSize offset { 0 };
-                vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cube.vertexBuffer.buffer, &offset);
+                constexpr VkDeviceSize cubeOffset { 0 };
+                vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cube.vertexBuffer.buffer, &cubeOffset);
                 vkCmdBindIndexBuffer(commandBuffer, cube.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
                 // draw cube
@@ -262,17 +271,54 @@ public:
                 vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
                                    &cubePushConstants);
                 vkCmdDrawIndexed(commandBuffer, cube.indexCount, 1, 0, 0, 0);
+                // vkCmdDrawIndexed(commandBuffer, 3, 1, 0, 0, 0);
+                // vkCmdDrawIndexed(commandBuffer, 3, 1, 3, 0, 0);
+                // vkCmdDrawIndexed(commandBuffer, 3, 1, 6, 0, 0);
+                // vkCmdDrawIndexed(commandBuffer, 3, 1, 9, 0, 0);
+                // vkCmdDrawIndexed(commandBuffer, 3, 1, 12, 0, 0);
+                // vkCmdDrawIndexed(commandBuffer, 3, 1, 15, 0, 0);
+                // vkCmdDrawIndexed(commandBuffer, 3, 1, 18, 0, 0);
+                // vkCmdDrawIndexed(commandBuffer, 3, 1, 21, 0, 0);
+                // vkCmdDrawIndexed(commandBuffer, 3, 1, 24, 0, 0);
+                // vkCmdDrawIndexed(commandBuffer, 3, 1, 27, 0, 0);
+                // vkCmdDrawIndexed(commandBuffer, 3, 1, 30, 0, 0);
+                // vkCmdDrawIndexed(commandBuffer, 3, 1, 33, 0, 0);
 
                 // draw light
-                constexpr core::math::Vector<3> scaling { 0.1, 0.1, 0.1 };
+                constexpr core::math::Vector<3> lightScaling { 0.1, 0.1, 0.1 };
                 const PushConstants             lightPushConstants {
-                                .matrix = core::math::Translation { lightCamera.vecs.position } * core::math::Scaling { scaling },
+                                .matrix =
+                        core::math::Translation { lightCamera.vecs.position } * core::math::Scaling { lightScaling },
                                 .baseColor = core::Colors<core::Type::rgba>::white,
                                 .isLight   = true,
                 };
                 vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
                                    &lightPushConstants);
                 vkCmdDrawIndexed(commandBuffer, cube.indexCount, 1, 0, 0, 0);
+
+                // bind dragon mesh
+                constexpr VkDeviceSize dragonOffset { 0 };
+                const auto&            dragonAsset     = assets.at("dragon");
+                const auto&            dragonModel     = dragonAsset.model;
+                const auto&            dragonPrimitive = dragonAsset.meshes.front().primitives.front();
+                vkCmdBindVertexBuffers(commandBuffer, 0, 1, &dragonModel.vertexBuffer.buffer, &dragonOffset);
+                vkCmdBindIndexBuffer(commandBuffer, dragonModel.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+                // draw dragon
+                const core::math::Vector<3> dragonTranslation { 0.0, 0.1 * dragonPrimitive.boundingBox.min.at(1) + 0.8,
+                                                                0.0 };
+                constexpr core::math::Quaternion<> dragonRotation { std::sqrt(2) / 2, 0, 0, std::sqrt(2) / 2 };
+                constexpr core::math::Vector<3>    dragonScaling { 0.1, 0.1, 0.1 };
+
+                const PushConstants dragonPushConstants {
+                    .matrix = core::math::Translation { dragonTranslation } * core::math::Rotation { dragonRotation } *
+                              core::math::Scaling { dragonScaling },
+                    .baseColor = core::Colors<core::Type::rgba>::red,
+                    .isLight   = false,
+                };
+                vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                                   &dragonPushConstants);
+                vkCmdDrawIndexed(commandBuffer, dragonPrimitive.indexCount, 1, dragonPrimitive.firstIndex, 0, 0);
 
                 // draw normals
                 if constexpr (1 == 1)

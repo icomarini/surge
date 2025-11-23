@@ -21,7 +21,7 @@ struct Mesh
         using Attributes = std::map<core::geometry::Attribute, bool>;
         const Attributes attributes;
 
-        core::geometry::BoundingBox bb;
+        core::geometry::BoundingBox boundingBox;
 
         struct State
         {

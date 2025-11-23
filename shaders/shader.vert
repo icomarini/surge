@@ -21,14 +21,16 @@ layout(set = 0, binding = 0) uniform Scene
 };
 
 // output =======================================
-layout(location = 0) out vec3 outColor;
-// layout(location = 1) out vec3 outNormal;
-// layout(location = 2) out vec2 outTexCoord;
+layout(location = 0) out vec3 outPosition;
+layout(location = 1) out vec3 outNormal;
+// layout(location = 2) out vec3 outColor;
+// layout(location = 3) out vec2 outTexCoord;
 
 void main()
 {
     gl_Position = vec4(inPosition, 1.0) * model * view * projection;
-    // outColor = baseColor;
-    // outNormal   = inNormal;
+    outPosition = vec3(vec4(inPosition, 1.0) * model);
+    outNormal   = inverse(mat3(model)) * inNormal;
+    // outColor    = baseColor;
     // outTexCoord = inTexCoord;
 }

@@ -105,10 +105,10 @@ std::pair<core::math::Vector<2>, core::math::Vector<2>> overlay(const asset::Ass
                         ImGui::Text("weights:      %s",
                                     to_string(primitive.attributes.at(core::geometry::Attribute::jointWeight)));
                         ImGui::Checkbox("bbox", &primitive.state.boundingBox);
-                        ImGui::Text("bbox min:     %f,%f,%f", primitive.bb.min[0], primitive.bb.min[1],
-                                    primitive.bb.min[2]);
-                        ImGui::Text("bbox max:     %f,%f,%f", primitive.bb.max[0], primitive.bb.max[1],
-                                    primitive.bb.max[2]);
+                        ImGui::Text("bbox min:     %f,%f,%f", primitive.boundingBox.min[0],
+                                    primitive.boundingBox.min[1], primitive.boundingBox.min[2]);
+                        ImGui::Text("bbox max:     %f,%f,%f", primitive.boundingBox.max[0],
+                                    primitive.boundingBox.max[1], primitive.boundingBox.max[2]);
                         ImGui::TreePop();
                     }
                 }

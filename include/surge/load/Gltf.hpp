@@ -70,16 +70,17 @@ public:
     using Vertex       = core::geometry::Vertex<  //
         core::geometry::AttributeSlot<core::geometry::Attribute::position, core::math::Vector<3>, 3,
                                             core::geometry::Format::sfloat>,
-        core::geometry::AttributeSlot<core::geometry::Attribute::color, core::math::Vector<4>, 4,
-                                            core::geometry::Format::sfloat>,
         core::geometry::AttributeSlot<core::geometry::Attribute::normal, core::math::Vector<3>, 3,
-                                            core::geometry::Format::sfloat>,
-        core::geometry::AttributeSlot<core::geometry::Attribute::texCoord, core::math::Vector<2>, 2,
-                                            core::geometry::Format::sfloat>,
-        core::geometry::AttributeSlot<core::geometry::Attribute::jointIndex, core::math::Vector<4>, 4,
-                                            core::geometry::Format::sfloat>,
-        core::geometry::AttributeSlot<core::geometry::Attribute::jointWeight, core::math::Vector<4>, 4,
-                                            core::geometry::Format::sfloat>>;
+                                            core::geometry::Format::sfloat>
+        // core::geometry::AttributeSlot<core::geometry::Attribute::color, core::math::Vector<4>, 4,
+        //                                     core::geometry::Format::sfloat>,
+        // core::geometry::AttributeSlot<core::geometry::Attribute::texCoord, core::math::Vector<2>, 2,
+        //                                     core::geometry::Format::sfloat>,
+        // core::geometry::AttributeSlot<core::geometry::Attribute::jointIndex, core::math::Vector<4>, 4,
+        //                                     core::geometry::Format::sfloat>,
+        // core::geometry::AttributeSlot<core::geometry::Attribute::jointWeight, core::math::Vector<4>, 4,
+        //                                     core::geometry::Format::sfloat>
+        >;
 
     Gltf(const Handle& handle, const Defaults& defaults)
         : name { handle.path.filename() }
@@ -465,11 +466,11 @@ public:
 
                 constexpr std::array attributes {
                     std::pair { "POSITION", core::geometry::Attribute::position },
-                    std::pair { "COLOR_0", core::geometry::Attribute::color },
                     std::pair { "NORMAL", core::geometry::Attribute::normal },
-                    std::pair { "TEXCOORD_0", core::geometry::Attribute::texCoord },
-                    std::pair { "JOINTS_0", core::geometry::Attribute::jointIndex },
-                    std::pair { "WEIGHTS_0", core::geometry::Attribute::jointWeight },
+                    // std::pair { "COLOR_0", core::geometry::Attribute::color },
+                    // std::pair { "TEXCOORD_0", core::geometry::Attribute::texCoord },
+                    // std::pair { "JOINTS_0", core::geometry::Attribute::jointIndex },
+                    // std::pair { "WEIGHTS_0", core::geometry::Attribute::jointWeight },
                 };
                 core::forEach<0, attributes.size()>(
                     [&]<int i>()
