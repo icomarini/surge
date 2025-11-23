@@ -230,7 +230,7 @@ public:
 
                 playerCamera.update(input, context.window.resolution);
                 skyboxCamera.update(input, context.window.resolution);
-                // lightCamera.update(input.timer, context.window.resolution);
+                lightCamera.update(input.timer, context.window.resolution);
                 renderer.lightPosition = lightCamera.vecs.position;
                 skybox.update(skyboxCamera);
                 renderer.update(playerCamera);

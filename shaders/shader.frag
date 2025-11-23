@@ -3,6 +3,7 @@
 // input ========================================
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
+layout(location = 2) in vec3 inLightPosition;
 // layout(location = 2) in vec3 inColor;
 // layout(location = 3) in vec2 inTexCoord;
 
@@ -40,15 +41,14 @@ void main()
 
         // diffuse
         vec3 normal         = normalize(inNormal);
-        vec3 lightDirection = normalize(lightPosition - inPosition);
+        vec3 lightDirection = normalize(inLightPosition - inPosition);
         vec4 diffuse        = max(dot(normal, lightDirection), 0.0) * lightColor;
 
         // specular
         float specularStrength = 0.5;
-        vec3  viewPosition     = vec3(view[0][3], view[1][3], view[2][3]);
-        vec3  viewDirection    = normalize(viewPosition - inPosition);
+        vec3  viewDirection    = normalize(-inPosition);
         vec3  reflectDirection = reflect(-lightDirection, normal);
-        vec4  specular = specularStrength * pow(max(dot(viewDirection, reflectDirection), 0.0), 32) * lightColor;
+        vec4  specular = specularStrength * pow(max(dot(viewDirection, reflectDirection), 0.0), 256) * lightColor;
 
         outColor = (ambient + diffuse + specular) * baseColor;
         // outColor = baseColor;
