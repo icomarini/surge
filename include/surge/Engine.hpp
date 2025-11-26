@@ -163,8 +163,9 @@ public:
                     assert(inserted);
                     const auto& [_, asset] = *iter;
 
-                    renderer.createPipeline(name, asset.vertexInputState, asset.shader,
-                                            asset.materialDescriptorSetLayout, asset.jointMatricesDescriptorSetLayout);
+                    // renderer.createPipeline(name, asset.vertexInputState, asset.shader,
+                    //                         asset.materialDescriptorSetLayout,
+                    //                         asset.jointMatricesDescriptorSetLayout);
                     log::info(core::math::toString(elapsed(start)) + " Loaded gltf asset " + handle.path.string());
                 },
                 [&](const load::Obj::Handle& handle)
@@ -185,7 +186,9 @@ public:
     entity::Entity createEntity(const std::string& name, const core::math::StaticMatrix auto& matrix)
     {
         const auto& asset                     = assets.at(name);
-        const auto [pipelineLayout, pipeline] = renderer.pipelines.at(name);
+        const auto [pipelineLayout, pipeline] = renderer.pipelines.contains(name) ?
+                                                    renderer.pipelines.at(name) :
+                                                    std::pair { VK_NULL_HANDLE, VK_NULL_HANDLE };
         return entity::Entity { asset, pipelineLayout, pipeline, matrix };
     }
 
@@ -247,8 +250,8 @@ public:
         entities.back().nodes.get(1).color   = core::Colors<core::Type::rgba>::white;
         entities.back().nodes.get(1).isLight = 1;
 
-        renderer.lightColor = core::Colors<core::Type::rgba>::white;
-        // renderer.lightColor    = { 0.2, 2.0, 1.0, 1.0 };
+        // renderer.lightColor = core::Colors<core::Type::rgba>::green;
+        renderer.lightColor    = { 0.2, 2.0, 1.0, 1.0 };
         renderer.lightPosition = { 0, 0, 0 };
         // entities.back().nodes.get(1).isLight = 1;
 
@@ -299,7 +302,7 @@ public:
             .path = "/home/ico/projects/extern/Vulkan/assets/models/cerberus/metallic.ktx"
         };
         const asset::Texture cerberusSpecularTexture { command, load::LoadedTexture { cerberusSpecularTextureHandle },
-                                                       asset::Texture::texture2d };
+                                                       asset::Texture::metallic };
 
         const auto [cerberusDescriptorPool, cerberusDescriptorSetLayout, cerberusDescriptorSet] =
             createDescriptorSet(context, cerberusDiffuseTexture, cerberusSpecularTexture);

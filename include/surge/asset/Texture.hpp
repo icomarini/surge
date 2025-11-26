@@ -19,6 +19,9 @@ public:
     static constexpr auto texture2d = Info<decltype(core::Image::texture2d),  //
                                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL> {};
 
+    static constexpr auto metallic = Info<decltype(core::Image::metallic),  //
+                                          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL> {};
+
     static constexpr auto cube = Info<decltype(core::Image::cube),  //
                                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL> {};
 

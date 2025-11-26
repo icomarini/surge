@@ -100,13 +100,18 @@ public:
                         .baseArrayLayer = arrayLayer,
                         .layerCount     = 1,
                     };
+                    const VkExtent3D imageExtent {
+                        .width  = std::max(1u, loadedTexture.width >> mipLevel),
+                        .height = std::max(1u, loadedTexture.height >> mipLevel),
+                        .depth  = 1,
+                    };
                     const VkBufferImageCopy region {
                         .bufferOffset      = offset,
                         .bufferRowLength   = 0,
                         .bufferImageHeight = 0,
                         .imageSubresource  = imageSubresource,
                         .imageOffset       = { 0, 0, 0 },
-                        .imageExtent       = { loadedTexture.width, loadedTexture.height, 1 },
+                        .imageExtent       = imageExtent,
                     };
                     bufferCopyRegions.push_back(region);
                 }

@@ -36,7 +36,7 @@ public:
         , mipLevels { 1 }
         , arrayLayers { 1 }
         , name { handle.path.filename() }
-        , vOffsets { {} }
+        , vOffsets {}
     {
         const auto fileExtension = handle.path.extension();
 

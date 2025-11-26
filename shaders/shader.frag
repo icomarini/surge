@@ -50,7 +50,7 @@ void main()
         vec3  viewDirection    = normalize(-inPosition);
         vec3  reflectDirection = reflect(-lightDirection, normal);
         vec4  specular = specularStrength * pow(max(dot(viewDirection, reflectDirection), 0.0), 64) * lightColor *
-                        texture(specularSampler, inTextureCoordinate);
+                        texture(specularSampler, inTextureCoordinate).r;
 
         outColor = (ambient + diffuse) * texture(diffuseSampler, inTextureCoordinate) + specular;
         // outColor = baseColor;
