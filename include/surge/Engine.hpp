@@ -251,7 +251,7 @@ public:
         entities.back().nodes.get(1).isLight = 1;
 
         // renderer.lightColor = core::Colors<core::Type::rgba>::green;
-        renderer.lightColor    = { 0.2, 2.0, 1.0, 1.0 };
+        renderer.lightColor    = { 0.5, 0.9, 0.8, 1.0 };
         renderer.lightPosition = { 0, 0, 0 };
         // entities.back().nodes.get(1).isLight = 1;
 
@@ -269,25 +269,38 @@ public:
             uint32_t                 isLight;
         };
 
-        // cube
-        const asset::Model cube { command, core::geometry::cube2, asset::Model::scene };
+        // container
+        const asset::Model container { command, core::geometry::cube2, asset::Model::scene };
 
-        const load::LoadedTexture::Handle cubeDiffuseTextureHandle {
+        const load::LoadedTexture::Handle containerDiffuseTextureHandle {
             .type = load::LoadedTexture::Type::texture2d,
             .path = "/home/ico/projects/surge/textures/container_diffuse.png"
         };
-        const asset::Texture cubeDiffuseTexture { command, load::LoadedTexture { cubeDiffuseTextureHandle },
-                                                  asset::Texture::texture2d };
+        const asset::Texture containerDiffuseTexture { command, load::LoadedTexture { containerDiffuseTextureHandle },
+                                                       asset::Texture::texture2d };
 
-        const load::LoadedTexture::Handle cubeSpecularTextureHandle {
+        const load::LoadedTexture::Handle containerSpecularTextureHandle {
             .type = load::LoadedTexture::Type::texture2d,
             .path = "/home/ico/projects/surge/textures/container_specular.png"
         };
-        const asset::Texture cubeSpecularTexture { command, load::LoadedTexture { cubeSpecularTextureHandle },
-                                                   asset::Texture::texture2d };
+        const asset::Texture containerSpecularTexture { command, load::LoadedTexture { containerSpecularTextureHandle },
+                                                        asset::Texture::texture2d };
 
-        const auto [cubeDescriptorPool, cubeDescriptorSetLayout, cubeDescriptorSet] =
-            createDescriptorSet(context, cubeDiffuseTexture, cubeSpecularTexture);
+        const auto [containerDescriptorPool, containerDescriptorSetLayout, containerDescriptorSet] =
+            createDescriptorSet(context, containerDiffuseTexture, containerSpecularTexture);
+
+        // brickwall
+        const asset::Model brickwall { command, core::geometry::square, asset::Model::scene };
+
+        const load::LoadedTexture::Handle brickwallDiffuseTextureHandle {
+            .type = load::LoadedTexture::Type::texture2d,
+            .path = "/home/ico/projects/surge/textures/brickwall_diffuse.jpg"
+        };
+        const asset::Texture brickwallDiffuseTexture { command, load::LoadedTexture { brickwallDiffuseTextureHandle },
+                                                       asset::Texture::texture2d };
+
+        const auto [brickwallDescriptorPool, brickwallDescriptorSetLayout, brickwallDescriptorSet] =
+            createDescriptorSet(context, brickwallDiffuseTexture, defaults.texture);
 
         // cerberus
         const load::LoadedTexture::Handle cerberusDiffuseTextureHandle {
@@ -321,8 +334,8 @@ public:
         // const auto pipelineLayout =
         //     core::createPipelineLayout(context, pushConstantRange, renderer.descriptor.setLayout,
         //                                diffuseDescriptor.setLayout, specularDescriptor.setLayout);
-        const auto pipelineLayout = core::createPipelineLayout(context, pushConstantRange,
-                                                               renderer.descriptor.setLayout, cubeDescriptorSetLayout);
+        const auto pipelineLayout = core::createPipelineLayout(
+            context, pushConstantRange, renderer.descriptor.setLayout, containerDescriptorSetLayout);
         const auto pipeline =
             core::createGraphicPipeline(context, vertexInputState, pipelineLayout, core::shader::Type::shader);
         // === initialize ===
@@ -370,23 +383,23 @@ public:
                                         &renderer.descriptor.set, 0, nullptr);
 
                 if constexpr (1 == 1)
-                {  // bind cube
-                    constexpr VkDeviceSize cubeOffset { 0 };
-                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cube.vertexBuffer.buffer, &cubeOffset);
-                    vkCmdBindIndexBuffer(commandBuffer, cube.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                {  // bind container
+                    constexpr VkDeviceSize containerOffset { 0 };
+                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &container.vertexBuffer.buffer, &containerOffset);
+                    vkCmdBindIndexBuffer(commandBuffer, container.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
                     constexpr uint32_t materialIndex { 1 };
                     vkCmdBindDescriptorSets(commandBuffer, bindPoint, pipelineLayout, materialIndex, 1,
-                                            &cubeDescriptorSet, 0, nullptr);
+                                            &containerDescriptorSet, 0, nullptr);
 
-                    {  // draw cube
-                        const PushConstants cubePushConstants {
+                    {  // draw container
+                        const PushConstants containerPushConstants {
                             .matrix    = core::math::fullMatrix(core::math::identity<4>),
                             .baseColor = core::Colors<core::Type::rgba>::coral,
                             .isLight   = false,
                         };
                         vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
-                                           &cubePushConstants);
-                        vkCmdDrawIndexed(commandBuffer, cube.indexCount, 1, 0, 0, 0);
+                                           &containerPushConstants);
+                        vkCmdDrawIndexed(commandBuffer, container.indexCount, 1, 0, 0, 0);
                     }
 
                     {  // draw light
@@ -399,7 +412,66 @@ public:
                         };
                         vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
                                            &lightPushConstants);
-                        vkCmdDrawIndexed(commandBuffer, cube.indexCount, 1, 0, 0, 0);
+                        vkCmdDrawIndexed(commandBuffer, container.indexCount, 1, 0, 0, 0);
+                    }
+                }
+
+                if constexpr (1 == 1)
+                {  // bind brickwall
+                    constexpr VkDeviceSize brickwallOffset { 0 };
+                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &brickwall.vertexBuffer.buffer, &brickwallOffset);
+                    vkCmdBindIndexBuffer(commandBuffer, brickwall.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                    constexpr uint32_t materialIndex { 1 };
+                    vkCmdBindDescriptorSets(commandBuffer, bindPoint, pipelineLayout, materialIndex, 1,
+                                            &brickwallDescriptorSet, 0, nullptr);
+
+                    {  // draw brickwall
+                        constexpr core::math::Quaternion<> brickwallRotation { std::sqrt(2) / 2, 0, std::sqrt(2) / 2,
+                                                                               0 };
+                        constexpr core::math::Vector<3>    brickwallScaling { 2, 2, 2 };
+                        const PushConstants                brickwallPushConstants {
+                                           .matrix =
+                                core::math::Rotation { brickwallRotation } * core::math::Scaling { brickwallScaling },
+                                           .baseColor = core::Colors<core::Type::rgba>::coral,
+                                           .isLight   = false,
+                        };
+                        vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                                           &brickwallPushConstants);
+                        vkCmdDrawIndexed(commandBuffer, brickwall.indexCount, 1, 0, 0, 0);
+                    }
+                }
+
+                if constexpr (1 == 1)
+                {  // bind cerberus
+                    constexpr VkDeviceSize cerberusOffset { 0 };
+                    const auto&            cerberusAsset     = assets.at("cerberus");
+                    const auto&            cerberusModel     = cerberusAsset.model;
+                    const auto&            cerberusPrimitive = cerberusAsset.meshes.front().primitives.front();
+                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cerberusModel.vertexBuffer.buffer, &cerberusOffset);
+                    vkCmdBindIndexBuffer(commandBuffer, cerberusModel.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                    constexpr uint32_t materialIndex { 1 };
+                    vkCmdBindDescriptorSets(commandBuffer, bindPoint, pipelineLayout, materialIndex, 1,
+                                            &cerberusDescriptorSet, 0, nullptr);
+
+                    {  // draw cerberus
+                        const core::math::Vector<3> cerberusTranslation {
+                            1.0, 0.1 * cerberusPrimitive.boundingBox.min.at(1) + 0.8, 0.0
+                        };
+                        constexpr core::math::Quaternion<> cerberusRotation1 { std::sqrt(2) / 2, 0, 0,
+                                                                               std::sqrt(2) / 2 };
+                        constexpr core::math::Quaternion<> cerberusRotation2 { std::sqrt(2) / 2, 0, std::sqrt(2) / 2,
+                                                                               0 };
+                        const PushConstants                cerberusPushConstants {
+                                           .matrix = core::math::Translation { cerberusTranslation } *
+                                      core::math::Rotation { cerberusRotation1 } *
+                                      core::math::Rotation { cerberusRotation2 },
+                                           .baseColor = core::Colors<core::Type::rgba>::red,
+                                           .isLight   = false,
+                        };
+                        vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                                           &cerberusPushConstants);
+                        vkCmdDrawIndexed(commandBuffer, cerberusPrimitive.indexCount, 1, cerberusPrimitive.firstIndex,
+                                         0, 0);
                     }
                 }
 
@@ -525,8 +597,10 @@ public:
         // === finalize ===
         context.destroy(pipeline);
         context.destroy(pipelineLayout);
-        context.destroy(cubeDescriptorSetLayout);
-        context.destroy(cubeDescriptorPool);
+        context.destroy(containerDescriptorSetLayout);
+        context.destroy(containerDescriptorPool);
+        context.destroy(brickwallDescriptorSetLayout);
+        context.destroy(brickwallDescriptorPool);
         context.destroy(cerberusDescriptorSetLayout);
         context.destroy(cerberusDescriptorPool);
         context.destroy(dragonDescriptorSetLayout);

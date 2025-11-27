@@ -148,6 +148,26 @@ static constexpr Shape cube2 { "cube2",
                                    20, 22, 21, 21, 22, 23,  // z = +0.5
                                } };
 
+static constexpr Shape square { "square",
+                                std::array {
+                                    //               3
+                                    //              /|
+                                    //             / |
+                                    //            1  |
+                                    //  z         |  |
+                                    //  | y       |  2
+                                    //  |/        | /
+                                    //  O---x     |/
+                                    //            O
+                                    PositionNormalTexture { vertex000, -basisI, texture00 },  //  0: x = -0.5
+                                    PositionNormalTexture { vertex001, -basisI, texture01 },  //  1: x = -0.5
+                                    PositionNormalTexture { vertex010, -basisI, texture10 },  //  2: x = -0.5
+                                    PositionNormalTexture { vertex011, -basisI, texture11 },  //  3: x = -0.5
+                                },
+                                std::array {
+                                    0, 1, 2, 1, 3, 2,  // x = -0.5
+                                } };
+
 static constexpr Shape coordinateSystem { "coord",
                                           std::array { PositionAndColor { { -0.9, -0.9, -0.9 }, { 1, 0, 0, 1 } },
                                                        PositionAndColor { { 0.1, -0.9, -0.9 }, { 1, 0, 0, 1 } },
