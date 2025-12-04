@@ -426,14 +426,20 @@ public:
                                             &brickwallDescriptorSet, 0, nullptr);
 
                     {  // draw brickwall
-                        constexpr core::math::Quaternion<> brickwallRotation { std::sqrt(2) / 2, 0, std::sqrt(2) / 2,
-                                                                               0 };
-                        constexpr core::math::Vector<3>    brickwallScaling { 2, 2, 2 };
-                        const PushConstants                brickwallPushConstants {
-                                           .matrix =
-                                core::math::Rotation { brickwallRotation } * core::math::Scaling { brickwallScaling },
-                                           .baseColor = core::Colors<core::Type::rgba>::coral,
-                                           .isLight   = false,
+                        constexpr core::math::Translation brickwallTranslation { core::math::Vector<3> { 0, -3, 0 } };
+                        constexpr core::math::Rotation    brickwallRotation { core::math::Quaternion<> {
+                            std::sqrt(2) / 2,
+                            -std::sqrt(2) / 2,
+                            0,
+                            0,
+                        } };
+                        // constexpr auto                  brickwallRotation = core::math::identity<4>;
+                        constexpr core::math::Vector<3> brickwallScaling { 4, 4, 4 };
+                        const PushConstants             brickwallPushConstants {
+                                        .matrix =
+                                brickwallTranslation * brickwallRotation * core::math::Scaling { brickwallScaling },
+                                        .baseColor = core::Colors<core::Type::rgba>::coral,
+                                        .isLight   = false,
                         };
                         vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
                                            &brickwallPushConstants);
