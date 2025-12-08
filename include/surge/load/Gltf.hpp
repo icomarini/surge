@@ -73,6 +73,8 @@ public:
         core::geometry::AttributeSlot<core::geometry::Attribute::normal, core::math::Vector<3>, 3,
                                             core::geometry::Format::sfloat>,
         core::geometry::AttributeSlot<core::geometry::Attribute::texCoord, core::math::Vector<2>, 2,
+                                            core::geometry::Format::sfloat>,
+        core::geometry::AttributeSlot<core::geometry::Attribute::tangent, core::math::Vector<4>, 4,
                                             core::geometry::Format::sfloat>
         // core::geometry::AttributeSlot<core::geometry::Attribute::color, core::math::Vector<4>, 4,
         //                                     core::geometry::Format::sfloat>,
@@ -422,6 +424,7 @@ public:
                         { core::geometry::Attribute::position, primitive.findAttribute("POSITION") != end },
                         { core::geometry::Attribute::color, primitive.findAttribute("COLOR_0") != end },
                         { core::geometry::Attribute::normal, primitive.findAttribute("NORMAL") != end },
+                        { core::geometry::Attribute::tangent, primitive.findAttribute("TANGENT") != end },
                         { core::geometry::Attribute::texCoord, primitive.findAttribute("TEXCOORD_0") != end },
                         { core::geometry::Attribute::jointIndex, primitive.findAttribute("JOINTS_0") != end },
                         { core::geometry::Attribute::jointWeight, primitive.findAttribute("WEIGHTS_0") != end },
@@ -467,6 +470,7 @@ public:
                 constexpr std::array attributes {
                     std::pair { "POSITION", core::geometry::Attribute::position },
                     std::pair { "NORMAL", core::geometry::Attribute::normal },
+                    std::pair { "TANGENT", core::geometry::Attribute::tangent },
                     std::pair { "TEXCOORD_0", core::geometry::Attribute::texCoord },
                     // std::pair { "COLOR_0", core::geometry::Attribute::color },
                     // std::pair { "JOINTS_0", core::geometry::Attribute::jointIndex },

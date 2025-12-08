@@ -21,6 +21,7 @@ enum class Attribute
     color,
     normal,
     texCoord,
+    tangent,
     jointIndex,
     jointWeight,
 };

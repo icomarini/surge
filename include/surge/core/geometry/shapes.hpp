@@ -64,9 +64,9 @@ static constexpr Shape cube { "cube",
                                   5, 6, 4, 7, 6, 5,  // z = +1
                               } };
 
-static constexpr math::Vector<3> basisI { 1, 0, 0 };
-static constexpr math::Vector<3> basisJ { 0, 1, 0 };
-static constexpr math::Vector<3> basisK { 0, 0, 1 };
+static constexpr math::Vector<3> normalI { 1, 0, 0 };
+static constexpr math::Vector<3> normalJ { 0, 1, 0 };
+static constexpr math::Vector<3> normalK { 0, 0, 1 };
 
 static constexpr math::Vector<3> vertex000 { -0.5, -0.5, -0.5 };
 static constexpr math::Vector<3> vertex001 { -0.5, -0.5, +0.5 };
@@ -93,15 +93,15 @@ static constexpr Shape cube2 { "cube2",
                                    //  |/        | /        | /
                                    //  O---x     |/         |/
                                    //            O----------4
-                                   PositionNormalTexture { vertex000, -basisI, texture00 },  //  0: x = -0.5
-                                   PositionNormalTexture { vertex001, -basisI, texture01 },  //  1: x = -0.5
-                                   PositionNormalTexture { vertex010, -basisI, texture10 },  //  2: x = -0.5
-                                   PositionNormalTexture { vertex011, -basisI, texture11 },  //  3: x = -0.5
-                                   PositionNormalTexture { vertex100, +basisI, texture00 },  //  4: x = +0.5
-                                   PositionNormalTexture { vertex101, +basisI, texture01 },  //  5: x = +0.5
-                                   PositionNormalTexture { vertex110, +basisI, texture10 },  //  6: x = +0.5
-                                   PositionNormalTexture { vertex111, +basisI, texture11 },  //  7: x = +0.5
-                                                                                             /**/
+                                   PositionNormalTexture { vertex000, -normalI, texture00 },  //  0: x = -0.5
+                                   PositionNormalTexture { vertex001, -normalI, texture01 },  //  1: x = -0.5
+                                   PositionNormalTexture { vertex010, -normalI, texture10 },  //  2: x = -0.5
+                                   PositionNormalTexture { vertex011, -normalI, texture11 },  //  3: x = -0.5
+                                   PositionNormalTexture { vertex100, +normalI, texture00 },  //  4: x = +0.5
+                                   PositionNormalTexture { vertex101, +normalI, texture01 },  //  5: x = +0.5
+                                   PositionNormalTexture { vertex110, +normalI, texture10 },  //  6: x = +0.5
+                                   PositionNormalTexture { vertex111, +normalI, texture11 },  //  7: x = +0.5
+                                                                                              /**/
                                    //               13---------15
                                    //              /|         /|
                                    //             / |        / |
@@ -111,15 +111,15 @@ static constexpr Shape cube2 { "cube2",
                                    //  |/        | /        | /
                                    //  O---x     |/         |/
                                    //            8----------10
-                                   PositionNormalTexture { vertex000, -basisJ, texture00 },  //  8: y = -0.5
-                                   PositionNormalTexture { vertex001, -basisJ, texture01 },  //  9: y = -0.5
-                                   PositionNormalTexture { vertex100, -basisJ, texture10 },  // 10: y = -0.5
-                                   PositionNormalTexture { vertex101, -basisJ, texture11 },  // 11: y = -0.5
-                                   PositionNormalTexture { vertex010, +basisJ, texture00 },  // 12: y = +0.5
-                                   PositionNormalTexture { vertex011, +basisJ, texture01 },  // 13: y = +0.5
-                                   PositionNormalTexture { vertex110, +basisJ, texture10 },  // 14: y = +0.5
-                                   PositionNormalTexture { vertex111, +basisJ, texture11 },  // 15: y = +0.5
-                                                                                             /**/
+                                   PositionNormalTexture { vertex000, -normalJ, texture00 },  //  8: y = -0.5
+                                   PositionNormalTexture { vertex001, -normalJ, texture01 },  //  9: y = -0.5
+                                   PositionNormalTexture { vertex100, -normalJ, texture10 },  // 10: y = -0.5
+                                   PositionNormalTexture { vertex101, -normalJ, texture11 },  // 11: y = -0.5
+                                   PositionNormalTexture { vertex010, +normalJ, texture00 },  // 12: y = +0.5
+                                   PositionNormalTexture { vertex011, +normalJ, texture01 },  // 13: y = +0.5
+                                   PositionNormalTexture { vertex110, +normalJ, texture10 },  // 14: y = +0.5
+                                   PositionNormalTexture { vertex111, +normalJ, texture11 },  // 15: y = +0.5
+                                                                                              /**/
                                    //               21---------23
                                    //              /|         /|
                                    //             / |        / |
@@ -129,15 +129,15 @@ static constexpr Shape cube2 { "cube2",
                                    //  |/        | /        | /
                                    //  O---x     |/         |/
                                    //            16---------18
-                                   PositionNormalTexture { vertex000, -basisK, texture00 },  // 16: z = -0.5
-                                   PositionNormalTexture { vertex010, -basisK, texture01 },  // 17: z = -0.5
-                                   PositionNormalTexture { vertex100, -basisK, texture10 },  // 18: z = -0.5
-                                   PositionNormalTexture { vertex110, -basisK, texture11 },  // 19: z = -0.5
-                                   PositionNormalTexture { vertex001, +basisK, texture00 },  // 20: z = +0.5
-                                   PositionNormalTexture { vertex011, +basisK, texture01 },  // 21: z = +0.5
-                                   PositionNormalTexture { vertex101, +basisK, texture10 },  // 22: z = +0.5
-                                   PositionNormalTexture { vertex111, +basisK, texture11 },  // 23: z = +0.5
-                                                                                             /**/
+                                   PositionNormalTexture { vertex000, -normalK, texture00 },  // 16: z = -0.5
+                                   PositionNormalTexture { vertex010, -normalK, texture01 },  // 17: z = -0.5
+                                   PositionNormalTexture { vertex100, -normalK, texture10 },  // 18: z = -0.5
+                                   PositionNormalTexture { vertex110, -normalK, texture11 },  // 19: z = -0.5
+                                   PositionNormalTexture { vertex001, +normalK, texture00 },  // 20: z = +0.5
+                                   PositionNormalTexture { vertex011, +normalK, texture01 },  // 21: z = +0.5
+                                   PositionNormalTexture { vertex101, +normalK, texture10 },  // 22: z = +0.5
+                                   PositionNormalTexture { vertex111, +normalK, texture11 },  // 23: z = +0.5
+                                                                                              /**/
                                },
                                std::array {
                                    0,  1,  2,  1,  3,  2,   // x = -0.5
@@ -159,10 +159,10 @@ static constexpr Shape square { "square",
                                     //  |/        | /
                                     //  O---x     |/
                                     //            O
-                                    PositionNormalTexture { vertex000, -basisI, texture00 },  //  0: x = -0.5
-                                    PositionNormalTexture { vertex001, -basisI, texture01 },  //  1: x = -0.5
-                                    PositionNormalTexture { vertex010, -basisI, texture10 },  //  2: x = -0.5
-                                    PositionNormalTexture { vertex011, -basisI, texture11 },  //  3: x = -0.5
+                                    PositionNormalTexture { vertex000, -normalI, texture00 },  //  0: x = -0.5
+                                    PositionNormalTexture { vertex001, -normalI, texture01 },  //  1: x = -0.5
+                                    PositionNormalTexture { vertex010, -normalI, texture10 },  //  2: x = -0.5
+                                    PositionNormalTexture { vertex011, -normalI, texture11 },  //  3: x = -0.5
                                 },
                                 std::array {
                                     0, 1, 2, 1, 3, 2,  // x = -0.5
