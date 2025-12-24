@@ -12,6 +12,8 @@ constexpr VkShaderStageFlagBits translate(const Stage stage)
 {
     switch (stage)
     {
+    case Stage::geometry:
+        return VK_SHADER_STAGE_GEOMETRY_BIT;
     case Stage::vertex:
         return VK_SHADER_STAGE_VERTEX_BIT;
     case Stage::fragment:
@@ -126,11 +128,12 @@ public:
     static VkPipelineShaderStageCreateInfo createShaderStage(const Context&             context,
                                                              const SpecializationEntry& specializationEntry)
     {
+        constexpr auto s = translate(stage);
         return VkPipelineShaderStageCreateInfo {
             .sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
             .pNext               = nullptr,
             .flags               = {},
-            .stage               = translate(stage),
+            .stage               = s,
             .module              = createShaderModule<type, stage>(context),
             .pName               = "main",
             .pSpecializationInfo = specializationEntry.getInfo(),

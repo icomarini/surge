@@ -93,6 +93,13 @@ static constexpr auto textureData2()
     return std::array<decltype(w), 1> { w };
 }
 
+template<typename Color>
+static constexpr auto flatTextureData(const Color& color)
+{
+    const auto c = toUint8(color);
+    return std::array<decltype(c), 1> { toUint8(color) };
+}
+
 class Defaults : public core::Contextualized
 {
 public:
@@ -106,9 +113,13 @@ public:
     };
 
 
-    static constexpr auto defaultTexture = textureData();
+    static constexpr auto defaultTextureData = textureData();
+    static constexpr auto whiteTextureData   = flatTextureData(core::Colors<core::Type::rgba>::white);
+    static constexpr auto blackTextureData   = flatTextureData(core::Colors<core::Type::rgba>::black);
 
     asset::Texture        texture;
+    asset::Texture        whiteTexture;
+    asset::Texture        blackTexture;
     VkDescriptorPool      descriptorPool;
     VkDescriptorSetLayout descriptorSetLayout;
     asset::Material       material;
@@ -130,8 +141,12 @@ public:
 
     Defaults(const core::Command& command)
         : Contextualized { command.context }
-        , texture { command, load::LoadedTexture { "default", defaultTexture.front().data(), 1, 1 }, sampler,
+        , texture { command, load::LoadedTexture { "default", defaultTextureData.front().data(), 1, 1 }, sampler,
                     asset::Texture::texture2d }
+        , whiteTexture { command, load::LoadedTexture { "white", whiteTextureData.front().data(), 1, 1 }, sampler,
+                         asset::Texture::texture2d }
+        , blackTexture { command, load::LoadedTexture { "black", blackTextureData.front().data(), 1, 1 }, sampler,
+                         asset::Texture::texture2d }
         , descriptorPool { core::Descriptor::createDescriptorPool(
               context, 5U, std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U }) }
         , descriptorSetLayout { core::Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture

@@ -664,7 +664,7 @@ private:
             .fullDrawIndexUint32                     = nope,
             .imageCubeArray                          = nope,
             .independentBlend                        = nope,
-            .geometryShader                          = nope,
+            .geometryShader                          = VK_TRUE,
             .tessellationShader                      = nope,
             .sampleRateShading                       = nope,
             .dualSrcBlend                            = nope,

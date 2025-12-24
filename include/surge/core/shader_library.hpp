@@ -8,6 +8,7 @@ namespace surge::core::shader
 
 enum class Stage
 {
+    geometry,
     vertex,
     fragment,
 };
@@ -22,6 +23,8 @@ enum class Type
     shader,
     skybox,
     ui,
+    normal,
+    base,
 };
 
 
@@ -103,6 +106,18 @@ constexpr unsigned char uiVert[] {
 constexpr unsigned char uiFrag[] {
 #embed "/home/ico/projects/surge/build/debug/shaders/ui.frag.spv"
 };
+
+constexpr unsigned char normalGeom[] {
+#embed "/home/ico/projects/surge/build/debug/shaders/normal.geom.spv"
+};
+
+constexpr unsigned char baseVert[] {
+#embed "/home/ico/projects/surge/build/debug/shaders/base.vert.spv"
+};
+
+constexpr unsigned char baseFrag[] {
+#embed "/home/ico/projects/surge/build/debug/shaders/base.frag.spv"
+};
 // clang-format on
 
 
@@ -123,6 +138,9 @@ constexpr std::array library {
     entry(Type::skybox, Stage::fragment, skyboxFrag),
     entry(Type::ui, Stage::vertex, uiVert),
     entry(Type::ui, Stage::fragment, uiFrag),
+    entry(Type::normal, Stage::geometry, normalGeom),
+    entry(Type::base, Stage::vertex, baseVert),
+    entry(Type::base, Stage::fragment, baseFrag),
 };
 
 constexpr Entry get(const Type type, const Stage stage)

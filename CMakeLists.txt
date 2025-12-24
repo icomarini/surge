@@ -151,6 +151,9 @@ set(SHADERS
     skybox.vert
     ui.frag
     ui.vert
+    normal.geom
+    base.vert
+    base.frag
 )
 
 list(TRANSFORM SHADERS PREPEND "${PROJECT_SOURCE_DIR}/shaders/")

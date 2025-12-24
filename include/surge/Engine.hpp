@@ -204,10 +204,6 @@ public:
         log::checkpoint("The surge of urge to purge terminated");
     }
 
-    void drawCube()
-    {
-    }
-
     void run()
     {
         double elapsedTime = {};
@@ -287,7 +283,7 @@ public:
                                                         asset::Texture::texture2d };
 
         const auto [containerDescriptorPool, containerDescriptorSetLayout, containerDescriptorSet] =
-            createDescriptorSet(context, containerDiffuseTexture, containerSpecularTexture, defaults.texture);
+            createDescriptorSet(context, containerDiffuseTexture, containerSpecularTexture, defaults.whiteTexture);
 
         // === brickwall ===
         const asset::Model brickwall { command, core::geometry::square, asset::Model::scene };
@@ -307,7 +303,7 @@ public:
                                                       asset::Texture::texture2d };
 
         const auto [brickwallDescriptorPool, brickwallDescriptorSetLayout, brickwallDescriptorSet] =
-            createDescriptorSet(context, brickwallDiffuseTexture, defaults.texture, brickwallNormalTexture);
+            createDescriptorSet(context, brickwallDiffuseTexture, defaults.whiteTexture, brickwallNormalTexture);
 
         // === cerberus ===
         const load::LoadedTexture::Handle cerberusDiffuseTextureHandle {
@@ -339,25 +335,32 @@ public:
             createDescriptorSet(context, defaults.texture, defaults.texture, defaults.texture);
 
         // pipeline
-        constexpr VkShaderStageFlags  shaderStages { VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT };
+        constexpr VkShaderStageFlags  shaderStages { VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_VERTEX_BIT |
+                                                    VK_SHADER_STAGE_FRAGMENT_BIT };
         constexpr VkPushConstantRange pushConstantRange { core::createPushConstantRange<PushConstants>(shaderStages) };
 
         // using Vertex                = decltype(core::geometry::cube2)::Vertex;
-        using Vertex                = load::Gltf::Vertex;
-        const auto vertexInputState = core::createVertexInputState<Vertex>();
+        using Vertex                    = load::Gltf::Vertex;
+        constexpr auto vertexInputState = core::createVertexInputState<Vertex>();
 
         const auto pipelineLayout = core::createPipelineLayout(
             context, pushConstantRange, renderer.descriptor.setLayout, containerDescriptorSetLayout);
         const auto pipeline =
             core::createGraphicPipeline(context, vertexInputState, pipelineLayout, core::shader::Type::shader);
+
+        const auto normalPipelineLayout =
+            core::createPipelineLayout(context, pushConstantRange, renderer.descriptor.setLayout);
+        const auto normalPipeline =
+            core::createGraphicPipeline(context, vertexInputState, normalPipelineLayout, core::shader::Type::normal);
         // === initialize ===
 
         log::checkpoint("Main loop start");
 
-        constexpr bool drawContainer = false;
-        constexpr bool drawBrickwall = false;
-        constexpr bool drawCerberus  = true;
-        constexpr bool drawDragon    = false;
+        constexpr bool drawContainer       = true;
+        constexpr bool drawBrickwall       = true;
+        constexpr bool drawCerberus        = true;
+        constexpr bool drawCerberusNormals = true;
+        constexpr bool drawDragon          = false;
 
         while (input.proceed)
         {
@@ -377,8 +380,10 @@ public:
                 // === entity playground ===
 
                 playerCamera.update(input, context.window.resolution);
+                // playerCamera = Camera<false> { 16.0 / 9.0, lightCamera.vecs.position, -lightCamera.vecs.position };
                 skyboxCamera.update(input, context.window.resolution);
-                lightCamera.update(input.timer, context.window.resolution);
+                // lightCamera.update(input.timer, context.window.resolution);
+                // playerCamera           = lightCamera;
                 renderer.lightPosition = lightCamera.vecs.position;
                 skybox.update(skyboxCamera);
                 renderer.update(playerCamera);
@@ -393,11 +398,11 @@ public:
                 // === draw ===
 
                 // bind pipeline
-                constexpr auto bindPoint { VK_PIPELINE_BIND_POINT_GRAPHICS };
+                constexpr auto graphicsBindPoint { VK_PIPELINE_BIND_POINT_GRAPHICS };
                 core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
-                vkCmdBindPipeline(commandBuffer, bindPoint, pipeline);
+                vkCmdBindPipeline(commandBuffer, graphicsBindPoint, pipeline);
                 constexpr uint32_t sceneIndex { 0 };
-                vkCmdBindDescriptorSets(commandBuffer, bindPoint, pipelineLayout, sceneIndex, 1,
+                vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, sceneIndex, 1,
                                         &renderer.descriptor.set, 0, nullptr);
 
                 if constexpr (drawContainer)
@@ -406,7 +411,7 @@ public:
                     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &container.vertexBuffer.buffer, &containerOffset);
                     vkCmdBindIndexBuffer(commandBuffer, container.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
                     constexpr uint32_t materialIndex { 1 };
-                    vkCmdBindDescriptorSets(commandBuffer, bindPoint, pipelineLayout, materialIndex, 1,
+                    vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, materialIndex, 1,
                                             &containerDescriptorSet, 0, nullptr);
 
                     {  // draw container
@@ -440,29 +445,54 @@ public:
                     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &brickwall.vertexBuffer.buffer, &brickwallOffset);
                     vkCmdBindIndexBuffer(commandBuffer, brickwall.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
                     constexpr uint32_t materialIndex { 1 };
-                    vkCmdBindDescriptorSets(commandBuffer, bindPoint, pipelineLayout, materialIndex, 1,
+                    vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, materialIndex, 1,
                                             &brickwallDescriptorSet, 0, nullptr);
 
-                    {  // draw brickwall
-                        constexpr core::math::Translation brickwallTranslation { core::math::Vector<3> { 0, -3, 0 } };
-                        constexpr core::math::Rotation    brickwallRotation { core::math::Quaternion<> {
-                            std::sqrt(2) / 2,
-                            -std::sqrt(2) / 2,
-                            0,
-                            0,
-                        } };
-                        // constexpr auto                  brickwallRotation = core::math::identity<4>;
-                        constexpr core::math::Vector<3> brickwallScaling { 4, 4, 4 };
-                        const PushConstants             brickwallPushConstants {
+                    constexpr std::array brickwallTranslations {
+                        core::math::Vector<3> { -4, -3, 0 },
+                        core::math::Vector<3> { 0, -3, 0 },
+                        core::math::Vector<3> { 4, -3, 0 },
+                    };
+
+                    core::forEach<0, brickwallTranslations.size()>(
+                        [&]<int i>()
+                        {
+                            constexpr core::math::Translation brickwallTranslation { brickwallTranslations.at(i) };
+                            constexpr core::math::Rotation    brickwallRotation { core::math::Quaternion<> {
+                                std::sqrt(2) / 2, -std::sqrt(2) / 2, 0, 0 } };
+                            // constexpr auto                  brickwallRotation = core::math::identity<4>;
+                            constexpr core::math::Vector<3> brickwallScaling { 4, 4, 4 };
+                            constexpr PushConstants         brickwallPushConstants {
                                         .matrix =
-                                brickwallTranslation * brickwallRotation * core::math::Scaling { brickwallScaling },
+                                    brickwallTranslation * brickwallRotation * core::math::Scaling { brickwallScaling },
                                         .baseColor = core::Colors<core::Type::rgba>::coral,
                                         .isLight   = false,
-                        };
-                        vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
-                                           &brickwallPushConstants);
-                        vkCmdDrawIndexed(commandBuffer, brickwall.indexCount, 1, 0, 0, 0);
-                    }
+                            };
+                            vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                                               &brickwallPushConstants);
+                            vkCmdDrawIndexed(commandBuffer, brickwall.indexCount, 1, 0, 0, 0);
+                        });
+
+                    // {  // draw brickwall
+                    //     constexpr core::math::Translation brickwallTranslation { core::math::Vector<3> { 0, -3, 0 }
+                    //     }; constexpr core::math::Rotation    brickwallRotation { core::math::Quaternion<> {
+                    //         std::sqrt(2) / 2,
+                    //         -std::sqrt(2) / 2,
+                    //         0,
+                    //         0,
+                    //     } };
+                    //     // constexpr auto                  brickwallRotation = core::math::identity<4>;
+                    //     constexpr core::math::Vector<3> brickwallScaling { 4, 4, 4 };
+                    //     const PushConstants             brickwallPushConstants {
+                    //                     .matrix =
+                    //             brickwallTranslation * brickwallRotation * core::math::Scaling { brickwallScaling },
+                    //                     .baseColor = core::Colors<core::Type::rgba>::coral,
+                    //                     .isLight   = false,
+                    //     };
+                    //     vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                    //                        &brickwallPushConstants);
+                    //     vkCmdDrawIndexed(commandBuffer, brickwall.indexCount, 1, 0, 0, 0);
+                    // }
                 }
 
                 if constexpr (drawCerberus)
@@ -474,7 +504,7 @@ public:
                     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cerberusModel.vertexBuffer.buffer, &cerberusOffset);
                     vkCmdBindIndexBuffer(commandBuffer, cerberusModel.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
                     constexpr uint32_t materialIndex { 1 };
-                    vkCmdBindDescriptorSets(commandBuffer, bindPoint, pipelineLayout, materialIndex, 1,
+                    vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, materialIndex, 1,
                                             &cerberusDescriptorSet, 0, nullptr);
 
                     {  // draw cerberus
@@ -508,7 +538,7 @@ public:
                     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &dragonModel.vertexBuffer.buffer, &dragonOffset);
                     vkCmdBindIndexBuffer(commandBuffer, dragonModel.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
                     constexpr uint32_t materialIndex { 1 };
-                    vkCmdBindDescriptorSets(commandBuffer, bindPoint, pipelineLayout, materialIndex, 1,
+                    vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, materialIndex, 1,
                                             &dragonDescriptorSet, 0, nullptr);
 
                     // draw dragon
@@ -539,7 +569,7 @@ public:
                     core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
                     vkCmdSetLineWidth(commandBuffer, 1.0);
                     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, linePipeline);
-                    vkCmdBindDescriptorSets(commandBuffer, bindPoint, linePipelineLayout, 0, 1,
+                    vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, linePipelineLayout, 0, 1,
                                             &renderer.descriptor.set, 0, nullptr);
                     core::forEach<0, 3, 0, 8>(
                         [&]<int dimension, int vertex>()
@@ -561,6 +591,47 @@ public:
                                                sizeof(asset::Line), &line);
                             vkCmdDraw(commandBuffer, 2, 1, 0, 0);
                         });
+                }
+
+                if constexpr (drawCerberusNormals)
+                {  // bind cerberus
+                    core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+                    vkCmdBindPipeline(commandBuffer, graphicsBindPoint, normalPipeline);
+                    constexpr uint32_t sceneIndex { 0 };
+                    vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, normalPipelineLayout, sceneIndex, 1,
+                                            &renderer.descriptor.set, 0, nullptr);
+                    vkCmdSetLineWidth(commandBuffer, 1.0);
+
+                    constexpr VkDeviceSize cerberusOffset { 0 };
+                    const auto&            cerberusAsset     = assets.at("cerberus");
+                    const auto&            cerberusModel     = cerberusAsset.model;
+                    const auto&            cerberusPrimitive = cerberusAsset.meshes.front().primitives.front();
+                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cerberusModel.vertexBuffer.buffer, &cerberusOffset);
+                    vkCmdBindIndexBuffer(commandBuffer, cerberusModel.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                    // constexpr uint32_t materialIndex { 1 };
+                    // vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, materialIndex, 1,
+                    //                         &cerberusDescriptorSet, 0, nullptr);
+
+                    {  // draw cerberus
+                        const core::math::Vector<3> cerberusTranslation {
+                            1.0, 0.1 * cerberusPrimitive.boundingBox.min.at(1) + 0.8, 0.0
+                        };
+                        constexpr core::math::Quaternion<> cerberusRotation1 { std::sqrt(2) / 2, 0, 0,
+                                                                               std::sqrt(2) / 2 };
+                        constexpr core::math::Quaternion<> cerberusRotation2 { std::sqrt(2) / 2, 0, std::sqrt(2) / 2,
+                                                                               0 };
+                        const PushConstants                cerberusPushConstants {
+                                           .matrix = core::math::Translation { cerberusTranslation } *
+                                      core::math::Rotation { cerberusRotation1 } *
+                                      core::math::Rotation { cerberusRotation2 },
+                                           .baseColor = core::Colors<core::Type::rgba>::red,
+                                           .isLight   = false,
+                        };
+                        vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                                           &cerberusPushConstants);
+                        vkCmdDrawIndexed(commandBuffer, cerberusPrimitive.indexCount, 1, cerberusPrimitive.firstIndex,
+                                         0, 0);
+                    }
                 }
                 // === draw ===
 
@@ -585,6 +656,8 @@ public:
         vkDeviceWaitIdle(context.device);
 
         // === finalize ===
+        context.destroy(normalPipeline);
+        context.destroy(normalPipelineLayout);
         context.destroy(pipeline);
         context.destroy(pipelineLayout);
         context.destroy(containerDescriptorSetLayout);

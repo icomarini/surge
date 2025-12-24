@@ -26,8 +26,9 @@ public:
         , scene { context, sizeof(SceneBuffer), core::Buffer::uniform }
         , descriptor { context, 1,
                        core::Description<VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                         VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, core::Buffer> {
-                           scene } }
+                                         VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_VERTEX_BIT |
+                                             VK_SHADER_STAGE_FRAGMENT_BIT,
+                                         core::Buffer> { scene } }
         , pipelines { createPipelines(context, descriptor.setLayout) }
         , lightColor { core::Colors<core::Type::rgba>::white }
         , lightPosition {}
