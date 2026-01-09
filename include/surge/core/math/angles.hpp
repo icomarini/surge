@@ -71,8 +71,36 @@ constexpr EulerAngles<Angle::radians, Type> toEulerAngles(const Quaternion<Type>
     return Vector<3> { yaw(quaternion), pitch(quaternion), roll(quaternion) };
 }
 
+
 template<typename Type>
-constexpr Quaternion<Type> slerp(const Quaternion<Type>& x, const Quaternion<Type>& y, const Type a)
+constexpr Quaternion<Type> toQuaternion(const Type& roll, const Type& pitch, const Type& yaw)
+{
+    // roll (x), pitch (y), yaw (z), angles are in radians
+    constexpr Type half { 0.5 };
+
+    const auto cr = std::cos(half * roll);
+    const auto sr = std::sin(half * roll);
+    const auto cp = std::cos(half * pitch);
+    const auto sp = std::sin(half * pitch);
+    const auto cy = std::cos(half * yaw);
+    const auto sy = std::sin(half * yaw);
+
+    // Quaternion q;
+    // q.w = cr * cp * cy + sr * sp * sy;
+    // q.x = sr * cp * cy - cr * sp * sy;
+    // q.y = cr * sp * cy + sr * cp * sy;
+    // q.z = cr * cp * sy - sr * sp * cy;
+
+    return Quaternion<Type> {
+        sr * cp * cy - cr * sp * sy,
+        cr * sp * cy + sr * cp * sy,
+        cr * cp * sy - sr * sp * cy,
+        cr * cp * cy + sr * sp * sy,
+    };
+}
+
+template<typename Type>
+constexpr Quaternion<Type> slerp(const Quaternion<Type>& x, const Quaternion<Type>& y, const Type& a)
 {
     constexpr Type zero { 0 };
     constexpr Type one { 1 };

@@ -34,11 +34,11 @@ vec3 computeNormal()
 {
     vec3 tangentNormal = texture(normalSampler, inTextureCoordinate).xyz * 2.0 - 1.0;
 
-    vec3 N   = normalize(inNormal);
-    vec3 T   = normalize(inTangent.xyz);
-    vec3 B   = normalize(cross(N, T));
-    mat3 TBN = mat3(T, B, N);
-    return normalize(TBN * tangentNormal);
+    vec3 N = normalize(inNormal);
+    vec3 T = normalize(inTangent.xyz);
+    vec3 B = normalize(cross(N, T));
+    // mat3 TBN = mat3(T, B, N);
+    return normalize(mat3(T, B, N) * tangentNormal);
 }
 
 void main()
@@ -54,8 +54,8 @@ void main()
         vec4  ambient         = ambientStrength * lightColor;
 
         // diffuse
-        // vec3 normal         = normalize(inNormal);
-        // vec3 normal         = normalize(2.0 * texture(normalSampler, inTextureCoordinate).rgb - 1.0);
+        // vec3 normal = normalize(inNormal);
+        // vec3 normal = normalize(2.0 * texture(normalSampler, inTextureCoordinate).rgb - 1.0);
         vec3 normal         = computeNormal();
         vec3 lightDirection = normalize(inLightPosition - inPosition);
         vec4 diffuse        = max(dot(normal, lightDirection), 0.0) * lightColor;

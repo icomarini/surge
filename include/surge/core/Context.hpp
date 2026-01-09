@@ -469,10 +469,10 @@ private:
             .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
             .pNext              = nullptr,
             .pApplicationName   = appName.c_str(),
-            .applicationVersion = VK_MAKE_VERSION(1, 3, 250),
+            .applicationVersion = VK_MAKE_VERSION(0, 0, 0),
             .pEngineName        = engineName.c_str(),
-            .engineVersion      = VK_MAKE_VERSION(1, 0, 0),
-            .apiVersion         = VK_API_VERSION_1_4,
+            .engineVersion      = VK_MAKE_VERSION(0, 0, 0),
+            .apiVersion         = VK_API_VERSION_1_3,
         };
         const VkInstanceCreateInfo instanceCreateInfo {
             .sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
