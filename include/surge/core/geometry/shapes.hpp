@@ -78,6 +78,10 @@ static constexpr math::Vector<4> tangentI { 1, 0, 0, 1 };
 static constexpr math::Vector<4> tangentJ { 0, 1, 0, 1 };
 static constexpr math::Vector<4> tangentK { 0, 0, 1, 1 };
 
+// static constexpr math::Vector<3> tangentI { 1, 0, 0 };
+// static constexpr math::Vector<3> tangentJ { 0, 1, 0 };
+// static constexpr math::Vector<3> tangentK { 0, 0, 1 };
+
 static constexpr math::Vector<3> vertex000 { -0.5, -0.5, -0.5 };
 static constexpr math::Vector<3> vertex001 { -0.5, -0.5, +0.5 };
 static constexpr math::Vector<3> vertex010 { -0.5, +0.5, -0.5 };
@@ -172,10 +176,10 @@ static constexpr Shape square {
         //  |/        | /
         //  O---x     |/
         //            O
-        PositionNormalTextureTangent { vertex000, -normalI, texture00, -tangentK },  //  0: x = -0.5
-        PositionNormalTextureTangent { vertex001, -normalI, texture01, -tangentK },  //  1: x = -0.5
-        PositionNormalTextureTangent { vertex010, -normalI, texture10, -tangentK },  //  2: x = -0.5
-        PositionNormalTextureTangent { vertex011, -normalI, texture11, -tangentK },  //  3: x = -0.5
+        PositionNormalTextureTangent { vertex000, -normalI, texture00, -tangentJ },  //  0: x = -0.5
+        PositionNormalTextureTangent { vertex001, -normalI, texture01, -tangentJ },  //  1: x = -0.5
+        PositionNormalTextureTangent { vertex010, -normalI, texture10, -tangentJ },  //  2: x = -0.5
+        PositionNormalTextureTangent { vertex011, -normalI, texture11, -tangentJ },  //  3: x = -0.5
     },
     std::array {
         0, 1, 2, 1, 3, 2,  // x = -0.5

@@ -315,7 +315,7 @@ public:
             .path = "/home/ico/projects/surge/textures/brickwall_normal.jpg"
         };
         const asset::Texture brickwallNormalTexture { command, load::LoadedTexture { brickwallNormalTextureHandle },
-                                                      asset::Texture::texture2d };
+                                                      asset::Texture::texture2dNorm };
 
         const auto [brickwallDescriptorPool, brickwallDescriptorSetLayout, brickwallDescriptorSet] =
             createDescriptorSet(context, brickwallDiffuseTexture, defaults.whiteTexture, brickwallNormalTexture);
@@ -375,7 +375,7 @@ public:
         constexpr bool drawContainer       = false;
         constexpr bool drawContainerNormal = false;
         constexpr bool drawBrickwall       = true;
-        constexpr bool drawBrickwallNormal = true;
+        constexpr bool drawBrickwallNormal = false;
         constexpr bool drawCerberus        = false;
         constexpr bool drawCerberusNormals = false;
         constexpr bool drawDragon          = false;
@@ -400,7 +400,7 @@ public:
                 playerCamera.update(input, context.window.resolution);
                 // playerCamera = Camera<false> { 16.0 / 9.0, lightCamera.vecs.position, -lightCamera.vecs.position };
                 skyboxCamera.update(input, context.window.resolution);
-                lightCamera.update(input.timer, context.window.resolution);
+                // lightCamera.update(input.timer, context.window.resolution);
                 // playerCamera           = lightCamera;
                 renderer.lightPosition = lightCamera.vecs.position;
                 skybox.update(skyboxCamera);
@@ -498,7 +498,11 @@ public:
                         {
                             constexpr core::math::Translation brickwallTranslation { brickwallTranslations.at(i) };
                             constexpr core::math::Rotation    brickwallRotation { core::math::Quaternion<> {
-                                std::sqrt(2) / 2, -std::sqrt(2) / 2, 0, 0 } };
+                                std::sqrt(2) / 2,
+                                -std::sqrt(2) / 2,
+                                0,
+                                0,
+                            } };
                             // constexpr auto                  brickwallRotation = core::math::identity<4>;
 
                             constexpr core::math::Vector<3> brickwallScaling { 4, 4, 4 };

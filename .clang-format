@@ -38,7 +38,7 @@ AlwaysBreakTemplateDeclarations: true
 #  SplitEmptyRecord: true
 #  SplitEmptyNamespace: true
 BreakBeforeBinaryOperators: None
-BreakBeforeBraces: Allman
+BreakBeforeBraces: Allman # BreakBeforeBraces: Attach
 #BreakBeforeInheritanceComma: false
 BreakBeforeTernaryOperators: false
 #BreakConstructorInitializersBeforeComma: false
