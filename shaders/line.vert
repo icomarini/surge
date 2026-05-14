@@ -1,15 +1,13 @@
 #version 450
 
 // input ========================================
-layout(push_constant) uniform PushConstants
-{
+layout(push_constant) uniform PushConstants {
     vec3 a;
     vec3 b;
     vec4 color;
 };
 
-layout(set = 0, binding = 0) uniform Scene
-{
+layout(set = 0, binding = 0) uniform Scene {
     mat4 projection;
     mat4 view;
 };
@@ -17,15 +15,11 @@ layout(set = 0, binding = 0) uniform Scene
 // output =======================================
 layout(location = 0) out vec4 outColor;
 
-void main()
-{
+void main() {
     vec3 vertex = vec3(0.0, 0.0, 0.0);
-    if (gl_VertexIndex == 0)
-    {
+    if (gl_VertexIndex == 0) {
         vertex = a;
-    }
-    else if (gl_VertexIndex == 1)
-    {
+    } else if (gl_VertexIndex == 1) {
         vertex = b;
     }
 

@@ -5,8 +5,7 @@ layout(location = 1) in vec3 inColor;
 layout(location = 2) in vec3 inNormal;
 layout(location = 3) in vec2 inUV;
 
-layout(binding = 0) uniform UBO
-{
+layout(binding = 0) uniform UBO {
     mat4  vp;
     mat4  depthMVP;
     mat4  model;
@@ -25,8 +24,7 @@ layout(location = 5) out vec2 outUV;
 
 const mat4 biasMat = mat4(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.5, 0.5, 0.0, 1.0);
 
-void main()
-{
+void main() {
     outColor  = inColor;
     outNormal = inNormal;
     outUV     = inUV;

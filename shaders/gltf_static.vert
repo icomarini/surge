@@ -8,15 +8,13 @@ layout(location = 3) in vec2 inTexCoord;
 layout(location = 4) in vec4 inJointIndices;
 layout(location = 5) in vec4 inJointWeights;
 
-layout(push_constant) uniform PushConstants
-{
+layout(push_constant) uniform PushConstants {
     mat4 model;
     vec4 baseColorFactor;
     uint isLight;
 };
 
-layout(set = 0, binding = 0) uniform Scene
-{
+layout(set = 0, binding = 0) uniform Scene {
     mat4 projection;
     mat4 view;
     vec4 lightColor;
@@ -29,8 +27,7 @@ layout(location = 1) out vec3 outColor;
 layout(location = 2) out vec3 outNormal;
 layout(location = 3) out vec3 outPosition;
 
-void main()
-{
+void main() {
     gl_Position = vec4(inPosition, 1.0) * model * view * projection;
     outTexCoord = inTexCoord;
     outColor    = baseColorFactor.rgb;

@@ -8,15 +8,13 @@ layout(location = 3) in vec3 inLightPosition;
 layout(location = 4) in vec3 inTangent;
 // layout(location = 2) in vec3 inColor;
 
-layout(push_constant) uniform PushConstants
-{
+layout(push_constant) uniform PushConstants {
     mat4 model;
     vec4 baseColor;
     uint isLight;
 };
 
-layout(set = 0, binding = 0) uniform Scene
-{
+layout(set = 0, binding = 0) uniform Scene {
     mat4 projection;
     mat4 view;
     vec4 lightColor;
@@ -30,8 +28,7 @@ layout(set = 1, binding = 2) uniform sampler2D normalSampler;
 // output =======================================
 layout(location = 0) out vec4 outColor;
 
-vec3 computeNormal()
-{
+vec3 computeNormal() {
     vec3 tangentNormal = texture(normalSampler, inTextureCoordinate).rgb * 2.0 - 1.0;
 
     vec3 N = normalize(inNormal);
@@ -41,14 +38,10 @@ vec3 computeNormal()
     // return normalize(inNormal);
 }
 
-void main()
-{
-    if (isLight == 1)
-    {
+void main() {
+    if (isLight == 1) {
         outColor = baseColor;
-    }
-    else
-    {
+    } else {
         // ambient
         float ambientStrength = 0.001;
         vec4  ambient         = ambientStrength * lightColor;

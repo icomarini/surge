@@ -8,22 +8,19 @@ layout(location = 3) in vec2 inTexCoord;
 layout(location = 4) in vec4 inJointIndices;
 layout(location = 5) in vec4 inJointWeights;
 
-layout(push_constant) uniform PushConstants
-{
+layout(push_constant) uniform PushConstants {
     mat4 model;
     vec4 baseColorFactor;
     uint vertexStageFlag;
     uint fragmentStageFlag;
 };
 
-layout(set = 0, binding = 0) uniform Scene
-{
+layout(set = 0, binding = 0) uniform Scene {
     mat4 projection;
     mat4 view;
 };
 
-layout(set = 2, binding = 0) readonly buffer JointMatrices
-{
+layout(set = 2, binding = 0) readonly buffer JointMatrices {
     mat4 jointMatrices[];
 };
 
@@ -34,8 +31,7 @@ layout(location = 2) out vec3 outNormal;
 layout(location = 3) out vec3 outViewVec;
 layout(location = 4) out vec3 outLightVec;
 
-void main()
-{
+void main() {
     // pass on
     outTexCoord = inTexCoord;
     outColor    = vec3(1.0f, 1.0f, 1.0f);

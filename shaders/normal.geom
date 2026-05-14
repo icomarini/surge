@@ -6,15 +6,13 @@ layout(location = 0) in vec4 inPosition[];
 layout(location = 1) in vec3 inNormal[];
 layout(location = 2) in vec4 inTangent[];
 
-layout(push_constant) uniform PushConstants
-{
+layout(push_constant) uniform PushConstants {
     mat4 model;
     vec4 baseColor;
     uint isLight;
 };
 
-layout(set = 0, binding = 0) uniform Scene
-{
+layout(set = 0, binding = 0) uniform Scene {
     mat4 projection;
     mat4 view;
     vec4 lightColor;
@@ -36,11 +34,9 @@ layout(location = 0) out vec3 outColor;
 //     return normalize(TBN * tangentNormal);
 // }
 
-void main(void)
-{
+void main(void) {
     float normalLength = 0.1;
-    for (int i = 0; i < gl_in.length(); i++)
-    {
+    for (int i = 0; i < gl_in.length(); i++) {
         vec3 position = gl_in[i].gl_Position.xyz;
         vec3 normal   = normalize(inNormal[i].xyz);
 
@@ -60,8 +56,7 @@ void main(void)
 
         EndPrimitive();
     }
-    for (int i = 0; i < gl_in.length(); i++)
-    {
+    for (int i = 0; i < gl_in.length(); i++) {
         vec3 position = gl_in[i].gl_Position.xyz;
         vec3 tangent  = normalize(inTangent[i].xyz);
 
@@ -77,8 +72,7 @@ void main(void)
 
         EndPrimitive();
     }
-    for (int i = 0; i < gl_in.length(); i++)
-    {
+    for (int i = 0; i < gl_in.length(); i++) {
         vec3 position  = gl_in[i].gl_Position.xyz;
         vec3 N         = normalize(inNormal[i].xyz);
         vec3 T         = normalize(inTangent[i].xyz);

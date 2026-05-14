@@ -6,15 +6,13 @@ layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 inTextureCoordinate;
 layout(location = 3) in vec4 inTangent;
 
-layout(push_constant) uniform PushConstants
-{
+layout(push_constant) uniform PushConstants {
     mat4 model;
     vec4 baseColor;
     uint isLight;
 };
 
-layout(set = 0, binding = 0) uniform Scene
-{
+layout(set = 0, binding = 0) uniform Scene {
     mat4 projection;
     mat4 view;
     vec4 lightColor;
@@ -29,8 +27,7 @@ layout(location = 3) out vec3 outLightPosition;
 layout(location = 4) out vec3 outTangent;
 // layout(location = 2) out vec3 outColor;
 
-void main()
-{
+void main() {
     gl_Position          = vec4(inPosition, 1.0) * model * view * projection;
     outPosition          = vec3(vec4(inPosition, 1.0) * model * view);
     outNormal            = mat3(inverse(model * view)) * inNormal;

@@ -6,16 +6,14 @@ layout(location = 1) in vec3 inColor;
 layout(location = 2) in vec3 inNormal;
 layout(location = 3) in vec3 inPosition;
 
-layout(push_constant) uniform PushConstants
-{
+layout(push_constant) uniform PushConstants {
     mat4 model;
     vec4 color;
     uint isLight;
     // uint fragmentStageFlag;
 };
 
-layout(set = 0, binding = 0) uniform Scene
-{
+layout(set = 0, binding = 0) uniform Scene {
     mat4 projection;
     mat4 view;
     vec4 lightColor;
@@ -27,8 +25,7 @@ layout(set = 1, binding = 0) uniform sampler2D texSampler;
 // output =======================================
 layout(location = 0) out vec4 outColor;
 
-void main()
-{
+void main() {
     // if (fragmentStageFlag == 0)
     // {
     //     outColor = texture(texSampler, fragTexCoord);
@@ -45,12 +42,9 @@ void main()
     // {
     //     outColor = vec4(1.0, 1.0, 1.0, 1.0);
     // }
-    if (isLight == 1)
-    {
+    if (isLight == 1) {
         outColor = vec4(inColor, 1.0);
-    }
-    else
-    {
+    } else {
         vec3 normal         = normalize(inNormal);
         vec3 lightDirection = normalize(lightPosition - inPosition);
 

@@ -5,16 +5,14 @@ layout(location = 0) in vec4 fragColor;
 
 layout(location = 0) out vec4 outColor;
 
-layout(push_constant) uniform PushConstants
-{
+layout(push_constant) uniform PushConstants {
     mat4 mvp;
     uint vertexStageFlag;
     uint fragmentStageFlag;
 }
 pushConstants;
 
-void main()
-{
+void main() {
     // if (pushConstants.fragmentStageFlag == 0)
     // {
     //     outColor = texture(texSampler, fragTexCoord);

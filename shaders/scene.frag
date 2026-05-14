@@ -16,22 +16,18 @@ layout(location = 0) out vec4 outFragColor;
 
 #define ambient 0.1
 
-float textureProj(vec4 shadowCoord, vec2 off)
-{
+float textureProj(vec4 shadowCoord, vec2 off) {
     float shadow = 1.0;
-    if (shadowCoord.z > -1.0 && shadowCoord.z < 1.0)
-    {
+    if (shadowCoord.z > -1.0 && shadowCoord.z < 1.0) {
         float dist = texture(shadowMap, shadowCoord.st + off).r;
-        if (shadowCoord.w > 0.0 && dist < shadowCoord.z)
-        {
+        if (shadowCoord.w > 0.0 && dist < shadowCoord.z) {
             shadow = ambient;
         }
     }
     return shadow;
 }
 
-float filterPCF(vec4 sc)
-{
+float filterPCF(vec4 sc) {
     ivec2 texDim = textureSize(shadowMap, 0);
     float scale  = 1.5;
     float dx     = scale * 1.0 / float(texDim.x);
@@ -41,10 +37,8 @@ float filterPCF(vec4 sc)
     int   count        = 0;
     int   range        = 1;
 
-    for (int x = -range; x <= range; x++)
-    {
-        for (int y = -range; y <= range; y++)
-        {
+    for (int x = -range; x <= range; x++) {
+        for (int y = -range; y <= range; y++) {
             shadowFactor += textureProj(sc, vec2(dx * x, dy * y));
             count++;
         }
@@ -52,8 +46,7 @@ float filterPCF(vec4 sc)
     return shadowFactor / count;
 }
 
-void main()
-{
+void main() {
     float shadow = (enablePCF == 1) ? filterPCF(inShadowCoord / inShadowCoord.w) :
                                       textureProj(inShadowCoord / inShadowCoord.w, vec2(0.0));
 
