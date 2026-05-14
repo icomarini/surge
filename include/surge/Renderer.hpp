@@ -6,14 +6,11 @@
 #include "surge/asset/Line.hpp"
 #include "surge/core/Descriptor.hpp"
 
-namespace surge
-{
+namespace surge {
 
-class Renderer : public core::Contextualized
-{
+class Renderer : public core::Contextualized {
 public:
-    struct SceneBuffer
-    {
+    struct SceneBuffer {
         core::math::Matrix<4, 4> perspective;
         core::math::Matrix<4, 4> view;
         core::math::Vector<4>    lightColor;
@@ -31,14 +28,11 @@ public:
                                          core::Buffer> { scene } }
         , pipelines { createPipelines(context, descriptor.setLayout) }
         , lightColor { core::Colors<core::Type::rgba>::white }
-        , lightPosition {}
-    {
+        , lightPosition {} {
     }
 
-    ~Renderer()
-    {
-        for (const auto& [name, pipeline] : pipelines)
-        {
+    ~Renderer() {
+        for (const auto& [name, pipeline] : pipelines) {
             context.destroy(pipeline.first);
             context.destroy(pipeline.second);
         }
@@ -46,8 +40,7 @@ public:
 
     void createPipeline(const std::string& name, const VkPipelineVertexInputStateCreateInfo& vertexInputState,
                         const core::shader::Type shader, const VkDescriptorSetLayout materialDescriptorSetLayout,
-                        const std::optional<VkDescriptorSetLayout> jointMatricesDescriptorSetLayout)
-    {
+                        const std::optional<VkDescriptorSetLayout> jointMatricesDescriptorSetLayout) {
         constexpr VkPushConstantRange nodePushConstantRange { core::createPushConstantRange<asset::Node::PushConstants>(
             VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT) };
 
@@ -63,14 +56,12 @@ public:
 
 
     void drawLine(const VkCommandBuffer commandBuffer, const VkPipelineLayout pipelineLayout,
-                  const asset::Line& line) const
-    {
+                  const asset::Line& line) const {
         vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(asset::Line), &line);
         vkCmdDraw(commandBuffer, 2, 1, 0, 0);
     }
 
-    void drawParticles(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const
-    {
+    void drawParticles(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const {
         // if (physics.particles.empty() && physics.anchors.empty())
         // {
         //     return;
@@ -105,8 +96,7 @@ public:
         // }
     }
 
-    void drawSprings(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const
-    {
+    void drawSprings(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const {
         // if (physics.springs.empty() && physics.anchoredSprings.empty())
         // {
         //     return;
@@ -143,8 +133,7 @@ public:
     }
 
     void drawPoint(const VkCommandBuffer commandBuffer, const VkPipelineLayout pipelineLayout,
-                   const asset::Point& point) const
-    {
+                   const asset::Point& point) const {
         vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(asset::Point), &point);
         vkCmdDraw(commandBuffer, 1, 1, 0, 0);
     }
@@ -156,23 +145,20 @@ public:
     core::math::Vector<3>                                          lightPosition;
 
 
-    void update(const Camera<false>& camera)
-    {
+    void update(const Camera<false>& camera) {
         const SceneBuffer sceneMatrices { core::math::fullMatrix(camera.mats.perspective),
                                           core::math::fullMatrix(camera.mats.view), lightColor, lightPosition };
         memcpy(scene.mapped, &sceneMatrices, sizeof(SceneBuffer));
     }
 
-    void draw(const VkCommandBuffer commandBuffer) const
-    {
+    void draw(const VkCommandBuffer commandBuffer) const {
         drawParticles(commandBuffer, descriptor.set);
         drawSprings(commandBuffer, descriptor.set);
     }
 
 private:
     static std::map<std::string, std::pair<VkPipelineLayout, VkPipeline>>
-    createPipelines(const core::Context& context, const VkDescriptorSetLayout sceneDescriptorSetLayout)
-    {
+    createPipelines(const core::Context& context, const VkDescriptorSetLayout sceneDescriptorSetLayout) {
         std::map<std::string, std::pair<VkPipelineLayout, VkPipeline>> pipelines;
 
         constexpr VkPipelineVertexInputStateCreateInfo emptyVertexInputState = core::createVertexInputState();

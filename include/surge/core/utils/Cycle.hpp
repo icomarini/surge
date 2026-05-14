@@ -2,35 +2,28 @@
 
 #include <vector>
 
-namespace surge::core::utils
-{
+namespace surge::core::utils {
 template<typename T>
-class Cycle
-{
+class Cycle {
 public:
     Cycle(const uint32_t size)
         : data { size }
-        , currentIndex {}
-    {
+        , currentIndex {} {
     }
 
-    uint32_t size() const
-    {
+    uint32_t size() const {
         return data.size();
     }
 
-    void set(const uint32_t index, T&& value)
-    {
+    void set(const uint32_t index, T&& value) {
         data.at(index) = value;
     }
 
-    const T& current() const
-    {
+    const T& current() const {
         return data.at(currentIndex);
     }
 
-    void rotate()
-    {
+    void rotate() {
         currentIndex = (currentIndex + 1) % data.size();
     }
 

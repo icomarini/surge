@@ -3,12 +3,10 @@
 #include "surge/physics/Particle.hpp"
 #include "surge/physics/ParticleForceRegistry.hpp"
 
-namespace surge::physics
-{
+namespace surge::physics {
 constexpr Acceleration earthGravity { 0, -9.81, 0 };
 
-class Physics
-{
+class Physics {
 public:
     ForceRegistry   registry;
     ParticleGravity gravity;
@@ -19,14 +17,12 @@ public:
     std::vector<Spring>         springs;
 
     Physics(const Acceleration& gravity /*, const std::size_t size*/)
-        : gravity { gravity }
-    // , size { size }
+        : gravity { gravity }  // , size { size }
     {
         allocate(256);
     }
 
-    void allocate(const std::size_t size)
-    {
+    void allocate(const std::size_t size) {
         registry.reserve(size);
         anchors.reserve(size);
         particles.reserve(size);
@@ -34,8 +30,7 @@ public:
         springs.reserve(size);
     }
 
-    void clear()
-    {
+    void clear() {
         registry.clear();
         anchors.clear();
         particles.clear();
@@ -44,8 +39,7 @@ public:
         // allocate(256);
     }
 
-    physics::Anchor& addAnchor(const Position& position)
-    {
+    physics::Anchor& addAnchor(const Position& position) {
         auto& anchor = anchors.emplace_back(Anchor {
             .position = position,
         });
@@ -53,8 +47,7 @@ public:
     }
 
     physics::Particle& addParticle(const Mass mass, const Position& position, const Velocity& velocity = { 0, 0, 0 },
-                                   const Acceleration& acceleration = { 0, 0, 0 })
-    {
+                                   const Acceleration& acceleration = { 0, 0, 0 }) {
         auto& particle = particles.emplace_back(Particle {
             .mass             = mass,
             .position         = position,
@@ -68,25 +61,21 @@ public:
     }
 
     void addAnchoredSpring(const Anchor& anchor, Particle& particle, const Scalar springConstant,
-                           const Scalar restLength, const Scalar damping = 0.05)
-    {
+                           const Scalar restLength, const Scalar damping = 0.05) {
         auto& anchoredSpring = anchoredSprings.emplace_back(anchor, particle, springConstant, restLength, damping);
         registry.add(particle, anchoredSpring);
     }
 
     void addSpring(Particle& first, Particle& second, const Scalar springConstant, const Scalar restLength,
-                   const Scalar damping = 0.05)
-    {
+                   const Scalar damping = 0.05) {
         // anchoredSprings.emplace_back(anchor, particle, springConstant, restLength, damping);
         auto& spring = springs.emplace_back(first, second, springConstant, restLength, damping);
         registry.add(first, spring);
     }
 
-    void update(const Time duration)
-    {
+    void update(const Time duration) {
         registry.updateForces(duration);
-        for (auto& particle : particles)
-        {
+        for (auto& particle : particles) {
             particle.integrate(duration);
         }
     }

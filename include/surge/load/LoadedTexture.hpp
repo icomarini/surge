@@ -12,20 +12,16 @@
 #include <variant>
 #include <span>
 
-namespace surge::load
-{
+namespace surge::load {
 
-class LoadedTexture
-{
+class LoadedTexture {
 public:
-    enum class Type
-    {
+    enum class Type {
         texture2d = 0,
         cube,
     };
 
-    struct Handle
-    {
+    struct Handle {
         Type                  type;
         std::filesystem::path path;
     };
@@ -36,16 +32,13 @@ public:
         , mipLevels { 1 }
         , arrayLayers { 1 }
         , name { handle.path.filename() }
-        , vOffsets {}
-    {
+        , vOffsets {} {
         const auto fileExtension = handle.path.extension();
 
-        if (fileExtension == ".ktx")
-        {
+        if (fileExtension == ".ktx") {
             ktxTexture* data = nullptr;
             if (ktxTexture_CreateFromNamedFile(handle.path.string().c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
-                                               &data) != KTX_SUCCESS)
-            {
+                                               &data) != KTX_SUCCESS) {
                 throw std::runtime_error("Failed to load texture " + handle.path.string());
             }
 
@@ -54,27 +47,21 @@ public:
             mipLevels   = data->numLevels;
             arrayLayers = data->numFaces;
 
-            for (uint32_t arrayLayer = 0; arrayLayer < arrayLayers; ++arrayLayer)
-            {
-                for (uint32_t mipLevel = 0; mipLevel < mipLevels; ++mipLevel)
-                {
+            for (uint32_t arrayLayer = 0; arrayLayer < arrayLayers; ++arrayLayer) {
+                for (uint32_t mipLevel = 0; mipLevel < mipLevels; ++mipLevel) {
                     ktx_size_t offset;
-                    if (ktxTexture_GetImageOffset(data, mipLevel, 0, arrayLayer, &offset) != KTX_SUCCESS)
-                    {
+                    if (ktxTexture_GetImageOffset(data, mipLevel, 0, arrayLayer, &offset) != KTX_SUCCESS) {
                         throw std::runtime_error("Failed to get offset");
                     }
                     vOffsets.emplace_back(mipLevel, arrayLayer, offset);
                 }
             }
             pData = data;
-        }
-        else
-        {
+        } else {
             int        texWidth, texHeight, texChannels;
             const auto data =
                 stbi_load(handle.path.string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-            if (data == nullptr)
-            {
+            if (data == nullptr) {
                 throw std::runtime_error("Failed to load texture " + handle.path.string());
             }
 
@@ -115,8 +102,7 @@ public:
     }
 
     LoadedTexture(const std::filesystem::path& path)
-        : LoadedTexture(Handle { Type::texture2d, path })
-    {
+        : LoadedTexture(Handle { Type::texture2d, path }) {
     }
 
     LoadedTexture(const std::string& name, const uint8_t* const buffer, const uint32_t width, const uint32_t height)
@@ -126,8 +112,7 @@ public:
         , arrayLayers { 1 }
         , name { name }
         , pData { buffer }
-        , vOffsets { {} }
-    {
+        , vOffsets { {} } {
     }
 
     LoadedTexture(const std::string& name, const uint8_t* const buffer, const uint64_t size)
@@ -137,12 +122,10 @@ public:
         , arrayLayers { 1 }
         , name { name }
         , pData {}
-        , vOffsets { {} }
-    {
+        , vOffsets { {} } {
         int        texWidth, texHeight, texChannels;
         const auto data = stbi_load_from_memory(buffer, size, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-        if (data == nullptr)
-        {
+        if (data == nullptr) {
             throw std::runtime_error("Failed to load texture '" + name + "' from buffer");
         }
         pData    = data;
@@ -151,42 +134,35 @@ public:
         vOffsets = { { 0, 0, 0 } };
     }
 
-    ~LoadedTexture()
-    {
-        std::visit(
-            core::overload {
-                [](const uint8_t*) {},
-                [](stbi_uc* data) { stbi_image_free(data); },
-                [](ktxTexture* data) { ktxTexture_Destroy(data); },
-            },
-            pData);
+    ~LoadedTexture() {
+        std::visit(core::overload {
+                       [](const uint8_t*) {},
+                       [](stbi_uc* data) { stbi_image_free(data); },
+                       [](ktxTexture* data) { ktxTexture_Destroy(data); },
+                   },
+                   pData);
     }
 
-    const void* data() const
-    {
-        return std::visit(
-            core::overload {
-                [](const uint8_t* data) { return static_cast<const void*>(data); },
-                [](stbi_uc* data) { return static_cast<const void*>(data); },
-                [](ktxTexture* data) { return static_cast<const void*>(ktxTexture_GetData(data)); },
-            },
-            pData);
+    const void* data() const {
+        return std::visit(core::overload {
+                              [](const uint8_t* data) { return static_cast<const void*>(data); },
+                              [](stbi_uc* data) { return static_cast<const void*>(data); },
+                              [](ktxTexture* data) { return static_cast<const void*>(ktxTexture_GetData(data)); },
+                          },
+                          pData);
     }
 
-    const std::vector<std::tuple<uint32_t, uint32_t, uint64_t>>& offsets() const
-    {
+    const std::vector<std::tuple<uint32_t, uint32_t, uint64_t>>& offsets() const {
         return vOffsets;
     }
 
-    uint64_t memorySize() const
-    {
-        return std::visit(
-            core::overload {
-                [&](const uint8_t*) { return static_cast<uint64_t>(width * height * 4); },
-                [&](stbi_uc*) { return static_cast<uint64_t>(width * height * 4); },
-                [](ktxTexture* data) { return static_cast<uint64_t>(ktxTexture_GetDataSize(data)); },
-            },
-            pData);
+    uint64_t memorySize() const {
+        return std::visit(core::overload {
+                              [&](const uint8_t*) { return static_cast<uint64_t>(width * height * 4); },
+                              [&](stbi_uc*) { return static_cast<uint64_t>(width * height * 4); },
+                              [](ktxTexture* data) { return static_cast<uint64_t>(ktxTexture_GetDataSize(data)); },
+                          },
+                          pData);
     }
 
     uint32_t    width;

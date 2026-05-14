@@ -2,11 +2,9 @@
 
 #include "surge/physics/Particle.hpp"
 
-namespace surge::physics
-{
+namespace surge::physics {
 
-struct ParticleContact
-{
+struct ParticleContact {
     Particle&       particleA;
     Particle*       particleB;
     float           restitution;

@@ -5,12 +5,10 @@
 
 #include <sstream>
 
-namespace surge::core::math
-{
+namespace surge::core::math {
 // implementation: Identity
 template<Size s, typename T = Float32>
-class Identity
-{
+class Identity {
 public:
     using value_type = T;
 };
@@ -27,14 +25,10 @@ constexpr bool nonzero<r, c, Identity<s, T>> = r == c;
 
 template<Size row, Size col, Size size, typename T>
     requires ValidIndices<row, col, Identity<size, T>>
-constexpr auto& get(const Identity<size, T>&)
-{
-    if constexpr (row == col)
-    {
+constexpr auto& get(const Identity<size, T>&) {
+    if constexpr (row == col) {
         return one<T>;
-    }
-    else
-    {
+    } else {
         return zero<T>;
     }
 }
@@ -45,9 +39,7 @@ constexpr Identity<size> identity {};
 
 // implementation: Translation
 template<typename T = float>
-class Translation : public std::array<T, 3>
-{
-};
+class Translation : public std::array<T, 3> { };
 
 template<typename T>
 constexpr Size rows<Translation<T>> = 4;
@@ -60,41 +52,31 @@ constexpr bool nonzero<row, col, Translation<T>> = (row == col || col == 3);
 
 template<Size row, Size col, typename T>
     requires ValidIndices<row, col, Translation<T>> && HasSingleSubscriptOperator<Translation<T>>
-constexpr auto& get(const Translation<T>& t)
-{
-    if constexpr (row == col)
-    {
+constexpr auto& get(const Translation<T>& t) {
+    if constexpr (row == col) {
         return one<T>;
-    }
-    else if constexpr (col == 3)
-    {
+    } else if constexpr (col == 3) {
         return t[row];
-    }
-    else
-    {
+    } else {
         return zero<T>;
     }
 }
 
 // implementation: Rotation
 template<typename T = Float32>
-class Rotation
-{
+class Rotation {
 public:
     using value_type = T;
 
     constexpr Rotation()
-        : m {}
-    {
+        : m {} {
     }
 
     constexpr Rotation(const Matrix<3, 3, T>& r)
-        : m { r }
-    {
+        : m { r } {
     }
 
-    constexpr Rotation(const EulerAngles<Angle::degrees, T>& rotation)
-    {
+    constexpr Rotation(const EulerAngles<Angle::degrees, T>& rotation) {
         const auto y = deg2rad(rotation.at(0));
         const auto p = -deg2rad(rotation.at(1));
         const auto r = deg2rad(rotation.at(2));
@@ -120,16 +102,14 @@ public:
     }
 
     constexpr Rotation(const Quaternion<T>& rotation)
-        : m { createMatrix(rotation) }
-    {
+        : m { createMatrix(rotation) } {
     }
 
     // private:
     Matrix<3, 3, T> m;
 
 private:
-    constexpr Matrix<3, 3, T> createMatrix(const Quaternion<T>& rotation)
-    {
+    constexpr Matrix<3, 3, T> createMatrix(const Quaternion<T>& rotation) {
         const auto  xx { get<0>(rotation) * get<0>(rotation) };
         const auto  yy { get<1>(rotation) * get<1>(rotation) };
         const auto  zz { get<2>(rotation) * get<2>(rotation) };
@@ -161,34 +141,25 @@ constexpr bool nonzero<row, col, Rotation<T>> = ((row < 3 && col < 3) || (row ==
 
 template<Size row, Size col, typename T>
     requires ValidIndices<row, col, Rotation<T>>
-constexpr auto& get(const Rotation<T>& rotation)
-{
-    if constexpr (row < 3 && col < 3)
-    {
+constexpr auto& get(const Rotation<T>& rotation) {
+    if constexpr (row < 3 && col < 3) {
         return get<row, col>(rotation.m);
-    }
-    else if constexpr (row == 3 && col == 3)
-    {
+    } else if constexpr (row == 3 && col == 3) {
         return one<T>;
-    }
-    else
-    {
+    } else {
         return zero<T>;
     }
 }
 
 template<Size row, Size col, typename T>
     requires ValidIndices<row, col, Rotation<T>> && (row < 3 && col < 3)
-constexpr auto& get(Rotation<T>& rotation)
-{
+constexpr auto& get(Rotation<T>& rotation) {
     return get<row, col>(rotation.m);
 }
 
 // implementation: Scaling
 template<typename T = float>
-class Scaling : public std::array<T, 3>
-{
-};
+class Scaling : public std::array<T, 3> { };
 
 template<typename T>
 constexpr Size rows<Scaling<T>> = 4;
@@ -201,26 +172,20 @@ constexpr bool nonzero<row, col, Scaling<T>> = (row == col);
 
 template<Size row, Size col, typename T>
     requires ValidIndices<row, col, Scaling<T>>
-constexpr auto& get(const Scaling<T>& t)
-{
-    if constexpr (row == col)
-    {
-        if constexpr (row == 3)
-        {
+constexpr auto& get(const Scaling<T>& t) {
+    if constexpr (row == col) {
+        if constexpr (row == 3) {
             return one<T>;
         }
         return t[row];
-    }
-    else
-    {
+    } else {
         return zero<T>;
     }
 }
 
 // implementation: Perspective
 template<typename T = Float32>
-class Perspective
-{
+class Perspective {
 public:
     using value_type = T;
 
@@ -228,8 +193,7 @@ public:
         : a11 { -1 / std::tan(fovy / 2) }
         , a00 { -a11 / aspect }
         , a22 { zFar / (zNear - zFar) }
-        , a23 { -(zFar * zNear) / (zFar - zNear) }
-    {
+        , a23 { -(zFar * zNear) / (zFar - zNear) } {
     }
 
     T a11;
@@ -251,38 +215,25 @@ constexpr bool nonzero<row, col, Perspective<T>> =
 
 template<Size row, Size col, typename T>
     requires ValidIndices<row, col, Perspective<T>>
-constexpr auto& get(const Perspective<T>& t)
-{
-    if constexpr (row == 0 && col == 0)
-    {
+constexpr auto& get(const Perspective<T>& t) {
+    if constexpr (row == 0 && col == 0) {
         return t.a00;
-    }
-    else if constexpr (row == 1 && col == 1)
-    {
+    } else if constexpr (row == 1 && col == 1) {
         return t.a11;
-    }
-    else if constexpr (row == 2 && col == 2)
-    {
+    } else if constexpr (row == 2 && col == 2) {
         return t.a22;
-    }
-    else if constexpr (row == 2 && col == 3)
-    {
+    } else if constexpr (row == 2 && col == 3) {
         return t.a23;
-    }
-    else if constexpr (row == 3 && col == 2)
-    {
+    } else if constexpr (row == 3 && col == 2) {
         return negativeOne<T>;
-    }
-    else
-    {
+    } else {
         return zero<T>;
     }
 }
 
 // implementation: View
 template<typename T = Float32>
-class View
-{
+class View {
 public:
     using value_type = T;
 
@@ -290,8 +241,7 @@ public:
         : f { -normalize(center - eye) }
         , s { normalize(cross(-f, up)) }
         , u { cross(s, -f) }
-        , e { -dot(s, eye), -dot(u, eye), dot(-f, eye) }
-    {
+        , e { -dot(s, eye), -dot(u, eye), dot(-f, eye) } {
     }
 
     // private:
@@ -313,30 +263,18 @@ constexpr bool nonzero<row, col, View<T>> = ((col < 3 && row == 0) || (col < 3 &
 
 template<Size row, Size col, typename T>
     requires ValidIndices<row, col, View<T>>
-constexpr auto& get(const View<T>& t)
-{
-    if constexpr (col < 3 && row == 0)
-    {
+constexpr auto& get(const View<T>& t) {
+    if constexpr (col < 3 && row == 0) {
         return t.s.at(col);
-    }
-    else if constexpr (col < 3 && row == 1)
-    {
+    } else if constexpr (col < 3 && row == 1) {
         return t.u.at(col);
-    }
-    else if constexpr (col < 3 && row == 2)
-    {
+    } else if constexpr (col < 3 && row == 2) {
         return t.f.at(col);
-    }
-    else if constexpr (col == 3 && row < 3)
-    {
+    } else if constexpr (col == 3 && row < 3) {
         return t.e.at(row);
-    }
-    else if constexpr (col == 3 && row == 3)
-    {
+    } else if constexpr (col == 3 && row == 3) {
         return one<T>;
-    }
-    else
-    {
+    } else {
         return zero<T>;
     }
 }

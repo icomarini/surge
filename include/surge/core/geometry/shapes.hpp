@@ -3,8 +3,7 @@
 #include "surge/core/geometry/Shape.hpp"
 #include "surge/core/geometry/Vertex.hpp"
 
-namespace surge::core::geometry
-{
+namespace surge::core::geometry {
 // using PositionAndColor = Vertex<Attribute::position, Attribute::color>;
 using Position = Vertex<AttributeSlot<Attribute::position, math::Vector<3>, 3, Format::sfloat>>;
 

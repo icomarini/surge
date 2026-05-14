@@ -2,19 +2,16 @@
 
 #include <imgui.h>
 
-namespace surge::overlay
-{
+namespace surge::overlay {
 
-class Font
-{
+class Font {
 public:
     Font()
         : width {}
         , height {}
         , mipLevels { 1 }
         , arrayLayers { 1 }
-        , name { "fonts" }
-    {
+        , name { "fonts" } {
         auto& io       = ImGui::GetIO();
         io.IniFilename = nullptr;
         io.LogFilename = nullptr;
@@ -32,18 +29,15 @@ public:
         fonts.assign(data, data + size);
     }
 
-    const void* data() const
-    {
+    const void* data() const {
         return static_cast<const void*>(fonts.data());
     }
 
-    uint64_t memorySize() const
-    {
+    uint64_t memorySize() const {
         return width * height * 4 * sizeof(char);
     }
 
-    std::vector<std::tuple<uint32_t, uint32_t, uint64_t>> offsets() const
-    {
+    std::vector<std::tuple<uint32_t, uint32_t, uint64_t>> offsets() const {
         return { { 0, 0, 0 } };
     }
 

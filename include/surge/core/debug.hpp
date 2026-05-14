@@ -2,8 +2,7 @@
 
 #include <iostream>
 
-namespace surge::core
-{
+namespace surge::core {
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(const VkDebugUtilsMessageSeverityFlagBitsEXT /*messageSeverity*/,
                                              const VkDebugUtilsMessageTypeFlagsEXT /*messageType*/,
@@ -16,16 +15,14 @@ void                           destroyDebugMessenger(const VkInstance instance, 
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(const VkDebugUtilsMessageSeverityFlagBitsEXT /*messageSeverity*/,
                                              const VkDebugUtilsMessageTypeFlagsEXT /*messageType*/,
                                              const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
-                                             void* /*userData*/)
-{
+                                             void* /*userData*/) {
     std::cerr << std::endl;
     std::cerr << "=============================================" << std::endl;
     std::cerr << callbackData->pMessage << std::endl;
     return VK_FALSE;
 }
 
-VkDebugUtilsMessengerEXT createDebugMessenger(const VkInstance instance)
-{
+VkDebugUtilsMessengerEXT createDebugMessenger(const VkInstance instance) {
     constexpr VkDebugUtilsMessengerCreateInfoEXT debugInfo {
         .sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
         .pNext           = nullptr,
@@ -41,14 +38,12 @@ VkDebugUtilsMessengerEXT createDebugMessenger(const VkInstance instance)
 
     const auto vkCreateDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
         vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
-    if (vkCreateDebugUtilsMessengerEXT == nullptr)
-    {
+    if (vkCreateDebugUtilsMessengerEXT == nullptr) {
         throw std::runtime_error("Failed to set up debug messenger");
     }
 
     VkDebugUtilsMessengerEXT debugMessenger;
-    if (vkCreateDebugUtilsMessengerEXT(instance, &debugInfo, nullptr, &debugMessenger) != VK_SUCCESS)
-    {
+    if (vkCreateDebugUtilsMessengerEXT(instance, &debugInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
         throw std::runtime_error("Failed to set up debug messenger");
     }
     return debugMessenger;
@@ -56,16 +51,13 @@ VkDebugUtilsMessengerEXT createDebugMessenger(const VkInstance instance)
 
 
 void destroyDebugMessenger(const VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
-                           const VkAllocationCallbacks* pAllocator)
-{
+                           const VkAllocationCallbacks* pAllocator) {
     auto vkDestroyDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
         vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
-    if (vkDestroyDebugUtilsMessengerEXT == nullptr)
-    {
+    if (vkDestroyDebugUtilsMessengerEXT == nullptr) {
         throw std::runtime_error("Failed to destroy debug messenger");
     }
-    if (vkDestroyDebugUtilsMessengerEXT != nullptr)
-    {
+    if (vkDestroyDebugUtilsMessengerEXT != nullptr) {
         vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, pAllocator);
     }
 }

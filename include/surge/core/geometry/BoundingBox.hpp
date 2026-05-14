@@ -2,10 +2,8 @@
 
 #include "surge/core/math/Vector.hpp"
 
-namespace surge::core::geometry
-{
-struct BoundingBox
-{
+namespace surge::core::geometry {
+struct BoundingBox {
     math::Vector<3> min;
     math::Vector<3> max;
     // bool      valid = false;

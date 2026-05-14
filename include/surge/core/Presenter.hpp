@@ -4,23 +4,19 @@
 #include "surge/core/Swapchain.hpp"
 #include "surge/core/utils/Cycle.hpp"
 
-namespace surge::core
-{
+namespace surge::core {
 
-class Presenter : public Contextualized
-{
+class Presenter : public Contextualized {
 public:
     Presenter(const Command& command)
         : Contextualized { command.context }
         , swapchain { std::in_place, context }
         , semaphores { createSemaphores(context, swapchain->imageCount()) }
         , frames { createFrames(command) }
-        , imageIndex {}
-    {
+        , imageIndex {} {
     }
 
-    static void prepareCommandBuffer(VkCommandBuffer commandBuffer)
-    {
+    static void prepareCommandBuffer(VkCommandBuffer commandBuffer) {
         vkResetCommandBuffer(commandBuffer, 0);
 
         constexpr VkCommandBufferBeginInfo beginInfo {
@@ -29,14 +25,12 @@ public:
             .flags            = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
             .pInheritanceInfo = nullptr,
         };
-        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
-        {
+        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
             throw std::runtime_error("Failed to begin recording command buffer");
         }
     }
 
-    void beginRendering()
-    {
+    void beginRendering() {
         const auto& frame                 = swapchain->frames.at(imageIndex);
         const auto [fence, commandBuffer] = frames.current();
 
@@ -101,16 +95,14 @@ public:
         Extern::beginRendering(commandBuffer, &renderInfo);
     }
 
-    void endRendering()
-    {
+    void endRendering() {
         const auto& frame                 = swapchain->frames.at(imageIndex);
         const auto [fence, commandBuffer] = frames.current();
 
         Extern::endRendering(commandBuffer);
     }
 
-    VkCommandBuffer acquire()
-    {
+    VkCommandBuffer acquire() {
         const auto [fence, commandBuffer] = frames.current();
         vkWaitForFences(context.device, 1, &fence, VK_TRUE, UINT64_MAX);
         vkResetFences(context.device, 1, &fence);
@@ -119,13 +111,11 @@ public:
         const auto presented = semaphores.current().presented;
         const auto result    = vkAcquireNextImageKHR(context.device, swapchain->swapchain, UINT64_MAX, presented,
                                                      VK_NULL_HANDLE, &imageIndex);
-        switch (result)
-        {
+        switch (result) {
         case VkResult::VK_SUCCESS:
         case VkResult::VK_SUBOPTIMAL_KHR:
             break;
-        case VkResult::VK_ERROR_OUT_OF_DATE_KHR:
-        {
+        case VkResult::VK_ERROR_OUT_OF_DATE_KHR: {
             recreateSwapchain();
             break;
         }
@@ -143,8 +133,7 @@ public:
             .flags            = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
             .pInheritanceInfo = nullptr,
         };
-        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
-        {
+        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
             throw std::runtime_error("Failed to begin recording command buffer");
         }
 
@@ -236,8 +225,7 @@ public:
         return commandBuffer;
     }
 
-    void present(const Command& command)
-    {
+    void present(const Command& command) {
         const auto& frame                 = swapchain->frames.at(imageIndex);
         const auto [fence, commandBuffer] = frames.current();
 
@@ -268,8 +256,7 @@ public:
                              &imageMemoryBarrierEnd);
 
 
-        if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
-        {
+        if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
             throw std::runtime_error("Failed to record command buffer");
         }
 
@@ -285,8 +272,7 @@ public:
                                                                    .pCommandBuffers    = &commandBuffer,
                                                                    .signalSemaphoreCount = 1,
                                                                    .pSignalSemaphores    = &rendered };
-        if (vkQueueSubmit(command.graphicsQueue, 1, &submitInfo, fence) != VK_SUCCESS)
-        {
+        if (vkQueueSubmit(command.graphicsQueue, 1, &submitInfo, fence) != VK_SUCCESS) {
             throw std::runtime_error("Failed to submit to queue");
         }
 
@@ -301,12 +287,9 @@ public:
             .pResults           = nullptr,
         };
         if (const auto result = vkQueuePresentKHR(command.presentQueue, &presentInfo);
-            result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-        {
+            result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
             recreateSwapchain();
-        }
-        else if (result != VK_SUCCESS)
-        {
+        } else if (result != VK_SUCCESS) {
             throw std::runtime_error("Failed to present swap chain image");
         }
 
@@ -314,15 +297,12 @@ public:
         semaphores.rotate();
     }
 
-    ~Presenter()
-    {
-        for (uint32_t i = 0; i < frames.size(); ++i)
-        {
+    ~Presenter() {
+        for (uint32_t i = 0; i < frames.size(); ++i) {
             context.destroy(frames.current().fence);
             frames.rotate();
         }
-        for (uint32_t i = 0; i < semaphores.size(); ++i)
-        {
+        for (uint32_t i = 0; i < semaphores.size(); ++i) {
             context.destroy(semaphores.current().rendered);
             context.destroy(semaphores.current().presented);
             semaphores.rotate();
@@ -330,14 +310,12 @@ public:
     }
 
 private:
-    struct Semaphores
-    {
+    struct Semaphores {
         VkSemaphore presented;
         VkSemaphore rendered;
     };
 
-    struct Frame
-    {
+    struct Frame {
         VkFence         fence;
         VkCommandBuffer commandBuffer;
     };
@@ -348,11 +326,9 @@ private:
     uint32_t                 imageIndex;
 
 private:
-    static utils::Cycle<Semaphores> createSemaphores(const Context& context, const uint32_t count)
-    {
+    static utils::Cycle<Semaphores> createSemaphores(const Context& context, const uint32_t count) {
         utils::Cycle<Semaphores> semaphores { count };
-        for (uint32_t i = 0; i < count; ++i)
-        {
+        for (uint32_t i = 0; i < count; ++i) {
             constexpr VkSemaphoreCreateInfo semaphoreInfo {
                 .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
                 .pNext = nullptr,
@@ -364,13 +340,11 @@ private:
         return semaphores;
     }
 
-    static utils::Cycle<Frame> createFrames(const Command& command)
-    {
+    static utils::Cycle<Frame> createFrames(const Command& command) {
         const auto frameCount = command.context.frameBufferCount();
 
         utils::Cycle<Frame> frames { frameCount };
-        for (uint32_t i = 0; i < frameCount; ++i)
-        {
+        for (uint32_t i = 0; i < frameCount; ++i) {
             frames.set(i, Frame { .fence         = command.context.create(VkFenceCreateInfo {
                                               .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
                                               .pNext = nullptr,
@@ -381,8 +355,7 @@ private:
         return frames;
     }
 
-    void recreateSwapchain()
-    {
+    void recreateSwapchain() {
         vkDeviceWaitIdle(context.device);
         swapchain.emplace(context);
     }

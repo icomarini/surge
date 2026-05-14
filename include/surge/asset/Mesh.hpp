@@ -3,12 +3,9 @@
 #include "surge/asset/Material.hpp"
 #include "surge/core/geometry/BoundingBox.hpp"
 
-namespace surge::asset
-{
-struct Mesh
-{
-    struct Primitive
-    {
+namespace surge::asset {
+struct Mesh {
+    struct Primitive {
         uint32_t        firstIndex;
         uint32_t        indexCount;
         uint32_t        vertexCount;
@@ -23,8 +20,7 @@ struct Mesh
 
         core::geometry::BoundingBox boundingBox;
 
-        struct State
-        {
+        struct State {
             bool boundingBox;
         };
         mutable State state;
@@ -39,8 +35,7 @@ struct Mesh
 
     Mesh(const std::string& name)
         : name { name }
-        , primitives {}
-    {
+        , primitives {} {
     }
 
     std::string            name;

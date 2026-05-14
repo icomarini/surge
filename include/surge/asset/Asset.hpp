@@ -7,11 +7,9 @@
 #include "surge/asset/Skin.hpp"
 
 
-namespace surge::asset
-{
+namespace surge::asset {
 
-class ShaderStorageBufferObject : public core::Contextualized
-{
+class ShaderStorageBufferObject : public core::Contextualized {
 public:
     using SSBODescr = core::Description<VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, core::Buffer>;
 
@@ -21,8 +19,7 @@ public:
         , buffer { context, size, core::Buffer::ssbo }
         , descriptorSetLayout { core::Descriptor::createDescriptorSetLayout<SSBODescr>(context, 1) }
         , descriptorSet { core::Descriptor::createDescriptorSet(context, descriptorSetLayout, descriptorPool,
-                                                                SSBODescr { buffer }) }
-    {
+                                                                SSBODescr { buffer }) } {
     }
 
     // ShaderStorageBufferObject(ShaderStorageBufferObject&& other)
@@ -38,14 +35,12 @@ public:
     VkDescriptorSetLayout descriptorSetLayout;
     VkDescriptorSet       descriptorSet;
 
-    ~ShaderStorageBufferObject()
-    {
+    ~ShaderStorageBufferObject() {
         context.destroy(descriptorSetLayout);
     }
 };
 
-class Asset : public core::Contextualized
-{
+class Asset : public core::Contextualized {
 public:
     std::string        name;
     core::shader::Type shader;
@@ -87,33 +82,27 @@ public:
         , mainSceneIndex { loadedAsset.mainSceneIndex() }
         , skins { loadedAsset.createSkins() }
         , animations { loadedAsset.createAnimations() }
-        , jointMatricesDescriptorSetLayout { createJointMatricesDescriptorSetLayout(context, skins) }
-    {
+        , jointMatricesDescriptorSetLayout { createJointMatricesDescriptorSetLayout(context, skins) } {
         assert(scenes.size() > 0);
     }
 
-    ~Asset()
-    {
-        if (jointMatricesDescriptorSetLayout.has_value())
-        {
+    ~Asset() {
+        if (jointMatricesDescriptorSetLayout.has_value()) {
             context.destroy(jointMatricesDescriptorSetLayout.value());
         }
         context.destroy(materialDescriptorSetLayout);
         context.destroy(descriptorPool);
     }
 
-    const auto& mainScene() const
-    {
+    const auto& mainScene() const {
         return scenes.at(mainSceneIndex);
     }
-    auto& mainScene()
-    {
+    auto& mainScene() {
         return scenes.at(mainSceneIndex);
     }
 
     static std::optional<VkDescriptorSetLayout> createJointMatricesDescriptorSetLayout(const core::Context&     context,
-                                                                                       const std::vector<Skin>& skins)
-    {
+                                                                                       const std::vector<Skin>& skins) {
         return !skins.empty() > 0 ?
                    std::optional<VkDescriptorSetLayout> { core::Descriptor::createDescriptorSetLayout<SSBODescr>(
                        context, 1) } :

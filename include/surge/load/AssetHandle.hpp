@@ -7,7 +7,6 @@
 
 #include <variant>
 
-namespace surge::load
-{
+namespace surge::load {
 using AssetHandle = std::variant<LoadedTexture::Handle, LoadedSkybox::Handle, Gltf::Handle, Obj::Handle>;
 }  // namespace surge::load

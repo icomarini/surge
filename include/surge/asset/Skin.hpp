@@ -5,12 +5,9 @@
 #include <string>
 #include <vector>
 
-namespace surge::asset
-{
-struct Skin
-{
-    struct Joint
-    {
+namespace surge::asset {
+struct Skin {
+    struct Joint {
         const core::Index        nodeIndex;
         core::math::Matrix<4, 4> inverseBindMatrix;
     };

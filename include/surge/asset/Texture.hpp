@@ -4,14 +4,11 @@
 #include "surge/core/Image.hpp"
 #include "surge/core/Descriptor.hpp"
 
-namespace surge::asset
-{
-class Texture : public core::Contextualized
-{
+namespace surge::asset {
+class Texture : public core::Contextualized {
 public:
     template<typename ImageData, VkImageLayout layout>
-    struct Info
-    {
+    struct Info {
         static constexpr auto image       = ImageData {};
         static constexpr auto imageLayout = layout;
     };
@@ -28,8 +25,7 @@ public:
     static constexpr auto cube = Info<decltype(core::Image::cube),  //
                                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL> {};
 
-    struct Sampler
-    {
+    struct Sampler {
         VkFilter             magFilter;
         VkFilter             minFilter;
         VkSamplerMipmapMode  mipmapMode;
@@ -44,8 +40,7 @@ public:
         , name { loadedTexture.name }
         , image { context, loadedTexture, I::image }
         , sampler { createSampler(context, sampler) }
-        , info { .sampler = this->sampler, .imageView = image.view, .imageLayout = I::imageLayout }
-    {
+        , info { .sampler = this->sampler, .imageView = image.view, .imageLayout = I::imageLayout } {
         command.transferImage(image.image, loadedTexture);
     }
 
@@ -60,22 +55,18 @@ public:
                         .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
                         .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
                     },
-                    I {} }
-    {
+                    I {} } {
     }
 
-    const VkDescriptorImageInfo* imageInfo() const
-    {
+    const VkDescriptorImageInfo* imageInfo() const {
         return &info;
     }
 
-    const VkDescriptorBufferInfo* bufferInfo() const
-    {
+    const VkDescriptorBufferInfo* bufferInfo() const {
         return nullptr;
     }
 
-    ~Texture()
-    {
+    ~Texture() {
         context.destroy(sampler);
     }
 
@@ -86,8 +77,7 @@ public:
     const VkDescriptorImageInfo info;
 
 private:
-    static VkSampler createSampler(const core::Context& context, const Sampler& sampler)
-    {
+    static VkSampler createSampler(const core::Context& context, const Sampler& sampler) {
         return context.create(VkSamplerCreateInfo {
             .sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
             .pNext                   = nullptr,

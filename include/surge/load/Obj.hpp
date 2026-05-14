@@ -14,14 +14,11 @@
 #include <optional>
 #include <vector>
 
-namespace surge::load
-{
+namespace surge::load {
 
-class Obj
-{
+class Obj {
 public:
-    struct Handle
-    {
+    struct Handle {
         std::filesystem::path                meshPath;
         std::optional<std::filesystem::path> texturePath;
     };
@@ -42,44 +39,36 @@ public:
         : name { handle.meshPath.filename() }
         , path { handle.meshPath }
         , defaults { defaults }
-        , texture {}
-    {
-        if (handle.texturePath)
-        {
+        , texture {} {
+        if (handle.texturePath) {
             texture.emplace(handle.texturePath.value());
         }
 
         std::string warn, err;
 
-        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str()))
-        {
+        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str())) {
             throw std::runtime_error(warn + err);
         }
     }
 
-    core::shader::Type shader() const
-    {
+    core::shader::Type shader() const {
         return core::shader::Type::shader;
     }
 
-    std::vector<asset::Texture> createTextures(const core::Command& command) const
-    {
+    std::vector<asset::Texture> createTextures(const core::Command& command) const {
         std::vector<asset::Texture> textures;
-        if (texture)
-        {
+        if (texture) {
             textures.emplace_back(command, texture.value(), load::Defaults::sampler, asset::Texture::texture2d);
         }
         return textures;
     }
 
-    VkDescriptorPool createDescriptorPool(const core::Context& context) const
-    {
+    VkDescriptorPool createDescriptorPool(const core::Context& context) const {
         return core::Descriptor::createDescriptorPool(context, 5U,
                                                       std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U });
     }
 
-    VkDescriptorSetLayout createMaterialDescriptorSetLayout(const core::Context& context) const
-    {
+    VkDescriptorSetLayout createMaterialDescriptorSetLayout(const core::Context& context) const {
         return core::Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture
                                                            TextureDescr,  // metallic/rough texture
                                                            TextureDescr,  // normal texture
@@ -90,10 +79,8 @@ public:
 
     std::vector<asset::Material> createMaterials(const core::Context& context, const VkDescriptorPool descriptorPool,
                                                  const VkDescriptorSetLayout        materialDescriptorSetLayout,
-                                                 const std::vector<asset::Texture>& textures) const
-    {
-        if (textures.empty())
-        {
+                                                 const std::vector<asset::Texture>& textures) const {
+        if (textures.empty()) {
             return {};
         }
         assert(textures.size() == 1);
@@ -122,11 +109,9 @@ public:
                                        TextureDescr { defaults.texture }) } };
     }
 
-    std::vector<asset::Mesh> createMeshes(const std::vector<asset::Material>& materials) const
-    {
+    std::vector<asset::Mesh> createMeshes(const std::vector<asset::Material>& materials) const {
         core::Size indexCount {};
-        for (const auto& shape : shapes)
-        {
+        for (const auto& shape : shapes) {
             indexCount += shape.mesh.indices.size();
         }
 
@@ -134,18 +119,14 @@ public:
 
         core::math::Vector<3> min {};
         core::math::Vector<3> max {};
-        for (const auto& shape : shapes)
-        {
-            for (const auto& index : shape.mesh.indices)
-            {
+        for (const auto& shape : shapes) {
+            for (const auto& index : shape.mesh.indices) {
                 const auto vertexIdx = 3 * index.vertex_index;
-                core::forEach<0, 3>(
-                    [&]<int index>()
-                    {
-                        const auto v = attrib.vertices.at(vertexIdx + index);
-                        min[index]   = std::min(min.at(index), v);
-                        max[index]   = std::max(max.at(index), v);
-                    });
+                core::forEach<0, 3>([&]<int index>() {
+                    const auto v = attrib.vertices.at(vertexIdx + index);
+                    min[index]   = std::min(min.at(index), v);
+                    max[index]   = std::max(max.at(index), v);
+                });
             }
         }
         // constexpr bool          color    = false;
@@ -169,8 +150,7 @@ public:
         return meshes;
     }
 
-    asset::Model createModel(const core::Command& command, const std::vector<asset::Mesh>& meshes) const
-    {
+    asset::Model createModel(const core::Command& command, const std::vector<asset::Mesh>& meshes) const {
         assert(meshes.size() == 1);
         assert(meshes.front().primitives.size() == 1);
 
@@ -179,10 +159,8 @@ public:
 
         std::vector<Vertex> vertices;
         vertices.reserve(vertexCount);
-        for (const auto& shape : shapes)
-        {
-            for (const auto& index : shape.mesh.indices)
-            {
+        for (const auto& shape : shapes) {
+            for (const auto& index : shape.mesh.indices) {
                 const auto vertexIdx   = 3 * index.vertex_index;
                 const auto normalIdx   = 3 * index.normal_index;
                 const auto texCoordIdx = 2 * index.texcoord_index;
@@ -214,10 +192,8 @@ public:
                               asset::Model::scene };
     }
 
-    core::utils::Tree<asset::Node> createTree() const
-    {
-        auto createNode = [this]()
-        {
+    core::utils::Tree<asset::Node> createTree() const {
+        auto createNode = [this]() {
             core::utils::Tree<asset::Node>::Nodes nodes;
             nodes.reserve(1);
             nodes.emplace_back(
@@ -246,26 +222,22 @@ public:
         };
     }
 
-    std::vector<asset::Scene> createScenes() const
-    {
+    std::vector<asset::Scene> createScenes() const {
         std::vector<asset::Scene> scenes;
         scenes.reserve(1);
         scenes.emplace_back(baptize<This::scene>(0), createTree());
         return scenes;
     }
 
-    std::size_t mainSceneIndex() const
-    {
+    std::size_t mainSceneIndex() const {
         return 0;
     }
 
-    std::vector<asset::Skin> createSkins() const
-    {
+    std::vector<asset::Skin> createSkins() const {
         return {};
     }
 
-    std::vector<asset::Animation> createAnimations() const
-    {
+    std::vector<asset::Animation> createAnimations() const {
         return {};
     }
 

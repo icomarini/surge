@@ -5,18 +5,15 @@
 
 #include <tuple>
 
-namespace surge::core::geometry
-{
+namespace surge::core::geometry {
 using Index = UInt32;
 
-enum class Format
-{
+enum class Format {
     sfloat,
     unorm,
 };
 
-enum class Attribute
-{
+enum class Attribute {
     position,
     color,
     normal,
@@ -28,8 +25,7 @@ enum class Attribute
 
 template<Attribute _attribute, typename _Value, UInt32 _size, Format _format>
     requires((sizeof(_Value) % _size == 0))
-class AttributeSlot
-{
+class AttributeSlot {
 public:
     using Value                     = _Value;
     static constexpr auto attribute = _attribute;
@@ -41,8 +37,7 @@ public:
 
 
 template<typename... Attributes>
-class Vertex : public Attributes...
-{
+class Vertex : public Attributes... {
 public:
     using Self = Vertex<Attributes...>;
 
@@ -67,51 +62,42 @@ public:
     // static constexpr UInt32 byteOffset = offsetof(Self, Requested::value);
 
     template<geometry::Attribute requested>
-    auto& get()
-    {
+    auto& get() {
         return Attribute<Vertex::attributeIndex<requested>()>::value;
     }
 
     template<geometry::Attribute requested>
-    constexpr auto& get() const
-    {
+    constexpr auto& get() const {
         return Attribute<Vertex::attributeIndex<requested>()>::value;
     }
 
     template<geometry::Attribute requested>
     // requires(hasAttribute<Requested>)
-    static constexpr UInt32 attributeIndex()
-    {
+    static constexpr UInt32 attributeIndex() {
         UInt32 index {};
-        forEach<0, attributeCount>(
-            [&]<int i>()
-            {
-                if constexpr (requested == Attribute<i>::attribute)
-                {
-                    index = i;
-                }
-            });
+        forEach<0, attributeCount>([&]<int i>() {
+            if constexpr (requested == Attribute<i>::attribute) {
+                index = i;
+            }
+        });
         return index;
     }
 
 
     template<geometry::Attribute requested>
     // requires(hasAttribute<Requested>)
-    static constexpr UInt32 computeByteOffset()
-    {
+    static constexpr UInt32 computeByteOffset() {
         UInt32 offset {};
         forEach<0, attributeIndex<requested>()>([&]<int index>() { offset += sizeof(Attribute<index>); });
         return offset;
     }
 
     constexpr Vertex()
-        : Attributes {}...
-    {
+        : Attributes {}... {
     }
 
     constexpr Vertex(const typename Attributes::Value&... values)
-        : Attributes { values }...
-    {
+        : Attributes { values }... {
     }
 
     // template<typename Requested>
@@ -132,17 +118,13 @@ public:
 private:
     template<typename Requested>
         requires(hasAttribute<Requested>)
-    static constexpr UInt32 computeAttributeIndex()
-    {
+    static constexpr UInt32 computeAttributeIndex() {
         UInt32 index {};
-        forEach<0, attributeCount>(
-            [&]<int i>()
-            {
-                if constexpr (std::is_same_v<Requested, Attribute<i>>)
-                {
-                    index = i;
-                }
-            });
+        forEach<0, attributeCount>([&]<int i>() {
+            if constexpr (std::is_same_v<Requested, Attribute<i>>) {
+                index = i;
+            }
+        });
         return index;
     }
 };

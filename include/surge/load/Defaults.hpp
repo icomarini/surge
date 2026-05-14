@@ -9,11 +9,9 @@
 #include "surge/asset/Model.hpp"
 #include "surge/load/LoadedTexture.hpp"
 
-namespace surge::load
-{
+namespace surge::load {
 
-enum class This
-{
+enum class This {
     animation,
     material,
     mesh,
@@ -29,25 +27,21 @@ const std::map<This, std::string> toString { { This::animation, "animation" }, {
                                              { This::texture, "texture" } };
 
 template<This t>
-std::string baptize()
-{
+std::string baptize() {
     return "<default " + toString.at(t) + ">";
 }
 
 template<This t>
-std::string baptize(const uint32_t id)
-{
+std::string baptize(const uint32_t id) {
     return "<unnamed " + toString.at(t) + " " + std::to_string(id) + ">";
 }
 
 template<This t, typename String>
-std::string baptize(const String& name, const uint32_t id)
-{
+std::string baptize(const String& name, const uint32_t id) {
     return name.size() > 0 ? std::string { name } : baptize<t>(id);
 }
 
-constexpr auto toUint8(const core::Colors<core::Type::rgba>::Format& color)
-{
+constexpr auto toUint8(const core::Colors<core::Type::rgba>::Format& color) {
     using SrcValue = core::math::ValueType<core::Colors<core::Type::rgba>::Format>;
     using DstValue = unsigned char;
 
@@ -63,8 +57,7 @@ constexpr auto toUint8(const core::Colors<core::Type::rgba>::Format& color)
     };
 };
 
-static constexpr auto textureData()
-{
+static constexpr auto textureData() {
     const auto g = toUint8(core::Colors<core::Type::rgba>::grey);
     const auto w = toUint8(core::Colors<core::Type::rgba>::white);
     return std::array {
@@ -87,21 +80,18 @@ static constexpr auto textureData()
     };
 }
 
-static constexpr auto textureData2()
-{
+static constexpr auto textureData2() {
     const auto w = toUint8(core::Colors<core::Type::rgba>::white);
     return std::array<decltype(w), 1> { w };
 }
 
 template<typename Color>
-static constexpr auto flatTextureData(const Color& color)
-{
+static constexpr auto flatTextureData(const Color& color) {
     const auto c = toUint8(color);
     return std::array<decltype(c), 1> { toUint8(color) };
 }
 
-class Defaults : public core::Contextualized
-{
+class Defaults : public core::Contextualized {
 public:
     static constexpr asset::Texture::Sampler sampler {
         .magFilter    = VK_FILTER_LINEAR,
@@ -132,8 +122,7 @@ public:
 
     using TextureDescr = asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT>;
 
-    struct NodePushBlock
-    {
+    struct NodePushBlock {
         core::math::Matrix<4, 4> matrix;
         uint32_t                 vertexStageFlag;
         uint32_t                 fragmentStageFlag;
@@ -194,12 +183,10 @@ public:
                   .primitiveRestartEnable = VK_FALSE,
               }) }
         , coordinateSystem { command, core::geometry::coordinateSystem, asset::Model::scene }
-        , cube { command, core::geometry::cube, asset::Model::scene }
-    {
+        , cube { command, core::geometry::cube, asset::Model::scene } {
     }
 
-    ~Defaults()
-    {
+    ~Defaults() {
         context.destroy(descriptorlessPipeline);
         context.destroy(descriptorlessPipelineLayout);
         context.destroy(descriptorSetLayout);

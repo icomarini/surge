@@ -11,12 +11,10 @@
 #include "glm/gtx/euler_angles.hpp"
 // #include "glm/glm.hpp"
 
-namespace surge
-{
+namespace surge {
 
 template<bool fixed>
-class Camera
-{
+class Camera {
 public:
     static constexpr auto flipY { true };
     Camera(const float aspect, const core::math::Vector<3>& position, const core::math::Vector<3>& front)
@@ -39,37 +37,29 @@ public:
     float yaw;
     float pitch;
 
-    struct
-    {
+    struct {
         core::math::Vector<3> position;
         core::math::Vector<3> front;
         core::math::Vector<3> up;
     } vecs;
 
-    struct
-    {
+    struct {
         core::math::Perspective<> perspective;
         core::math::View<>        view;
     } mats;
 
-    void update(const Input& input, const core::Window::Resolution& resolution)
-    {
+    void update(const Input& input, const core::Window::Resolution& resolution) {
         aspect           = static_cast<float>(resolution.width) / resolution.height;
         mats.perspective = core::math::Perspective<> { core::math::deg2rad(45.0f), aspect, 0.1f, 100.0f };
 
-        if (!input.mouseActive)
-        {
-            if constexpr (flipY)
-            {
+        if (!input.mouseActive) {
+            if constexpr (flipY) {
                 rotate(input.mouse.offset[0], -input.mouse.offset[1]);
-            }
-            else
-            {
+            } else {
                 rotate(input.mouse.offset[0], input.mouse.offset[1]);
             }
 
-            if constexpr (!fixed)
-            {
+            if constexpr (!fixed) {
                 using State        = core::input::Action;
                 const auto forward = input.keyboard.w == State::press || input.keyboard.w == State::repeat;
                 const auto back    = input.keyboard.s == State::press || input.keyboard.s == State::repeat;
@@ -81,8 +71,7 @@ public:
         }
     }
 
-    void update(const float elapsedTime, const core::Window::Resolution& resolution)
-    {
+    void update(const float elapsedTime, const core::Window::Resolution& resolution) {
         aspect           = static_cast<float>(resolution.width) / resolution.height;
         mats.perspective = core::math::Perspective { core::math::deg2rad(45.0f), aspect, 0.1f, 100.0f };
         // vecs.position    = {
@@ -97,8 +86,7 @@ public:
         mats.view = core::math::View { vecs.position, vecs.position + vecs.front, vecs.up };
     }
 
-    void rotate(const float offsetx, const float offsety)
-    {
+    void rotate(const float offsetx, const float offsety) {
         yaw += sensitivity * offsetx;
         pitch = std::clamp(pitch + sensitivity * offsety, -89.0f, 89.0f);
 
@@ -112,8 +100,7 @@ public:
         vecs.up = core::math::cross(core::math::cross(vecs.front, { 0, 1, 0 }), vecs.front);
     }
 
-    void translate(const float elapsedTime, const bool forward, const bool back, const bool left, const bool right)
-    {
+    void translate(const float elapsedTime, const bool forward, const bool back, const bool left, const bool right) {
         const auto                      s = speed * elapsedTime;
         constexpr core::math::Vector<3> z {};
         vecs.position = vecs.position                                                                      //

@@ -8,12 +8,9 @@
 #include <chrono>
 #include <cstdint>
 
-namespace surge
-{
-struct Input
-{
-    struct Mouse
-    {
+namespace surge {
+struct Input {
+    struct Mouse {
         using Position = core::input::Position;
         using Offset   = core::input::Offset;
 
@@ -25,8 +22,7 @@ struct Input
         core::input::Action right { core::input::Action::none };
     };
 
-    struct Keyboard
-    {
+    struct Keyboard {
         core::input::Action w = core::input::Action::none;
         core::input::Action a = core::input::Action::none;
         core::input::Action s = core::input::Action::none;
@@ -39,8 +35,7 @@ struct Input
         , begin { std::chrono::high_resolution_clock::now() }
         , timer { 0.0 }
         , mouseActive { true }
-        , proceed { true }
-    {
+        , proceed { true } {
     }
 
     std::chrono::system_clock::time_point       start;
@@ -52,8 +47,7 @@ struct Input
     bool                                        mouseActive;
     bool                                        proceed;
 
-    void reset()
-    {
+    void reset() {
         elapsedTime =
             1e-3 * std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - start).count();
         start = std::chrono::high_resolution_clock::now();
@@ -73,81 +67,64 @@ struct Input
     }
 };
 
-struct Callbacks
-{
+struct Callbacks {
     using Type = Input;
     Type& input;
 
     static void keyboard(core::Window& window, Input& input, const core::input::Key key,
-                         const core::input::Action action)
-    {
-        if (key == core::input::Key::escape && action == core::input::Action::press)
-        {
+                         const core::input::Action action) {
+        if (key == core::input::Key::escape && action == core::input::Action::press) {
             input.proceed = false;
         }
 
-        if (key == core::input::Key::g && action == core::input::Action::press)
-        {
-            if (input.mouseActive)
-            {
+        if (key == core::input::Key::g && action == core::input::Action::press) {
+            if (input.mouseActive) {
                 window.deactivateCursor();
                 input.mouseActive = false;
-            }
-            else
-            {
+            } else {
                 window.activateCursor();
                 input.mouseActive = true;
             }
         }
 
-        if (key == core::input::Key::w)
-        {
+        if (key == core::input::Key::w) {
             input.keyboard.w = action;
         }
-        if (key == core::input::Key::s)
-        {
+        if (key == core::input::Key::s) {
             input.keyboard.s = action;
         }
-        if (key == core::input::Key::a)
-        {
+        if (key == core::input::Key::a) {
             input.keyboard.a = action;
         }
-        if (key == core::input::Key::d)
-        {
+        if (key == core::input::Key::d) {
             input.keyboard.d = action;
         }
     }
 
-    static void mousePosition(core::Window& window, Input& input, const core::input::Position& position)
-    {
+    static void mousePosition(core::Window& window, Input& input, const core::input::Position& position) {
         input.mouse.offset   = position - input.mouse.position;
         input.mouse.position = position;
     }
 
-    static void mouseButton(core::Window& window, Input& input, core::input::Button button, core::input::Action action)
-    {
-        switch (button)
-        {
-        case core::input::Button::left:
-        {
+    static void mouseButton(core::Window& window, Input& input, core::input::Button button,
+                            core::input::Action action) {
+        switch (button) {
+        case core::input::Button::left: {
             input.mouse.left = action;
             break;
         }
-        case core::input::Button::middle:
-        {
+        case core::input::Button::middle: {
             input.mouse.middle = action;
             break;
         }
-        case core::input::Button::right:
-        {
+        case core::input::Button::right: {
             input.mouse.right = action;
             break;
         }
         }
     }
 
-    static void mouseWheel(core::Window& window, Input& input, const core::input::Offset& offset)
-    {
+    static void mouseWheel(core::Window& window, Input& input, const core::input::Offset& offset) {
         input.mouse.wheel = offset;
     }
 };

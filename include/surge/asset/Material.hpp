@@ -2,22 +2,17 @@
 
 #include "surge/asset/Texture.hpp"
 
-namespace surge::asset
-{
+namespace surge::asset {
 
-struct Material
-{
-    enum class AlphaMode
-    {
+struct Material {
+    enum class AlphaMode {
         blend,
         mask,
         opaque,
     };
 
-    static std::string toString(const AlphaMode alphaMode)
-    {
-        switch (alphaMode)
-        {
+    static std::string toString(const AlphaMode alphaMode) {
+        switch (alphaMode) {
         case AlphaMode::blend:
             return "blend";
         case AlphaMode::mask:
@@ -28,8 +23,7 @@ struct Material
         throw;
     }
 
-    struct TextureData
-    {
+    struct TextureData {
         const Texture* texture;
         uint8_t        texCoord;
     };
@@ -62,16 +56,14 @@ struct Material
 
     VkDescriptorSet descriptorSet;
 
-    struct Extension
-    {
+    struct Extension {
         Texture*              specularGlossinessTexture;
         Texture*              diffuseTexture;
         core::math::Vector<4> diffuseFactor;
         core::math::Vector<3> specularFactor;
     } /*extension*/;
 
-    struct PbrWorkflows
-    {
+    struct PbrWorkflows {
         bool metallicRoughness  = true;
         bool specularGlossiness = false;
     } /*pbrWorkflows*/;

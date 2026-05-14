@@ -5,21 +5,17 @@
 
 #include <array>
 
-namespace surge::core
-{
-class Command : public Contextualized
-{
+namespace surge::core {
+class Command : public Contextualized {
 public:
     Command(const Context& context)
         : Contextualized(context)
         , graphicsQueue { getQueue(context.physicalDevice.graphicsFamilyIndex) }
         , presentQueue { getQueue(context.physicalDevice.presentFamilyIndex) }
-        , pool { createCommandPool() }
-    {
+        , pool { createCommandPool() } {
     }
 
-    VkCommandBuffer createCommandBuffer() const
-    {
+    VkCommandBuffer createCommandBuffer() const {
         return context.create(VkCommandBufferAllocateInfo {
             .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
             .pNext              = nullptr,
@@ -30,8 +26,7 @@ public:
     }
 
     template<typename Cmd>
-    void singleTimeCommand(const Cmd& cmd) const
-    {
+    void singleTimeCommand(const Cmd& cmd) const {
         const auto commandBuffer = createCommandBuffer();
 
         VkCommandBufferBeginInfo beginInfo {
@@ -41,9 +36,7 @@ public:
             .pInheritanceInfo = nullptr,
         };
         vkBeginCommandBuffer(commandBuffer, &beginInfo);
-        {
-            cmd(commandBuffer);
-        }
+        { cmd(commandBuffer); }
         vkEndCommandBuffer(commandBuffer);
 
         VkSubmitInfo submitInfo {
@@ -65,123 +58,106 @@ public:
 
 
     template<typename Type>
-    void transferBuffer(const VkBuffer buffer, const Type* const data, const VkDeviceSize size) const
-    {
+    void transferBuffer(const VkBuffer buffer, const Type* const data, const VkDeviceSize size) const {
         const Buffer stagingBuffer { context, size, Buffer::staging };
         std::memcpy(stagingBuffer.mapped, data, size);
-        singleTimeCommand(
-            [&](const VkCommandBuffer commandBuffer)
-            {
-                const VkBufferCopy copyRegion {
-                    .srcOffset = 0,
-                    .dstOffset = 0,
-                    .size      = size,
-                };
-                vkCmdCopyBuffer(commandBuffer, stagingBuffer.buffer, buffer, 1, &copyRegion);
-            });
+        singleTimeCommand([&](const VkCommandBuffer commandBuffer) {
+            const VkBufferCopy copyRegion {
+                .srcOffset = 0,
+                .dstOffset = 0,
+                .size      = size,
+            };
+            vkCmdCopyBuffer(commandBuffer, stagingBuffer.buffer, buffer, 1, &copyRegion);
+        });
     }
 
     template<typename LoadedTexture>
-    void transferImage(const VkImage image, const LoadedTexture& loadedTexture) const
-    {
+    void transferImage(const VkImage image, const LoadedTexture& loadedTexture) const {
         const Buffer stagingBuffer { context, loadedTexture.memorySize(), Buffer::staging };
         memcpy(stagingBuffer.mapped, loadedTexture.data(), static_cast<size_t>(loadedTexture.memorySize()));
 
         transitionImageLayout(image, loadedTexture, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-        singleTimeCommand(
-            [&](const VkCommandBuffer commandBuffer)
-            {
-                std::vector<VkBufferImageCopy> bufferCopyRegions;
-                for (const auto& [mipLevel, arrayLayer, offset] : loadedTexture.offsets())
-                {
-                    const VkImageSubresourceLayers imageSubresource {
-                        .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-                        .mipLevel       = mipLevel,
-                        .baseArrayLayer = arrayLayer,
-                        .layerCount     = 1,
-                    };
-                    const VkExtent3D imageExtent {
-                        .width  = std::max(1u, loadedTexture.width >> mipLevel),
-                        .height = std::max(1u, loadedTexture.height >> mipLevel),
-                        .depth  = 1,
-                    };
-                    const VkBufferImageCopy region {
-                        .bufferOffset      = offset,
-                        .bufferRowLength   = 0,
-                        .bufferImageHeight = 0,
-                        .imageSubresource  = imageSubresource,
-                        .imageOffset       = { 0, 0, 0 },
-                        .imageExtent       = imageExtent,
-                    };
-                    bufferCopyRegions.push_back(region);
-                }
-                // assert(bufferCopyRegions.size() > 0);
-                vkCmdCopyBufferToImage(commandBuffer, stagingBuffer.buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                       static_cast<uint32_t>(bufferCopyRegions.size()), bufferCopyRegions.data());
-            });
+        singleTimeCommand([&](const VkCommandBuffer commandBuffer) {
+            std::vector<VkBufferImageCopy> bufferCopyRegions;
+            for (const auto& [mipLevel, arrayLayer, offset] : loadedTexture.offsets()) {
+                const VkImageSubresourceLayers imageSubresource {
+                    .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                    .mipLevel       = mipLevel,
+                    .baseArrayLayer = arrayLayer,
+                    .layerCount     = 1,
+                };
+                const VkExtent3D imageExtent {
+                    .width  = std::max(1u, loadedTexture.width >> mipLevel),
+                    .height = std::max(1u, loadedTexture.height >> mipLevel),
+                    .depth  = 1,
+                };
+                const VkBufferImageCopy region {
+                    .bufferOffset      = offset,
+                    .bufferRowLength   = 0,
+                    .bufferImageHeight = 0,
+                    .imageSubresource  = imageSubresource,
+                    .imageOffset       = { 0, 0, 0 },
+                    .imageExtent       = imageExtent,
+                };
+                bufferCopyRegions.push_back(region);
+            }
+            // assert(bufferCopyRegions.size() > 0);
+            vkCmdCopyBufferToImage(commandBuffer, stagingBuffer.buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                   static_cast<uint32_t>(bufferCopyRegions.size()), bufferCopyRegions.data());
+        });
         transitionImageLayout(image, loadedTexture, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                               VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
 
     template<typename LoadedTexture>
     void transitionImageLayout(const VkImage image, const LoadedTexture& loadedTexture, const VkImageLayout oldLayout,
-                               const VkImageLayout newLayout) const
-    {
-        singleTimeCommand(
-            [&](const VkCommandBuffer commandBuffer)
-            {
-                const VkImageSubresourceRange subresourceRange {
-                    .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-                    .baseMipLevel   = 0,
-                    .levelCount     = loadedTexture.mipLevels,
-                    .baseArrayLayer = 0,
-                    .layerCount     = loadedTexture.arrayLayers,
-                };
-                VkImageMemoryBarrier barrier {
-                    .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                    .pNext               = nullptr,
-                    .srcAccessMask       = 0,  // TODO
-                    .dstAccessMask       = 0,  // TODO
-                    .oldLayout           = oldLayout,
-                    .newLayout           = newLayout,
-                    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                    .image               = image,
-                    .subresourceRange    = subresourceRange,
-                };
+                               const VkImageLayout newLayout) const {
+        singleTimeCommand([&](const VkCommandBuffer commandBuffer) {
+            const VkImageSubresourceRange subresourceRange {
+                .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel   = 0,
+                .levelCount     = loadedTexture.mipLevels,
+                .baseArrayLayer = 0,
+                .layerCount     = loadedTexture.arrayLayers,
+            };
+            VkImageMemoryBarrier barrier {
+                .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                .pNext               = nullptr,
+                .srcAccessMask       = 0,  // TODO
+                .dstAccessMask       = 0,  // TODO
+                .oldLayout           = oldLayout,
+                .newLayout           = newLayout,
+                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .image               = image,
+                .subresourceRange    = subresourceRange,
+            };
 
-                VkPipelineStageFlags sourceStage;
-                VkPipelineStageFlags destinationStage;
+            VkPipelineStageFlags sourceStage;
+            VkPipelineStageFlags destinationStage;
 
-                if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-                {
-                    barrier.srcAccessMask = 0;
-                    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+                barrier.srcAccessMask = 0;
+                barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-                    sourceStage      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-                    destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-                }
-                else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
-                         newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-                {
-                    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-                    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                sourceStage      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+                destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+                       newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+                barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-                    sourceStage      = VK_PIPELINE_STAGE_TRANSFER_BIT;
-                    destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-                }
-                else
-                {
-                    throw std::invalid_argument("Unsupported layout transition");
-                }
+                sourceStage      = VK_PIPELINE_STAGE_TRANSFER_BIT;
+                destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            } else {
+                throw std::invalid_argument("Unsupported layout transition");
+            }
 
-                vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1,
-                                     &barrier);
-            });
+            vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+        });
     }
 
-    ~Command()
-    {
+    ~Command() {
         context.destroy(pool);
     }
 
@@ -196,15 +172,13 @@ public:
     VkRenderingAttachmentInfoKHR renderingAttachment;
 
 private:
-    VkQueue getQueue(const uint32_t index)
-    {
+    VkQueue getQueue(const uint32_t index) {
         VkQueue queue;
         vkGetDeviceQueue(context.device, index, 0, &queue);
         return queue;
     }
 
-    VkCommandPool createCommandPool()
-    {
+    VkCommandPool createCommandPool() {
         return context.create(VkCommandPoolCreateInfo {
             .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
             .pNext            = nullptr,

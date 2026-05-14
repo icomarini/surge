@@ -4,17 +4,14 @@
 
 #include <vector>
 
-namespace surge::physics
-{
-class ForceRegistry
-{
+namespace surge::physics {
+class ForceRegistry {
 protected:
     /**
      * Keeps track of one force generator and the particle it
      * applies to.
      */
-    struct Entry
-    {
+    struct Entry {
         Particle&               particle;
         ParticleForceGenerator& fg;
     };
@@ -30,18 +27,15 @@ public:
      * Registers the given force generator to apply to the
      * given particle.
      */
-    void add(Particle& particle, ParticleForceGenerator& forceGenerator)
-    {
+    void add(Particle& particle, ParticleForceGenerator& forceGenerator) {
         registrations.push_back(Entry { particle, forceGenerator });
     }
 
-    void clear()
-    {
+    void clear() {
         registrations.clear();
     }
 
-    void reserve(const std::size_t size)
-    {
+    void reserve(const std::size_t size) {
         registrations.reserve(size);
     }
     /**
@@ -62,11 +56,9 @@ public:
      * Calls all the force generators to update the forces of
      * their corresponding particles.
      */
-    void updateForces(const Time duration) const
-    {
+    void updateForces(const Time duration) const {
         int i = 0;
-        for (auto& [particle, forceGenerator] : registrations)
-        {
+        for (auto& [particle, forceGenerator] : registrations) {
             forceGenerator.updateForce(particle, duration);
             ++i;
         }

@@ -13,45 +13,33 @@
 
 #include <filesystem>
 
-namespace fastgltf
-{
+namespace fastgltf {
 template<typename>
 struct ElementTraits;
 
 template<>
 struct ElementTraits<surge::core::math::Vector<2>>
-    : ElementTraitsBase<surge::core::math::Vector<2>, AccessorType::Vec2, surge::core::math::Vector<2>::value_type>
-{
-};
+    : ElementTraitsBase<surge::core::math::Vector<2>, AccessorType::Vec2, surge::core::math::Vector<2>::value_type> { };
 
 template<>
 struct ElementTraits<surge::core::math::Vector<3>>
-    : ElementTraitsBase<surge::core::math::Vector<3>, AccessorType::Vec3, surge::core::math::Vector<3>::value_type>
-{
-};
+    : ElementTraitsBase<surge::core::math::Vector<3>, AccessorType::Vec3, surge::core::math::Vector<3>::value_type> { };
 
 template<>
 struct ElementTraits<surge::core::math::Vector<4>>
-    : ElementTraitsBase<surge::core::math::Vector<4>, AccessorType::Vec4, surge::core::math::Vector<4>::value_type>
-{
-};
+    : ElementTraitsBase<surge::core::math::Vector<4>, AccessorType::Vec4, surge::core::math::Vector<4>::value_type> { };
 
 template<>
 struct ElementTraits<surge::core::math::Matrix<4, 4>>
     : ElementTraitsBase<surge::core::math::Matrix<4, 4>, AccessorType::Mat4,
-                        surge::core::math::Matrix<4, 4>::value_type>
-{
-};
+                        surge::core::math::Matrix<4, 4>::value_type> { };
 }  // namespace fastgltf
 
-namespace surge::load
-{
+namespace surge::load {
 
-class Gltf
-{
+class Gltf {
 public:
-    enum class TextureType
-    {
+    enum class TextureType {
         baseColorTexture,
         metallicRoughnessTexture,
         emissiveTexture,
@@ -59,8 +47,7 @@ public:
         occlusionTexture,
     };
 
-    struct Handle
-    {
+    struct Handle {
         std::filesystem::path                        path;
         std::map<TextureType, std::filesystem::path> externalTextures {};
     };
@@ -89,8 +76,7 @@ public:
         , path { handle.path }
         , defaults { defaults }
         , asset { createAsset(path) }
-        , externalTextures { handle.externalTextures }
-    {
+        , externalTextures { handle.externalTextures } {
     }
 
     std::string                                  name;
@@ -99,18 +85,14 @@ public:
     fastgltf::Asset                              asset;
     std::map<TextureType, std::filesystem::path> externalTextures;
 
-    core::shader::Type shader() const
-    {
+    core::shader::Type shader() const {
         return asset.skins.empty() ? core::shader::Type::gltfStatic : core::shader::Type::gltfAnimated;
     }
 
 
-    asset::Texture::Sampler createSampler(const uint32_t samplerIndex) const
-    {
-        constexpr auto extractFilter = [](const fastgltf::Filter filter)
-        {
-            switch (filter)
-            {
+    asset::Texture::Sampler createSampler(const uint32_t samplerIndex) const {
+        constexpr auto extractFilter = [](const fastgltf::Filter filter) {
+            switch (filter) {
             // nearest samplers
             case fastgltf::Filter::Nearest:
             case fastgltf::Filter::NearestMipMapNearest:
@@ -126,10 +108,8 @@ public:
             throw;
         };
 
-        constexpr auto extractMipmap = [](const fastgltf::Filter filter)
-        {
-            switch (filter)
-            {
+        constexpr auto extractMipmap = [](const fastgltf::Filter filter) {
+            switch (filter) {
             case fastgltf::Filter::Nearest:
             case fastgltf::Filter::NearestMipMapNearest:
             case fastgltf::Filter::LinearMipMapNearest:
@@ -142,10 +122,8 @@ public:
             throw;
         };
 
-        constexpr auto extractWrap = [](const fastgltf::Wrap wrap)
-        {
-            switch (wrap)
-            {
+        constexpr auto extractWrap = [](const fastgltf::Wrap wrap) {
+            switch (wrap) {
             case fastgltf::Wrap::ClampToEdge:
                 return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
             case fastgltf::Wrap::MirroredRepeat:
@@ -169,15 +147,13 @@ public:
         };
     }
 
-    std::vector<asset::Texture> createTextures(const core::Command& command) const
-    {
+    std::vector<asset::Texture> createTextures(const core::Command& command) const {
         std::vector<asset::Texture> textures;
         textures.reserve(asset.images.size() + externalTextures.size());
         Index textureId = 0;
 
         // internal textures
-        for (const fastgltf::Texture& texture : asset.textures)
-        {
+        for (const fastgltf::Texture& texture : asset.textures) {
             assert(texture.imageIndex && texture.imageIndex.value() < asset.images.size());
 
             const auto& image = asset.images.at(texture.imageIndex.value());
@@ -185,36 +161,30 @@ public:
 
             const fastgltf::visitor visitor {
                 [](const auto&) -> LoadedTexture { throw std::runtime_error("Unsupported visitor"); },
-                [&](const fastgltf::sources::URI& uri) -> LoadedTexture
-                {
+                [&](const fastgltf::sources::URI& uri) -> LoadedTexture {
                     return LoadedTexture { LoadedTexture::Handle { load::LoadedTexture::Type::texture2d,
                                                                    path.parent_path() / uri.uri.path() } };
                 },
-                [&](const fastgltf::sources::Vector& vector) -> LoadedTexture
-                {
+                [&](const fastgltf::sources::Vector& vector) -> LoadedTexture {
                     return LoadedTexture { name, reinterpret_cast<const uint8_t*>(vector.bytes.data()),
                                            vector.bytes.size() };
                 },
-                [&](const fastgltf::sources::Array& array) -> LoadedTexture
-                {
+                [&](const fastgltf::sources::Array& array) -> LoadedTexture {
                     return LoadedTexture { name, reinterpret_cast<const uint8_t*>(array.bytes.data()),
                                            array.bytes.size() };
                 },
-                [&](const fastgltf::sources::BufferView& view) -> LoadedTexture
-                {
+                [&](const fastgltf::sources::BufferView& view) -> LoadedTexture {
                     const auto&     bufferView = asset.bufferViews.at(view.bufferViewIndex);
                     const auto&     buffer     = asset.buffers.at(bufferView.bufferIndex);
                     const fastgltf::visitor visitor    = {
                         [](const auto&) -> LoadedTexture { throw std::runtime_error("Unsupported visitor"); },
-                        [&](const fastgltf::sources::Vector& vector) -> LoadedTexture
-                        {
+                        [&](const fastgltf::sources::Vector& vector) -> LoadedTexture {
                             return LoadedTexture { name,
                                                    reinterpret_cast<const uint8_t*>(vector.bytes.data()) +
                                                        bufferView.byteOffset,
                                                    bufferView.byteLength };
                         },
-                        [&](const fastgltf::sources::Array& array) -> LoadedTexture
-                        {
+                        [&](const fastgltf::sources::Array& array) -> LoadedTexture {
                             return LoadedTexture { name,
                                                    reinterpret_cast<const uint8_t*>(array.bytes.data()) +
                                                        bufferView.byteOffset,
@@ -232,8 +202,7 @@ public:
         }
 
         // external textures
-        for (const auto& [textureType, path] : externalTextures)
-        {
+        for (const auto& [textureType, path] : externalTextures) {
             textures.emplace_back(command,
                                   LoadedTexture(LoadedTexture::Handle { load::LoadedTexture::Type::texture2d, path }),
                                   load::Defaults::sampler, asset::Texture::texture2d);
@@ -242,8 +211,7 @@ public:
         return textures;
     }
 
-    VkDescriptorPool createDescriptorPool(const core::Context& context) const
-    {
+    VkDescriptorPool createDescriptorPool(const core::Context& context) const {
         return core::Descriptor::createDescriptorPool(
             context, asset.materials.size() + asset.meshes.size() + asset.skins.size() + 32,
             std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(5 * asset.materials.size()) },
@@ -251,8 +219,7 @@ public:
             std::pair { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, static_cast<uint32_t>(asset.skins.size() + 32) });
     }
 
-    VkDescriptorSetLayout createMaterialDescriptorSetLayout(const core::Context& context) const
-    {
+    VkDescriptorSetLayout createMaterialDescriptorSetLayout(const core::Context& context) const {
         return core::Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture
                                                            TextureDescr,  // metallic/rough texture
                                                            TextureDescr,  // normal texture
@@ -262,12 +229,10 @@ public:
     }
 
     std::map<TextureType, const asset::Texture*>
-    createExternalTexturesMap(const std::vector<asset::Texture>& textures) const
-    {
+    createExternalTexturesMap(const std::vector<asset::Texture>& textures) const {
         std::map<TextureType, const asset::Texture*> map;
         core::Size                                   textureId { asset.images.size() };
-        for (const auto& [textureType, _] : externalTextures)
-        {
+        for (const auto& [textureType, _] : externalTextures) {
             map[textureType] = &textures.at(textureId++);
         }
         return map;
@@ -275,12 +240,9 @@ public:
 
     std::vector<asset::Material> createMaterials(const core::Context& context, const VkDescriptorPool descriptorPool,
                                                  const VkDescriptorSetLayout        materialDescriptorSetLayout,
-                                                 const std::vector<asset::Texture>& textures) const
-    {
-        constexpr auto extractAlphaMode = [](const fastgltf::AlphaMode alphaMode)
-        {
-            switch (alphaMode)
-            {
+                                                 const std::vector<asset::Texture>& textures) const {
+        constexpr auto extractAlphaMode = [](const fastgltf::AlphaMode alphaMode) {
+            switch (alphaMode) {
             case fastgltf::AlphaMode::Blend:
                 return asset::Material::AlphaMode::blend;
             case fastgltf::AlphaMode::Mask:
@@ -292,38 +254,34 @@ public:
         };
 
         const auto externalTexturesMap = createExternalTexturesMap(textures);
-        const auto extractTexture      = [&](const TextureType textureType, const auto& textureInfo)
-        {
-            if (textureInfo)
-            {
+        const auto extractTexture      = [&](const TextureType textureType, const auto& textureInfo) {
+            if (textureInfo) {
                 const auto textureIndex  = textureInfo.value().textureIndex;
                 const auto texCoordIndex = textureInfo.value().texCoordIndex;
                 assert(0 <= textureIndex && textureIndex < textures.size());
                 return asset::Material::TextureData {
-                    .texture  = &textures.at(textureIndex),
-                    .texCoord = static_cast<uint8_t>(texCoordIndex),
+                         .texture  = &textures.at(textureIndex),
+                         .texCoord = static_cast<uint8_t>(texCoordIndex),
                 };
             }
 
-            if (externalTexturesMap.contains(textureType))
-            {
+            if (externalTexturesMap.contains(textureType)) {
                 return asset::Material::TextureData {
-                    .texture  = externalTexturesMap.at(textureType),
-                    .texCoord = 0,
+                         .texture  = externalTexturesMap.at(textureType),
+                         .texCoord = 0,
                 };
             }
 
             return asset::Material::TextureData {
-                .texture  = &defaults.texture,
-                .texCoord = 0,
+                     .texture  = &defaults.texture,
+                     .texCoord = 0,
             };
         };
 
         std::vector<asset::Material> materials;
         materials.reserve(asset.materials.size());
         uint32_t materialId = 0;
-        for (const fastgltf::Material& material : asset.materials)
-        {
+        for (const fastgltf::Material& material : asset.materials) {
             using Type = TextureType;
 
             const auto baseColorTexture = extractTexture(Type::baseColorTexture, material.pbrData.baseColorTexture);
@@ -375,19 +333,16 @@ public:
         return materials;
     }
 
-    std::vector<asset::Mesh> createMeshes(const std::vector<asset::Material>& materials) const
-    {
+    std::vector<asset::Mesh> createMeshes(const std::vector<asset::Material>& materials) const {
         uint32_t partialIndexCount { 0 };
 
         std::vector<asset::Mesh> meshes;
         meshes.reserve(asset.meshes.size());
         uint32_t meshId = 0;
-        for (const fastgltf::Mesh& fastgltfMesh : asset.meshes)
-        {
+        for (const fastgltf::Mesh& fastgltfMesh : asset.meshes) {
             auto& mesh = meshes.emplace_back(baptize<This::mesh>(fastgltfMesh.name, meshId++));
             mesh.primitives.reserve(fastgltfMesh.primitives.size());
-            for (const fastgltf::Primitive& primitive : fastgltfMesh.primitives)
-            {
+            for (const fastgltf::Primitive& primitive : fastgltfMesh.primitives) {
                 const fastgltf::Accessor& positionAccessor =
                     asset.accessors.at(primitive.findAttribute("POSITION")->accessorIndex);
 
@@ -402,16 +357,12 @@ public:
                 core::math::Vector<3> max { minValue, minValue, minValue };
                 using PositionAttribute =
                     typename Vertex::Attribute<Vertex::attributeIndex<core::geometry::Attribute::position>()>::Value;
-                fastgltf::iterateAccessor<PositionAttribute>(asset, positionAccessor,
-                                                             [&](const auto& value)
-                                                             {
-                                                                 core::forEach<0, 3>(
-                                                                     [&]<int i>
-                                                                     {
-                                                                         get<i>(min) = std::min(get<i>(min), value[i]);
-                                                                         get<i>(max) = std::max(get<i>(max), value[i]);
-                                                                     });
-                                                             });
+                fastgltf::iterateAccessor<PositionAttribute>(asset, positionAccessor, [&](const auto& value) {
+                    core::forEach<0, 3>([&]<int i> {
+                        get<i>(min) = std::min(get<i>(min), value[i]);
+                        get<i>(max) = std::max(get<i>(max), value[i]);
+                    });
+                });
                 core::forEach<0, 3>([&]<int i> { assert(get<i>(min) <= get<i>(max)); });
 
                 const auto& material =
@@ -437,16 +388,12 @@ public:
         return meshes;
     }
 
-    asset::Model createModel(const core::Command& command, const std::vector<asset::Mesh>& meshes) const
-    {
-        const auto [vertexCount, indexCount] = [&]
-        {
+    asset::Model createModel(const core::Command& command, const std::vector<asset::Mesh>& meshes) const {
+        const auto [vertexCount, indexCount] = [&] {
             uint32_t vertexCount { 0 };
             uint32_t indexCount { 0 };
-            for (const auto& mesh : meshes)
-            {
-                for (const auto& primitive : mesh.primitives)
-                {
+            for (const auto& mesh : meshes) {
+                for (const auto& primitive : mesh.primitives) {
                     vertexCount += primitive.vertexCount;
                     indexCount += primitive.indexCount;
                 }
@@ -459,13 +406,11 @@ public:
         indices.reserve(indexCount);
 
         uint32_t vertexOffset { 0 };
-        for (const fastgltf::Mesh& mesh : asset.meshes)
-        {
-            for (const auto& primitive : mesh.primitives)
-            {
-                fastgltf::iterateAccessor<std::uint32_t>(asset, asset.accessors.at(primitive.indicesAccessor.value()),
-                                                         [&](std::uint32_t index)
-                                                         { indices.emplace_back(vertexOffset + index); });
+        for (const fastgltf::Mesh& mesh : asset.meshes) {
+            for (const auto& primitive : mesh.primitives) {
+                fastgltf::iterateAccessor<std::uint32_t>(
+                    asset, asset.accessors.at(primitive.indicesAccessor.value()),
+                    [&](std::uint32_t index) { indices.emplace_back(vertexOffset + index); });
 
                 constexpr std::array attributes {
                     std::pair { "POSITION", core::geometry::Attribute::position },
@@ -476,21 +421,18 @@ public:
                     // std::pair { "JOINTS_0", core::geometry::Attribute::jointIndex },
                     // std::pair { "WEIGHTS_0", core::geometry::Attribute::jointWeight },
                 };
-                core::forEach<0, attributes.size()>(
-                    [&]<int i>()
-                    {
-                        constexpr auto name      = attributes.at(i).first;
-                        constexpr auto attribute = attributes.at(i).second;
-                        using Attribute          = typename Vertex::Attribute<Vertex::attributeIndex<attribute>()>;
+                core::forEach<0, attributes.size()>([&]<int i>() {
+                    constexpr auto name      = attributes.at(i).first;
+                    constexpr auto attribute = attributes.at(i).second;
+                    using Attribute          = typename Vertex::Attribute<Vertex::attributeIndex<attribute>()>;
 
-                        if (const auto values = primitive.findAttribute(name); values != primitive.attributes.end())
-                        {
-                            fastgltf::iterateAccessorWithIndex<typename Attribute::Value>(
-                                asset, asset.accessors.at(values->accessorIndex),
-                                [&](const auto& value, const auto index)
-                                { vertices.at(vertexOffset + index).template get<attribute>() = value; });
-                        }
-                    });
+                    if (const auto values = primitive.findAttribute(name); values != primitive.attributes.end()) {
+                        fastgltf::iterateAccessorWithIndex<typename Attribute::Value>(
+                            asset, asset.accessors.at(values->accessorIndex), [&](const auto& value, const auto index) {
+                                vertices.at(vertexOffset + index).template get<attribute>() = value;
+                            });
+                    }
+                });
 
                 vertexOffset += asset.accessors.at(primitive.findAttribute("POSITION")->accessorIndex).count;
             }
@@ -540,14 +482,11 @@ public:
     //         });
     // }
 
-    core::utils::Tree<asset::Node> createTree(const core::Index sceneIndex) const
-    {
-        auto createNodes = [this]()
-        {
+    core::utils::Tree<asset::Node> createTree(const core::Index sceneIndex) const {
+        auto createNodes = [this]() {
             core::utils::Tree<asset::Node>::Nodes nodes;
             nodes.reserve(asset.nodes.size());
-            for (const auto& gltfNode : asset.nodes)
-            {
+            for (const auto& gltfNode : asset.nodes) {
                 assert(std::holds_alternative<fastgltf::TRS>(gltfNode.transform));
                 const auto& trs = std::get<fastgltf::TRS>(gltfNode.transform);
 
@@ -578,8 +517,7 @@ public:
             }
             return nodes;
         };
-        auto createRoots = [&]()
-        {
+        auto createRoots = [&]() {
             return std::vector<Index> { asset.scenes.at(sceneIndex).nodeIndices.begin(),
                                         asset.scenes.at(sceneIndex).nodeIndices.end() };
         };
@@ -589,13 +527,11 @@ public:
         };
     }
 
-    std::vector<asset::Scene> createScenes() const
-    {
+    std::vector<asset::Scene> createScenes() const {
         std::vector<asset::Scene> scenes;
         scenes.reserve(asset.scenes.size());
         uint32_t sceneId = 0;
-        for (const fastgltf::Scene& fastgltfScene : asset.scenes)
-        {
+        for (const fastgltf::Scene& fastgltfScene : asset.scenes) {
             scenes.emplace_back(baptize<This::scene>(fastgltfScene.name, sceneId), createTree(sceneId));
             ++sceneId;
         }
@@ -603,27 +539,23 @@ public:
         return scenes;
     }
 
-    std::size_t mainSceneIndex() const
-    {
+    std::size_t mainSceneIndex() const {
         return asset.defaultScene.value_or(0);
     }
 
-    std::vector<asset::Skin> createSkins() const
-    {
+    std::vector<asset::Skin> createSkins() const {
         std::vector<asset::Skin> skins;
         skins.reserve(asset.skins.size());
         uint32_t skinId = 0;
 
-        for (const fastgltf::Skin& fastgltfSkin : asset.skins)
-        {
+        for (const fastgltf::Skin& fastgltfSkin : asset.skins) {
             const auto skeletonIndex = fastgltfSkin.skeleton ?
                                            std::optional<Index> { static_cast<Index>(fastgltfSkin.skeleton.value()) } :
                                            std::optional<Index> {};
             auto&      skin = skins.emplace_back(baptize<This::skin>(fastgltfSkin.name, skinId++), skeletonIndex);
             skin.joints.reserve(fastgltfSkin.joints.size());
             std::size_t jointId { 0 };
-            for (const auto joint : fastgltfSkin.joints)
-            {
+            for (const auto joint : fastgltfSkin.joints) {
                 assert(fastgltfSkin.inverseBindMatrices);
                 const auto& accessor = asset.accessors.at(fastgltfSkin.inverseBindMatrices.value());
                 skin.joints.emplace_back(
@@ -635,20 +567,17 @@ public:
         return skins;
     }
 
-    std::vector<asset::Animation> createAnimations() const
-    {
+    std::vector<asset::Animation> createAnimations() const {
         std::vector<asset::Animation> animations;
         animations.reserve(asset.skins.size());
         uint32_t animationId = 0;
-        for (const fastgltf::Animation& fastgltfAnimation : asset.animations)
-        {
+        for (const fastgltf::Animation& fastgltfAnimation : asset.animations) {
             // samplers
             std::vector<asset::Animation::Sampler> samplers;
             samplers.reserve(fastgltfAnimation.samplers.size());
             float start = std::numeric_limits<float>::max();
             float end   = std::numeric_limits<float>::min();
-            for (const fastgltf::AnimationSampler& fastgltfSampler : fastgltfAnimation.samplers)
-            {
+            for (const fastgltf::AnimationSampler& fastgltfSampler : fastgltfAnimation.samplers) {
                 // inputs
                 const auto&        inputAccessor = asset.accessors.at(fastgltfSampler.inputAccessor);
                 std::vector<float> inputs;
@@ -664,19 +593,16 @@ public:
                 std::vector<core::math::Vector<4>> outputs;
                 outputs.reserve(outputAccessor.count);
 
-                switch (outputAccessor.type)
-                {
-                case fastgltf::AccessorType::Vec3:
-                {
-                    fastgltf::iterateAccessor<core::math::Vector<3>>(
-                        asset, outputAccessor, [&](const auto& value)
-                        { outputs.emplace_back(core::math::Vector<4> { value[0], value[1], value[2], 0.0f }); });
+                switch (outputAccessor.type) {
+                case fastgltf::AccessorType::Vec3: {
+                    fastgltf::iterateAccessor<core::math::Vector<3>>(asset, outputAccessor, [&](const auto& value) {
+                        outputs.emplace_back(core::math::Vector<4> { value[0], value[1], value[2], 0.0f });
+                    });
                     break;
                 }
-                case fastgltf::AccessorType::Vec4:
-                {
-                    fastgltf::iterateAccessor<core::math::Vector<4>>(asset, outputAccessor, [&](const auto& value)
-                                                                     { outputs.emplace_back(value); });
+                case fastgltf::AccessorType::Vec4: {
+                    fastgltf::iterateAccessor<core::math::Vector<4>>(
+                        asset, outputAccessor, [&](const auto& value) { outputs.emplace_back(value); });
                     break;
                 }
                 case fastgltf::AccessorType::Invalid:
@@ -700,8 +626,7 @@ public:
             // channels
             std::vector<asset::Animation::Channel> channels;
             channels.reserve(fastgltfAnimation.channels.size());
-            for (const auto& fastgltfChannel : fastgltfAnimation.channels)
-            {
+            for (const auto& fastgltfChannel : fastgltfAnimation.channels) {
                 const std::map<fastgltf::AnimationPath, asset::Animation::Channel::Path> convert {
                     { fastgltf::AnimationPath::Translation, asset::Animation::Channel::Path::translation },
                     { fastgltf::AnimationPath::Rotation, asset::Animation::Channel::Path::rotation },
@@ -724,28 +649,23 @@ public:
 private:
     static std::map<TextureType, Index>
     createExternalTextures(const core::Size                                    internalTexturesCount,
-                           const std::map<TextureType, std::filesystem::path>& externalTexturePaths)
-    {
+                           const std::map<TextureType, std::filesystem::path>& externalTexturePaths) {
         std::map<TextureType, Index> map;
         Index                        textureId { 0 };
-        for (const auto& [textureType, _] : externalTexturePaths)
-        {
+        for (const auto& [textureType, _] : externalTexturePaths) {
             map[textureType] = internalTexturesCount + (textureId++);
         }
         return map;
     }
 
-    static fastgltf::Asset createAsset(const std::filesystem::path& path)
-    {
-        const auto errorMessage = [&](const fastgltf::Error error)
-        {
+    static fastgltf::Asset createAsset(const std::filesystem::path& path) {
+        const auto errorMessage = [&](const fastgltf::Error error) {
             return "Failed to load asset at path '" + path.string() +
                    "': " + std::string { fastgltf::getErrorName(error) };
         };
 
         auto data = fastgltf::GltfDataBuffer::FromPath(path);
-        if (!data)
-        {
+        if (!data) {
             throw std::runtime_error(errorMessage(data.error()));
         }
 
@@ -753,8 +673,7 @@ private:
         constexpr auto options    = fastgltf::Options::DontRequireValidAssetMember | fastgltf::Options::AllowDouble |
                                  fastgltf::Options::DecomposeNodeMatrices | fastgltf::Options::LoadExternalBuffers;
         auto load = fastgltf::Parser(extensions).loadGltf(data.get(), path.parent_path(), options);
-        if (!load)
-        {
+        if (!load) {
             throw std::runtime_error(errorMessage(load.error()));
         }
 

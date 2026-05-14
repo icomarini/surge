@@ -4,10 +4,8 @@
 
 #include <imgui.h>
 
-namespace surge::overlay
-{
-std::string idName(const uint32_t id, const std::string& name)
-{
+namespace surge::overlay {
+std::string idName(const uint32_t id, const std::string& name) {
     return std::to_string(id) + ": " + name;
 }
 
@@ -17,48 +15,38 @@ static constexpr std::array ypr  = { 'y', 'p', 'r' };
 
 template<core::Size size, typename AxisLabels>
 void slider(const std::string& name, const std::string& nodeName, core::math::Vector<size>& vector,
-            const AxisLabels labels, const float min = -5.0f, const float max = 5.0f)
-{
+            const AxisLabels labels, const float min = -5.0f, const float max = 5.0f) {
     // static_assert(vector.size() <= labels.size());
     ImGui::PushItemWidth(80);
     ImGui::Text("%s", name.c_str());
-    core::forEach<0, size>(
-        [&]<int index>()
-        {
-            ImGui::SameLine();
-            const std::string prefix { name.begin(), name.begin() + 1 };
-            const std::string label { labels.at(index) };
-            const auto        id     = "##" + prefix + label + nodeName;
-            const auto        format = label + ": %1.3f";
-            ImGui::SliderFloat(id.c_str(), &vector.at(index), min, max, format.c_str());
-        });
+    core::forEach<0, size>([&]<int index>() {
+        ImGui::SameLine();
+        const std::string prefix { name.begin(), name.begin() + 1 };
+        const std::string label { labels.at(index) };
+        const auto        id     = "##" + prefix + label + nodeName;
+        const auto        format = label + ": %1.3f";
+        ImGui::SliderFloat(id.c_str(), &vector.at(index), min, max, format.c_str());
+    });
     ImGui::PopItemWidth();
 }
 
-static void overlay(const asset::Node& node, uint32_t& nodeId)
-{
+static void overlay(const asset::Node& node, uint32_t& nodeId) {
     const auto nodeName = idName(nodeId++, "");
-    if (ImGui::TreeNode(nodeName.c_str()))
-    {
-        if (node.meshIndex)
-        {
+    if (ImGui::TreeNode(nodeName.c_str())) {
+        if (node.meshIndex) {
             ImGui::Checkbox("active", &node.state.active);
 
             {
                 std::array<const char*, 3> items { "point", "line", "fill" };
                 const char*                currentItem = items.at(static_cast<core::UInt8>(node.state.polygonMode));
-                if (ImGui::BeginCombo("mode", currentItem))
-                {
+                if (ImGui::BeginCombo("mode", currentItem)) {
                     uint32_t itemId = 0;
-                    for (const auto item : items)
-                    {
+                    for (const auto item : items) {
                         const bool selected = (currentItem == item);
-                        if (ImGui::Selectable(item, selected))
-                        {
+                        if (ImGui::Selectable(item, selected)) {
                             node.state.polygonMode = static_cast<core::PolygonMode>(itemId);
                         }
-                        if (selected)
-                        {
+                        if (selected) {
                             ImGui::SetItemDefaultFocus();
                         }
                         ++itemId;

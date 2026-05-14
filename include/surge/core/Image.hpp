@@ -2,10 +2,8 @@
 
 #include "surge/core/Context.hpp"
 
-namespace surge::core
-{
-class Image : public Contextualized
-{
+namespace surge::core {
+class Image : public Contextualized {
 public:
     template<VkImageCreateFlags    create,     //
              VkFormat              fmt,        //
@@ -14,8 +12,7 @@ public:
              VkImageAspectFlags    aspect,     //
              VkImageViewType       view        //
              >
-    struct Info
-    {
+    struct Info {
         static constexpr auto imageCreateFlags    = create;
         static constexpr auto format              = fmt;
         static constexpr auto imageUsageFlags     = usage;
@@ -74,8 +71,7 @@ public:
               context, extent, loadedTexture.mipLevels, loadedTexture.arrayLayers) }
         , memory { createImageMemory<I::memoryPropertyFlags>(context, image) }
         , view { createImageView<I::imageAspectFlags, I::imageViewType, I::format>(
-              context, image, loadedTexture.mipLevels, loadedTexture.arrayLayers) }
-    {
+              context, image, loadedTexture.mipLevels, loadedTexture.arrayLayers) } {
     }
 
     template<typename I>
@@ -84,12 +80,10 @@ public:
         , extent { extent }
         , image { createImage<I::imageCreateFlags, I::format, I::imageUsageFlags>(context, extent, 1, 1) }
         , memory { createImageMemory<I::memoryPropertyFlags>(context, image) }
-        , view { createImageView<I::imageAspectFlags, I::imageViewType, I::format>(context, image, 1, 1) }
-    {
+        , view { createImageView<I::imageAspectFlags, I::imageViewType, I::format>(context, image, 1, 1) } {
     }
 
-    ~Image()
-    {
+    ~Image() {
         context.destroy(view);
         context.destroy(memory);
         context.destroy(image);
@@ -104,8 +98,7 @@ public:
 private:
     template<VkImageCreateFlags imageCreateFlags, VkFormat format, VkImageUsageFlags imageUsageFlags>
     static VkImage createImage(const Context& context, const VkExtent2D& extent, const uint32_t mipLevels,
-                               const uint32_t arrayLayers)
-    {
+                               const uint32_t arrayLayers) {
         return context.create(VkImageCreateInfo {
             .sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
             .pNext                 = nullptr,
@@ -126,8 +119,7 @@ private:
     }
 
     template<VkMemoryPropertyFlags memoryPropertyFlags>
-    static VkDeviceMemory createImageMemory(const Context& context, const VkImage image)
-    {
+    static VkDeviceMemory createImageMemory(const Context& context, const VkImage image) {
         VkMemoryRequirements memRequirements;
         vkGetImageMemoryRequirements(context.device, image, &memRequirements);
         const auto memory = context.create(VkMemoryAllocateInfo {
@@ -136,8 +128,7 @@ private:
             .allocationSize  = memRequirements.size,
             .memoryTypeIndex = context.findMemoryType<memoryPropertyFlags>(memRequirements.memoryTypeBits),
         });
-        if (vkBindImageMemory(context.device, image, memory, 0) != VK_SUCCESS)
-        {
+        if (vkBindImageMemory(context.device, image, memory, 0) != VK_SUCCESS) {
             throw std::runtime_error("Failed to bind image memory");
         }
         return memory;
@@ -145,8 +136,7 @@ private:
 
     template<VkImageAspectFlags imageAspectFlags, VkImageViewType imageViewType, VkFormat format>
     static VkImageView createImageView(const Context& context, const VkImage image, const uint32_t mipLevels,
-                                       const uint32_t arrayLayers)
-    {
+                                       const uint32_t arrayLayers) {
         const VkImageSubresourceRange subresourceRange {
             .aspectMask     = imageAspectFlags,
             .baseMipLevel   = 0,

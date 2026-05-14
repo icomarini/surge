@@ -2,8 +2,7 @@
 
 #include "surge/core/math/Vector.hpp"
 
-namespace surge::physics
-{
+namespace surge::physics {
 
 using Time         = float;
 using Mass         = float;
@@ -13,14 +12,12 @@ using Acceleration = core::math::Vector<3>;
 using Force        = core::math::Vector<3>;
 using Scalar       = float;
 
-class Anchor
-{
+class Anchor {
 public:
     Position position;
 };
 
-class Particle
-{
+class Particle {
 public:
     Mass         mass;
     Position     position;
@@ -29,8 +26,7 @@ public:
     Scalar       damping;
     Force        accumulatedForce;
 
-    void integrate(const Time duration)
-    {
+    void integrate(const Time duration) {
         assert(duration > 0.0);
 
 
@@ -43,13 +39,11 @@ public:
         // velocity *= real_pow(damping, duration);
     }
 
-    bool finiteMass() const
-    {
+    bool finiteMass() const {
         return mass < std::numeric_limits<Mass>::max();
     }
 
-    void addForce(const Force& force)
-    {
+    void addForce(const Force& force) {
         accumulatedForce += force;
     }
 };

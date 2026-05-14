@@ -6,10 +6,8 @@
 #include <filesystem>
 #include <fstream>
 
-namespace surge::core
-{
-class Pipeline : public Contextualized
-{
+namespace surge::core {
+class Pipeline : public Contextualized {
     VkPipelineLayout pipelineLayout;
     VkPipeline       pipeline;
 
@@ -19,12 +17,10 @@ public:
              const VkPushConstantRange& pushConstantRange, const core::shader::Type shader,
              const DescriptorSetLayouts... descriptorSetLayouts)
         : Contextualized { context }
-        , pipelineLayout { createPipelineLayout(context, pushConstantRange, descriptorSetLayouts...) }
-    {
+        , pipelineLayout { createPipelineLayout(context, pushConstantRange, descriptorSetLayouts...) } {
     }
 
-    ~Pipeline()
-    {
+    ~Pipeline() {
         context.destroy(pipeline);
         context.destroy(pipelineLayout);
     }
@@ -32,8 +28,7 @@ public:
 private:
     template<typename... DescriptorSetLayouts>
     VkPipelineLayout createPipelineLayout(const Context& context, const VkPushConstantRange pushConstantRange,
-                                          const DescriptorSetLayouts... descriptorSetLayouts)
-    {
+                                          const DescriptorSetLayouts... descriptorSetLayouts) {
         const std::array layouts { descriptorSetLayouts... };
         return context.create(VkPipelineLayoutCreateInfo {
             .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -48,8 +43,7 @@ private:
 };
 
 template<Size size, geometry::Format format>
-constexpr VkFormat extractFormat()
-{
+constexpr VkFormat extractFormat() {
     constexpr std::array lut {
         std::pair { std::pair { 1, geometry::Format::sfloat }, VK_FORMAT_R32_SFLOAT },
         std::pair { std::pair { 2, geometry::Format::sfloat }, VK_FORMAT_R32G32_SFLOAT },
@@ -62,40 +56,33 @@ constexpr VkFormat extractFormat()
     };
 
     VkFormat result;
-    forEach<0, lut.size()>(
-        [&]<int i>()
-        {
-            constexpr auto t = lut.at(i);
-            if constexpr (t.first.first == size && t.first.second == format)
-            {
-                result = t.second;
-            }
-        });
+    forEach<0, lut.size()>([&]<int i>() {
+        constexpr auto t = lut.at(i);
+        if constexpr (t.first.first == size && t.first.second == format) {
+            result = t.second;
+        }
+    });
     return result;
 };
 
 template<typename... Attributes>
-static constexpr auto createAttributeDescriptions(geometry::Vertex<Attributes...>)
-{
+static constexpr auto createAttributeDescriptions(geometry::Vertex<Attributes...>) {
     using Vertex = geometry::Vertex<Attributes...>;
     std::array<VkVertexInputAttributeDescription, Vertex::attributeCount> attributeDescriptions;
-    forEach<0, Vertex::attributeCount>(
-        [&]<int index>()
-        {
-            using Attribute              = typename Vertex::Attribute<index>;
-            attributeDescriptions[index] = {
-                .location = index,
-                .binding  = 0,
-                .format   = extractFormat<Attribute::size, Attribute::format>(),
-                .offset   = Vertex::template computeByteOffset<Attribute::attribute>(),
-            };
-        });
+    forEach<0, Vertex::attributeCount>([&]<int index>() {
+        using Attribute              = typename Vertex::Attribute<index>;
+        attributeDescriptions[index] = {
+            .location = index,
+            .binding  = 0,
+            .format   = extractFormat<Attribute::size, Attribute::format>(),
+            .offset   = Vertex::template computeByteOffset<Attribute::attribute>(),
+        };
+    });
     return attributeDescriptions;
 }
 
 template<typename Vertex>
-constexpr VkPipelineVertexInputStateCreateInfo createVertexInputState()
-{
+constexpr VkPipelineVertexInputStateCreateInfo createVertexInputState() {
     static constexpr VkVertexInputBindingDescription bindingDescription {
         .binding   = 0,
         .stride    = sizeof(Vertex),
@@ -116,8 +103,7 @@ constexpr VkPipelineVertexInputStateCreateInfo createVertexInputState()
     return vertexInputState;
 }
 
-constexpr VkPipelineVertexInputStateCreateInfo createVertexInputState()
-{
+constexpr VkPipelineVertexInputStateCreateInfo createVertexInputState() {
     return VkPipelineVertexInputStateCreateInfo {
         .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         .pNext                           = nullptr,
@@ -130,8 +116,7 @@ constexpr VkPipelineVertexInputStateCreateInfo createVertexInputState()
 }
 
 template<typename Type>
-constexpr VkPushConstantRange createPushConstantRange(const VkShaderStageFlags stageFlags)
-{
+constexpr VkPushConstantRange createPushConstantRange(const VkShaderStageFlags stageFlags) {
     static_assert(sizeof(Type) <= 128);
     return VkPushConstantRange {
         .stageFlags = stageFlags,
@@ -142,8 +127,7 @@ constexpr VkPushConstantRange createPushConstantRange(const VkShaderStageFlags s
 
 template<typename... DescriptorSetLayouts>
 VkPipelineLayout createPipelineLayout(const Context& context, const VkPushConstantRange pushConstantRange,
-                                      const DescriptorSetLayouts... descriptorSetLayouts)
-{
+                                      const DescriptorSetLayouts... descriptorSetLayouts) {
     const std::array layouts { descriptorSetLayouts... };
     return context.create(VkPipelineLayoutCreateInfo {
         .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -156,8 +140,7 @@ VkPipelineLayout createPipelineLayout(const Context& context, const VkPushConsta
     });
 }
 
-VkPipelineLayout createPipelineLayout(const Context& context, const VkPushConstantRange pushConstantRange)
-{
+VkPipelineLayout createPipelineLayout(const Context& context, const VkPushConstantRange pushConstantRange) {
     return context.create(VkPipelineLayoutCreateInfo {
         .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
         .pNext                  = nullptr,
@@ -169,8 +152,7 @@ VkPipelineLayout createPipelineLayout(const Context& context, const VkPushConsta
     });
 }
 
-constexpr VkPipelineRasterizationStateCreateInfo createRasterizationStateInfo(const VkPolygonMode polygonMode)
-{
+constexpr VkPipelineRasterizationStateCreateInfo createRasterizationStateInfo(const VkPolygonMode polygonMode) {
     return VkPipelineRasterizationStateCreateInfo {
         .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
         .pNext                   = nullptr,
@@ -192,27 +174,19 @@ constexpr VkPipelineRasterizationStateCreateInfo createRasterizationStateInfo(co
 template<typename ShaderStages, typename... CreateInfos>
 VkPipeline createGraphicPipeline(const Context& context, const VkPipelineVertexInputStateCreateInfo vertexInputState,
                                  const VkPipelineCache pipelineCache, const VkPipelineLayout pipelineLayout,
-                                 const ShaderStages& shaderStages, CreateInfos... createInfos)
-{
+                                 const ShaderStages& shaderStages, CreateInfos... createInfos) {
     // const auto vertexInputState = createVertexInputState<Vertex>();
 
     const auto createInfoTuple = std::make_tuple(createInfos...);
     using CreateInfoTuple      = std::tuple<CreateInfos...>;
-    const auto getOr           = [&]<typename T>(const T& defaultCreateInfo)
-    {
-        if constexpr (std::tuple_size_v<CreateInfoTuple> == 0)
-        {
+    const auto getOr           = [&]<typename T>(const T& defaultCreateInfo) {
+        if constexpr (std::tuple_size_v<CreateInfoTuple> == 0) {
             return defaultCreateInfo;
-        }
-        else
-        {
+        } else {
             constexpr auto elementId = findElement<T, CreateInfoTuple>();
-            if constexpr (elementId == std::tuple_size_v<CreateInfoTuple>)
-            {
+            if constexpr (elementId == std::tuple_size_v<CreateInfoTuple>) {
                 return defaultCreateInfo;
-            }
-            else
-            {
+            } else {
                 return std::get<elementId>(createInfoTuple);
             }
         }
@@ -367,18 +341,15 @@ VkPipeline createGraphicPipeline(const Context& context, const VkPipelineVertexI
 
 
     VkPipeline pipeline;
-    if (vkCreateGraphicsPipelines(context.device, pipelineCache, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS)
-    {
+    if (vkCreateGraphicsPipelines(context.device, pipelineCache, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create graphics pipeline");
     }
     return pipeline;
 }
 
 VkPipeline createGraphicPipeline(const Context& context, const VkPipelineVertexInputStateCreateInfo vertexInputState,
-                                 const VkPipelineLayout pipelineLayout, const shader::Type shaderType)
-{
-    switch (shaderType)
-    {
+                                 const VkPipelineLayout pipelineLayout, const shader::Type shaderType) {
+    switch (shaderType) {
     case shader::Type::gltfAnimated:
         return createGraphicPipeline(
             context, vertexInputState, VK_NULL_HANDLE, pipelineLayout,
@@ -481,8 +452,7 @@ VkPipeline createGraphicPipeline(const Context& context, const VkPipelineVertexI
 
 template<typename Vertex, typename ShaderStages, typename... CreateInfos>
 VkPipeline createGraphicPipeline(const VkPipelineCache pipelineCache, const VkPipelineLayout pipelineLayout,
-                                 const ShaderStages& shaderStages, CreateInfos... createInfos)
-{
+                                 const ShaderStages& shaderStages, CreateInfos... createInfos) {
     return createGraphicPipeline(createVertexInputState<Vertex>(), pipelineCache, pipelineLayout, shaderStages,
                                  createInfos...);
 }

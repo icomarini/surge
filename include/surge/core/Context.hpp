@@ -18,12 +18,9 @@
 #include <set>
 #include <vector>
 
-namespace surge::core
-{
-constexpr VkPolygonMode translate(const PolygonMode polygonMode)
-{
-    switch (polygonMode)
-    {
+namespace surge::core {
+constexpr VkPolygonMode translate(const PolygonMode polygonMode) {
+    switch (polygonMode) {
     case PolygonMode::point:
         return VK_POLYGON_MODE_POINT;
     case PolygonMode::line:
@@ -35,14 +32,12 @@ constexpr VkPolygonMode translate(const PolygonMode polygonMode)
     }
 }
 
-struct Extern
-{
+struct Extern {
     static PFN_vkCmdSetPolygonModeEXT setPolygonMode;
     static PFN_vkCmdBeginRenderingKHR beginRendering;
     static PFN_vkCmdEndRenderingKHR   endRendering;
 
-    Extern(VkInstance instance)
-    {
+    Extern(VkInstance instance) {
         Extern::setPolygonMode =
             reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(vkGetInstanceProcAddr(instance, "vkCmdSetPolygonModeEXT"));
         assert(setPolygonMode);
@@ -61,8 +56,7 @@ PFN_vkCmdSetPolygonModeEXT surge::core::Extern::setPolygonMode;
 PFN_vkCmdBeginRenderingKHR surge::core::Extern::beginRendering;
 PFN_vkCmdEndRenderingKHR   surge::core::Extern::endRendering;
 
-class Context
-{
+class Context {
 public:
     static constexpr std::array extensions {
 #ifndef NDEBUG
@@ -107,22 +101,18 @@ public:
 #ifndef NDEBUG
         , debugMessenger { createDebugMessenger(instance) }
 #endif
-        , ext { instance }
-    {
+        , ext { instance } {
     }
 
-    void pollEvents() const
-    {
+    void pollEvents() const {
         window.pollEvents();
     }
 
-    static void setPolygoneMode(VkCommandBuffer commandBuffer, VkPolygonMode polygonMode)
-    {
+    static void setPolygoneMode(VkCommandBuffer commandBuffer, VkPolygonMode polygonMode) {
         Extern::setPolygonMode(commandBuffer, polygonMode);
     }
 
-    VkSurfaceCapabilitiesKHR getSurfaceCapabilities() const
-    {
+    VkSurfaceCapabilitiesKHR getSurfaceCapabilities() const {
         const VkPhysicalDeviceSurfaceInfo2KHR surfaceInfo {
             .sType   = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
             .pNext   = nullptr,
@@ -139,16 +129,13 @@ public:
 
 
     template<VkMemoryPropertyFlags memoryPropertyFlags>
-    uint32_t findMemoryType(const uint32_t typeFilter) const
-    {
+    uint32_t findMemoryType(const uint32_t typeFilter) const {
         VkPhysicalDeviceMemoryProperties memoryProperties;
         vkGetPhysicalDeviceMemoryProperties(physicalDevice.physicalDevice, &memoryProperties);
 
-        for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
-        {
+        for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i) {
             if ((typeFilter & (1 << i)) &&
-                (memoryProperties.memoryTypes[i].propertyFlags & memoryPropertyFlags) == memoryPropertyFlags)
-            {
+                (memoryProperties.memoryTypes[i].propertyFlags & memoryPropertyFlags) == memoryPropertyFlags) {
                 return i;
             }
         }
@@ -156,16 +143,13 @@ public:
         throw std::runtime_error("Failed to find suitable memory type");
     }
 
-    uint32_t findMemoryType(const VkMemoryPropertyFlags memoryPropertyFlags, const uint32_t typeFilter) const
-    {
+    uint32_t findMemoryType(const VkMemoryPropertyFlags memoryPropertyFlags, const uint32_t typeFilter) const {
         VkPhysicalDeviceMemoryProperties memoryProperties;
         vkGetPhysicalDeviceMemoryProperties(physicalDevice.physicalDevice, &memoryProperties);
 
-        for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
-        {
+        for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i) {
             if ((typeFilter & (1 << i)) &&
-                (memoryProperties.memoryTypes[i].propertyFlags & memoryPropertyFlags) == memoryPropertyFlags)
-            {
+                (memoryProperties.memoryTypes[i].propertyFlags & memoryPropertyFlags) == memoryPropertyFlags) {
                 return i;
             }
         }
@@ -173,24 +157,20 @@ public:
         throw std::runtime_error("Failed to find suitable memory type");
     }
 
-    bool formatIsFilterable(const VkFormat format, const VkImageTiling tiling) const
-    {
+    bool formatIsFilterable(const VkFormat format, const VkImageTiling tiling) const {
         VkFormatProperties formatProperties;
         vkGetPhysicalDeviceFormatProperties(physicalDevice.physicalDevice, format, &formatProperties);
 
-        if (tiling == VK_IMAGE_TILING_OPTIMAL)
-        {
+        if (tiling == VK_IMAGE_TILING_OPTIMAL) {
             return formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
         }
-        if (tiling == VK_IMAGE_TILING_LINEAR)
-        {
+        if (tiling == VK_IMAGE_TILING_LINEAR) {
             return formatProperties.linearTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
         }
         return false;
     }
 
-    uint32_t frameBufferCount() const
-    {
+    uint32_t frameBufferCount() const {
         const auto surfaceCapabilities = getSurfaceCapabilities();
 
         constexpr uint32_t preferredFrameCount { 3 };
@@ -200,165 +180,92 @@ public:
     }
 
     template<typename CreateInfo>
-    auto create(const CreateInfo& createInfo, const VkAllocationCallbacks* allocator = nullptr) const
-    {
+    auto create(const CreateInfo& createInfo, const VkAllocationCallbacks* allocator = nullptr) const {
         // log::info(std::string("Creating ") + typeid(CreateInfo).name());
 
-        if constexpr (std::is_same_v<CreateInfo, VkBufferCreateInfo>)
-        {
+        if constexpr (std::is_same_v<CreateInfo, VkBufferCreateInfo>) {
             return construct<VkBuffer>(vkCreateBuffer, createInfo, allocator);
-        }
-        else if constexpr (std::is_same_v<CreateInfo, VkCommandBufferAllocateInfo>)
-        {
+        } else if constexpr (std::is_same_v<CreateInfo, VkCommandBufferAllocateInfo>) {
             return construct<VkCommandBuffer>(vkAllocateCommandBuffers, createInfo);
-        }
-        else if constexpr (std::is_same_v<CreateInfo, VkCommandPoolCreateInfo>)
-        {
+        } else if constexpr (std::is_same_v<CreateInfo, VkCommandPoolCreateInfo>) {
             return construct<VkCommandPool>(vkCreateCommandPool, createInfo, allocator);
-        }
-        else if constexpr (std::is_same_v<CreateInfo, VkDescriptorPoolCreateInfo>)
-        {
+        } else if constexpr (std::is_same_v<CreateInfo, VkDescriptorPoolCreateInfo>) {
             return construct<VkDescriptorPool>(vkCreateDescriptorPool, createInfo, allocator);
-        }
-        else if constexpr (std::is_same_v<CreateInfo, VkDescriptorSetLayoutCreateInfo>)
-        {
+        } else if constexpr (std::is_same_v<CreateInfo, VkDescriptorSetLayoutCreateInfo>) {
             return construct<VkDescriptorSetLayout>(vkCreateDescriptorSetLayout, createInfo, allocator);
-        }
-        else if constexpr (std::is_same_v<CreateInfo, VkMemoryAllocateInfo>)
-        {
+        } else if constexpr (std::is_same_v<CreateInfo, VkMemoryAllocateInfo>) {
             return construct<VkDeviceMemory>(vkAllocateMemory, createInfo, allocator);
-        }
-        else if constexpr (std::is_same_v<CreateInfo, VkFenceCreateInfo>)
-        {
+        } else if constexpr (std::is_same_v<CreateInfo, VkFenceCreateInfo>) {
             return construct<VkFence>(vkCreateFence, createInfo, allocator);
-        }
-        else if constexpr (std::is_same_v<CreateInfo, VkFramebufferCreateInfo>)
-        {
+        } else if constexpr (std::is_same_v<CreateInfo, VkFramebufferCreateInfo>) {
             return construct<VkFramebuffer>(vkCreateFramebuffer, createInfo, allocator);
-        }
-        else if constexpr (std::is_same_v<CreateInfo, VkImageCreateInfo>)
-        {
+        } else if constexpr (std::is_same_v<CreateInfo, VkImageCreateInfo>) {
             return construct<VkImage>(vkCreateImage, createInfo, allocator);
-        }
-        else if constexpr (std::is_same_v<CreateInfo, VkImageViewCreateInfo>)
-        {
+        } else if constexpr (std::is_same_v<CreateInfo, VkImageViewCreateInfo>) {
             return construct<VkImageView>(vkCreateImageView, createInfo, allocator);
-        }
-        else if constexpr (std::is_same_v<CreateInfo, VkPipelineCacheCreateInfo>)
-        {
+        } else if constexpr (std::is_same_v<CreateInfo, VkPipelineCacheCreateInfo>) {
             return construct<VkPipelineCache>(vkCreatePipelineCache, createInfo, allocator);
-        }
-        else if constexpr (std::is_same_v<CreateInfo, VkPipelineLayoutCreateInfo>)
-        {
+        } else if constexpr (std::is_same_v<CreateInfo, VkPipelineLayoutCreateInfo>) {
             return construct<VkPipelineLayout>(vkCreatePipelineLayout, createInfo, allocator);
-        }
-        else if constexpr (std::is_same_v<CreateInfo, VkRenderPassCreateInfo>)
-        {
+        } else if constexpr (std::is_same_v<CreateInfo, VkRenderPassCreateInfo>) {
             return construct<VkRenderPass>(vkCreateRenderPass, createInfo, allocator);
-        }
-        else if constexpr (std::is_same_v<CreateInfo, VkSamplerCreateInfo>)
-        {
+        } else if constexpr (std::is_same_v<CreateInfo, VkSamplerCreateInfo>) {
             return construct<VkSampler>(vkCreateSampler, createInfo, allocator);
-        }
-        else if constexpr (std::is_same_v<CreateInfo, VkSemaphoreCreateInfo>)
-        {
+        } else if constexpr (std::is_same_v<CreateInfo, VkSemaphoreCreateInfo>) {
             return construct<VkSemaphore>(vkCreateSemaphore, createInfo, allocator);
-        }
-        else if constexpr (std::is_same_v<CreateInfo, VkShaderModuleCreateInfo>)
-        {
+        } else if constexpr (std::is_same_v<CreateInfo, VkShaderModuleCreateInfo>) {
             return construct<VkShaderModule>(vkCreateShaderModule, createInfo, allocator);
-        }
-        else if constexpr (std::is_same_v<CreateInfo, VkSwapchainCreateInfoKHR>)
-        {
+        } else if constexpr (std::is_same_v<CreateInfo, VkSwapchainCreateInfoKHR>) {
             return construct<VkSwapchainKHR>(vkCreateSwapchainKHR, createInfo, allocator);
-        }
-        else
-        {
+        } else {
             static_assert(false);
         }
     }
 
     template<typename Type>
-    void destroy(const Type type, const VkAllocationCallbacks* allocator = nullptr) const
-    {
+    void destroy(const Type type, const VkAllocationCallbacks* allocator = nullptr) const {
         // log::info(std::string("Destroying ") + typeid(Type).name());
 
-        if constexpr (std::is_same_v<Type, VkBuffer>)
-        {
+        if constexpr (std::is_same_v<Type, VkBuffer>) {
             vkDestroyBuffer(device, type, allocator);
-        }
-        else if constexpr (std::is_same_v<Type, VkCommandPool>)
-        {
+        } else if constexpr (std::is_same_v<Type, VkCommandPool>) {
             vkDestroyCommandPool(device, type, allocator);
-        }
-        else if constexpr (std::is_same_v<Type, VkDescriptorPool>)
-        {
+        } else if constexpr (std::is_same_v<Type, VkDescriptorPool>) {
             vkDestroyDescriptorPool(device, type, allocator);
-        }
-        else if constexpr (std::is_same_v<Type, VkDescriptorSetLayout>)
-        {
+        } else if constexpr (std::is_same_v<Type, VkDescriptorSetLayout>) {
             vkDestroyDescriptorSetLayout(device, type, allocator);
-        }
-        else if constexpr (std::is_same_v<Type, VkDeviceMemory>)
-        {
+        } else if constexpr (std::is_same_v<Type, VkDeviceMemory>) {
             vkFreeMemory(device, type, allocator);
-        }
-        else if constexpr (std::is_same_v<Type, VkFence>)
-        {
+        } else if constexpr (std::is_same_v<Type, VkFence>) {
             vkDestroyFence(device, type, allocator);
-        }
-        else if constexpr (std::is_same_v<Type, VkFramebuffer>)
-        {
+        } else if constexpr (std::is_same_v<Type, VkFramebuffer>) {
             vkDestroyFramebuffer(device, type, allocator);
-        }
-        else if constexpr (std::is_same_v<Type, VkImage>)
-        {
+        } else if constexpr (std::is_same_v<Type, VkImage>) {
             vkDestroyImage(device, type, allocator);
-        }
-        else if constexpr (std::is_same_v<Type, VkImageView>)
-        {
+        } else if constexpr (std::is_same_v<Type, VkImageView>) {
             vkDestroyImageView(device, type, allocator);
-        }
-        else if constexpr (std::is_same_v<Type, VkPipeline>)
-        {
+        } else if constexpr (std::is_same_v<Type, VkPipeline>) {
             vkDestroyPipeline(device, type, allocator);
-        }
-        else if constexpr (std::is_same_v<Type, VkPipelineCache>)
-        {
+        } else if constexpr (std::is_same_v<Type, VkPipelineCache>) {
             vkDestroyPipelineCache(device, type, allocator);
-        }
-        else if constexpr (std::is_same_v<Type, VkPipelineLayout>)
-        {
+        } else if constexpr (std::is_same_v<Type, VkPipelineLayout>) {
             vkDestroyPipelineLayout(device, type, allocator);
-        }
-        else if constexpr (std::is_same_v<Type, VkRenderPass>)
-        {
+        } else if constexpr (std::is_same_v<Type, VkRenderPass>) {
             vkDestroyRenderPass(device, type, allocator);
-        }
-        else if constexpr (std::is_same_v<Type, VkSampler>)
-        {
+        } else if constexpr (std::is_same_v<Type, VkSampler>) {
             vkDestroySampler(device, type, allocator);
-        }
-        else if constexpr (std::is_same_v<Type, VkSemaphore>)
-        {
+        } else if constexpr (std::is_same_v<Type, VkSemaphore>) {
             vkDestroySemaphore(device, type, allocator);
-        }
-        else if constexpr (std::is_same_v<Type, VkShaderModule>)
-        {
+        } else if constexpr (std::is_same_v<Type, VkShaderModule>) {
             vkDestroyShaderModule(device, type, allocator);
-        }
-        else if constexpr (std::is_same_v<Type, VkSwapchainKHR>)
-        {
+        } else if constexpr (std::is_same_v<Type, VkSwapchainKHR>) {
             vkDestroySwapchainKHR(device, type, allocator);
-        }
-        else
-        {
+        } else {
             static_assert(false);
         }
     }
 
-    ~Context()
-    {
+    ~Context() {
         vkDeviceWaitIdle(device);
         vkDestroyDevice(device, nullptr);
         vkDestroySurfaceKHR(instance, surface, nullptr);
@@ -372,8 +279,7 @@ public:
     Window       window;
     VkInstance   instance;
     VkSurfaceKHR surface;
-    struct PhysicalDevice
-    {
+    struct PhysicalDevice {
         float              maxSamplerAnisotropy;
         uint32_t           graphicsFamilyIndex;
         uint32_t           presentFamilyIndex;
@@ -391,74 +297,63 @@ private:
 
 private:
     template<typename Handle>
-    static void checkConstruction(const VkResult result)
-    {
-        if (result != VK_SUCCESS)
-        {
+    static void checkConstruction(const VkResult result) {
+        if (result != VK_SUCCESS) {
             throw std::runtime_error(std::string("Failed to create ") + typeid(Handle).name());
         }
     }
 
     template<typename Handle, typename I, typename Constructor>
-    Handle construct(const Constructor constructor, const I& createInfo, const VkAllocationCallbacks* allocator) const
-    {
+    Handle construct(const Constructor constructor, const I& createInfo, const VkAllocationCallbacks* allocator) const {
         Handle handle;
         checkConstruction<Handle>(constructor(device, &createInfo, allocator, &handle));
         return handle;
     }
 
     template<typename Handle, typename I, typename Constructor>
-    Handle construct(const Constructor constructor, const I& createInfo) const
-    {
+    Handle construct(const Constructor constructor, const I& createInfo) const {
         Handle handle;
         checkConstruction<Handle>(constructor(device, &createInfo, &handle));
         return handle;
     }
 
-    static void checkExtensions(const std::vector<const char*>& requiredExtensions)
-    {
+    static void checkExtensions(const std::vector<const char*>& requiredExtensions) {
         uint32_t availableExtensionsCount = 0;
         vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionsCount, nullptr);
         std::vector<VkExtensionProperties> availableExtensions(availableExtensionsCount);
         vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionsCount, availableExtensions.data());
 
-        for (const auto* requiredExtension : requiredExtensions)
-        {
+        for (const auto* requiredExtension : requiredExtensions) {
             const auto supported =
                 std::find_if(availableExtensions.cbegin(), availableExtensions.cend(),
-                             [&](const auto availableExtension)
-                             { return std::strcmp(availableExtension.extensionName, requiredExtension) == 0; }) !=
-                availableExtensions.cend();
-            if (!supported)
-            {
+                             [&](const auto availableExtension) {
+                                 return std::strcmp(availableExtension.extensionName, requiredExtension) == 0;
+                             }) != availableExtensions.cend();
+            if (!supported) {
                 throw std::runtime_error(std::string("Missing required extension ") + requiredExtension);
             }
         }
     }
 
-    static void checkValidationLayers(const auto& requestedLayers)
-    {
+    static void checkValidationLayers(const auto& requestedLayers) {
         uint32_t availableLayerCount;
         vkEnumerateInstanceLayerProperties(&availableLayerCount, nullptr);
         std::vector<VkLayerProperties> availableLayers(availableLayerCount);
         vkEnumerateInstanceLayerProperties(&availableLayerCount, availableLayers.data());
 
-        for (const auto* requestedLayer : requestedLayers)
-        {
+        for (const auto* requestedLayer : requestedLayers) {
             const bool supported =
-                std::find_if(availableLayers.cbegin(), availableLayers.cend(), [&](const auto& availableLayer)
-                             { return std::strcmp(availableLayer.layerName, requestedLayer) == 0; }) !=
-                availableLayers.cend();
-            if (!supported)
-            {
+                std::find_if(availableLayers.cbegin(), availableLayers.cend(), [&](const auto& availableLayer) {
+                    return std::strcmp(availableLayer.layerName, requestedLayer) == 0;
+                }) != availableLayers.cend();
+            if (!supported) {
                 throw std::runtime_error(std::string("Missing required validation layer ") + requestedLayer);
             }
         }
     }
 
     static VkInstance createInstance(const std::string& appName, const std::string& engineName,
-                                     const std::vector<const char*>& windowExtensions)
-    {
+                                     const std::vector<const char*>& windowExtensions) {
         checkValidationLayers(validationLayers);
 
         auto requiredExtensions = windowExtensions;
@@ -489,23 +384,20 @@ private:
         return instance;
     }
 
-    static bool checkDeviceExtensionsSupport(const VkPhysicalDevice physicalDevice, const auto& requiredExtensions)
-    {
+    static bool checkDeviceExtensionsSupport(const VkPhysicalDevice physicalDevice, const auto& requiredExtensions) {
         uint32_t availableExtensionsCount;
         vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &availableExtensionsCount, nullptr);
         std::vector<VkExtensionProperties> availableExtensions(availableExtensionsCount);
         vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &availableExtensionsCount,
                                              availableExtensions.data());
 
-        for (const auto* requiredExtension : requiredExtensions)
-        {
+        for (const auto* requiredExtension : requiredExtensions) {
             const bool supported =
                 std::find_if(availableExtensions.cbegin(), availableExtensions.cend(),
-                             [&](const auto availableExtension)
-                             { return std::strcmp(availableExtension.extensionName, requiredExtension) == 0; }) !=
-                availableExtensions.cend();
-            if (!supported)
-            {
+                             [&](const auto availableExtension) {
+                                 return std::strcmp(availableExtension.extensionName, requiredExtension) == 0;
+                             }) != availableExtensions.cend();
+            if (!supported) {
                 return false;
             }
         }
@@ -513,21 +405,17 @@ private:
     }
 
     static std::optional<VkSurfaceFormatKHR> chooseSwapSurfaceFormat(const VkPhysicalDevice physicalDevice,
-                                                                     const VkSurfaceKHR     surface)
-    {
+                                                                     const VkSurfaceKHR     surface) {
         uint32_t count;
         vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &count, nullptr);
-        if (count == 0)
-        {
+        if (count == 0) {
             return std::nullopt;
         }
         std::vector<VkSurfaceFormatKHR> availableFormats(count);
         vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &count, availableFormats.data());
-        for (const auto& availableFormat : availableFormats)
-        {
+        for (const auto& availableFormat : availableFormats) {
             if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
-                availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-            {
+                availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
                 return availableFormat;
             }
         }
@@ -535,22 +423,18 @@ private:
     }
 
     static std::optional<VkPresentModeKHR> chooseSwapPresentMode(const VkPhysicalDevice physicalDevice,
-                                                                 const VkSurfaceKHR     surface)
-    {
+                                                                 const VkSurfaceKHR     surface) {
         uint32_t presentModeCount;
         vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr);
-        if (presentModeCount == 0)
-        {
+        if (presentModeCount == 0) {
             return std::nullopt;
         }
         std::vector<VkPresentModeKHR> availablePresentModes(presentModeCount);
         vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount,
                                                   availablePresentModes.data());
 
-        for (const auto& availablePresentMode : availablePresentModes)
-        {
-            if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
-            {
+        for (const auto& availablePresentMode : availablePresentModes) {
+            if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
                 return availablePresentMode;
             }
         }
@@ -558,8 +442,7 @@ private:
     }
 
     static std::optional<PhysicalDevice> isPhysicalDeviceSuitable(const VkSurfaceKHR     surface,
-                                                                  const VkPhysicalDevice physicalDevice)
-    {
+                                                                  const VkPhysicalDevice physicalDevice) {
         VkPhysicalDeviceProperties physicalDeviceProperties;
         vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
 
@@ -568,8 +451,7 @@ private:
             VkPhysicalDeviceFeatures physicalDeviceFeatures;
             vkGetPhysicalDeviceFeatures(physicalDevice, &physicalDeviceFeatures);
             if (!physicalDeviceFeatures.samplerAnisotropy || !physicalDeviceFeatures.geometryShader ||
-                !checkDeviceExtensionsSupport(physicalDevice, deviceExtensions))
-            {
+                !checkDeviceExtensionsSupport(physicalDevice, deviceExtensions)) {
                 return std::nullopt;
             }
         }
@@ -577,8 +459,7 @@ private:
         // check surface for swapchain
         const auto surfaceFormat = chooseSwapSurfaceFormat(physicalDevice, surface);
         const auto presentMode   = chooseSwapPresentMode(physicalDevice, surface);
-        if (!surfaceFormat || !presentMode)
-        {
+        if (!surfaceFormat || !presentMode) {
             return std::nullopt;
         }
 
@@ -592,24 +473,20 @@ private:
             vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
 
             int i = 0;
-            for (const auto& queueFamily : queueFamilies)
-            {
-                if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-                {
+            for (const auto& queueFamily : queueFamilies) {
+                if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
                     graphicsFamilyIndex = i;
                 }
 
                 VkBool32 presentSupport = false;
                 vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &presentSupport);
-                if (presentSupport)
-                {
+                if (presentSupport) {
                     presentFamilyIndex = i;
                 }
                 i++;
             }
 
-            if (!graphicsFamilyIndex || !presentFamilyIndex)
-            {
+            if (!graphicsFamilyIndex || !presentFamilyIndex) {
                 return std::nullopt;
             }
         }
@@ -623,17 +500,14 @@ private:
                                                physicalDevice };
     }
 
-    static PhysicalDevice pickPhysicalDevice(const VkInstance instance, const VkSurfaceKHR surface)
-    {
+    static PhysicalDevice pickPhysicalDevice(const VkInstance instance, const VkSurfaceKHR surface) {
         uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
         std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
         vkEnumeratePhysicalDevices(instance, &deviceCount, physicalDevices.data());
 
-        for (const auto& physicalDevice : physicalDevices)
-        {
-            if (const auto candidate = isPhysicalDeviceSuitable(surface, physicalDevice); candidate)
-            {
+        for (const auto& physicalDevice : physicalDevices) {
+            if (const auto candidate = isPhysicalDeviceSuitable(surface, physicalDevice); candidate) {
                 return candidate.value();
             }
         }
@@ -641,11 +515,9 @@ private:
     }
 
     VkDevice createLogicalDevice(const VkPhysicalDevice physicalDevice, const uint32_t graphicsFamilyIndex,
-                                 const uint32_t presentFamilyIndex)
-    {
+                                 const uint32_t presentFamilyIndex) {
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-        for (const auto queueFamily : std::set { graphicsFamilyIndex, presentFamilyIndex })
-        {
+        for (const auto queueFamily : std::set { graphicsFamilyIndex, presentFamilyIndex }) {
             constexpr float               queuePriority = 1.0f;
             const VkDeviceQueueCreateInfo queueCreateInfo {
                 .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
@@ -779,11 +651,9 @@ private:
     }
 };
 
-struct Contextualized
-{
+struct Contextualized {
     Contextualized(const Context& context)
-        : context { context }
-    {
+        : context { context } {
     }
 
     const Context& context;

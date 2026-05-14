@@ -6,12 +6,9 @@
 #include <filesystem>
 #include <fstream>
 
-namespace surge::core::shader
-{
-constexpr VkShaderStageFlagBits translate(const Stage stage)
-{
-    switch (stage)
-    {
+namespace surge::core::shader {
+constexpr VkShaderStageFlagBits translate(const Stage stage) {
+    switch (stage) {
     case Stage::geometry:
         return VK_SHADER_STAGE_GEOMETRY_BIT;
     case Stage::vertex:
@@ -24,8 +21,7 @@ constexpr VkShaderStageFlagBits translate(const Stage stage)
 }
 
 template<Type _type, Stage _stage, typename _Entry = void*>
-struct ShaderInfo
-{
+struct ShaderInfo {
     static constexpr auto type  = _type;
     static constexpr auto stage = _stage;
 
@@ -34,17 +30,14 @@ struct ShaderInfo
 };
 
 template<typename Value>
-struct SpecializationEntry
-{
+struct SpecializationEntry {
     SpecializationEntry(const Value& _value)
         : value { _value }
         , entry { createEntry() }
-        , info { createInfo(entry, value) }
-    {
+        , info { createInfo(entry, value) } {
     }
 
-    const VkSpecializationInfo* getInfo() const
-    {
+    const VkSpecializationInfo* getInfo() const {
         return &info;
     }
 
@@ -54,8 +47,7 @@ struct SpecializationEntry
 
 private:
     // template<typename V>
-    static VkSpecializationMapEntry createEntry()
-    {
+    static VkSpecializationMapEntry createEntry() {
         return VkSpecializationMapEntry {
             .constantID = 0,
             .offset     = 0,
@@ -64,8 +56,7 @@ private:
     }
 
     // template<typename V>
-    static VkSpecializationInfo createInfo(const VkSpecializationMapEntry& entry, const Value& value)
-    {
+    static VkSpecializationInfo createInfo(const VkSpecializationMapEntry& entry, const Value& value) {
         return VkSpecializationInfo {
             .mapEntryCount = 1,
             .pMapEntries   = &entry,
@@ -76,43 +67,35 @@ private:
 };
 
 template<>
-struct SpecializationEntry<void*>
-{
-    SpecializationEntry(const void*)
-    {
+struct SpecializationEntry<void*> {
+    SpecializationEntry(const void*) {
     }
 
-    const VkSpecializationInfo* getInfo() const
-    {
+    const VkSpecializationInfo* getInfo() const {
         return nullptr;
     }
 };
 
 template<typename... ShaderInfos>
-class Shader : public Contextualized
-{
+class Shader : public Contextualized {
 public:
     Shader(const Context& context, const ShaderInfos&... shaderInfos)
         : Contextualized { context }
         , specializationEntries { shaderInfos.entry... }
-        , shaders { createShaderStages(context, specializationEntries, shaderInfos...) }
-    {
+        , shaders { createShaderStages(context, specializationEntries, shaderInfos...) } {
     }
 
     std::tuple<SpecializationEntry<typename ShaderInfos::Entry>...>     specializationEntries;
     std::array<VkPipelineShaderStageCreateInfo, sizeof...(ShaderInfos)> shaders;
 
-    ~Shader()
-    {
-        for (const auto& shader : shaders)
-        {
+    ~Shader() {
+        for (const auto& shader : shaders) {
             context.destroy(shader.module);
         }
     }
 
     template<Type type, Stage stage>
-    static VkShaderModule createShaderModule(const Context& context)
-    {
+    static VkShaderModule createShaderModule(const Context& context) {
         constexpr auto shader = get(type, stage);
         static_assert(shader.data != nullptr);
         return context.create(VkShaderModuleCreateInfo {
@@ -126,8 +109,7 @@ public:
 
     template<Type type, Stage stage, typename SpecializationEntry>
     static VkPipelineShaderStageCreateInfo createShaderStage(const Context&             context,
-                                                             const SpecializationEntry& specializationEntry)
-    {
+                                                             const SpecializationEntry& specializationEntry) {
         constexpr auto s = translate(stage);
         return VkPipelineShaderStageCreateInfo {
             .sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -142,17 +124,14 @@ public:
 
     template<typename SpecializationEntries, typename... SI>
     static auto createShaderStages(const Context& context, const SpecializationEntries& specializationEntries,
-                                   const SI...)
-    {
+                                   const SI...) {
         constexpr auto                                    size = sizeof...(SI);
         std::array<VkPipelineShaderStageCreateInfo, size> stages;
-        forEach<0, size>(
-            [&]<int index>()
-            {
-                using ShaderInfo                = std::tuple_element_t<index, std::tuple<SI...>>;
-                const auto& specializationEntry = std::get<index>(specializationEntries);
-                stages[index] = createShaderStage<ShaderInfo::type, ShaderInfo::stage>(context, specializationEntry);
-            });
+        forEach<0, size>([&]<int index>() {
+            using ShaderInfo                = std::tuple_element_t<index, std::tuple<SI...>>;
+            const auto& specializationEntry = std::get<index>(specializationEntries);
+            stages[index] = createShaderStage<ShaderInfo::type, ShaderInfo::stage>(context, specializationEntry);
+        });
         return stages;
     }
 };

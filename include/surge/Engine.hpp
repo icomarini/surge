@@ -12,18 +12,15 @@
 
 #include "surge/Log.hpp"
 
-namespace surge
-{
+namespace surge {
 
-double elapsed(auto start)
-{
+double elapsed(auto start) {
     const auto stop = std::chrono::high_resolution_clock::now();
     return 1e-3 * std::chrono::duration<double, std::milli>(stop - start).count();
 }
 
 template<typename... Textures>
-auto createDescriptorSet(const core::Context& context, const Textures&... textures)
-{
+auto createDescriptorSet(const core::Context& context, const Textures&... textures) {
     constexpr uint32_t texturesCount { sizeof...(Textures) };
 
     // descriptor pool
@@ -42,17 +39,15 @@ auto createDescriptorSet(const core::Context& context, const Textures&... textur
 
     // descriptor set layout
     std::array<VkDescriptorSetLayoutBinding, texturesCount> bindings;
-    core::forEach<0, bindings.size()>(
-        [&]<int binding>()
-        {
-            bindings[binding] = VkDescriptorSetLayoutBinding {
-                .binding            = binding,
-                .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .descriptorCount    = 1,
-                .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
-                .pImmutableSamplers = nullptr,
-            };
-        });
+    core::forEach<0, bindings.size()>([&]<int binding>() {
+        bindings[binding] = VkDescriptorSetLayoutBinding {
+            .binding            = binding,
+            .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .descriptorCount    = 1,
+            .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
+            .pImmutableSamplers = nullptr,
+        };
+    });
     const auto descriptorSetLayout = context.create(VkDescriptorSetLayoutCreateInfo {
         .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
         .pNext        = nullptr,
@@ -71,31 +66,28 @@ auto createDescriptorSet(const core::Context& context, const Textures&... textur
     };
 
     VkDescriptorSet descriptorSet;
-    if (vkAllocateDescriptorSets(context.device, &allocInfo, &descriptorSet) != VK_SUCCESS)
-    {
+    if (vkAllocateDescriptorSets(context.device, &allocInfo, &descriptorSet) != VK_SUCCESS) {
         throw std::runtime_error("Failed to allocate descriptor sets");
     }
 
     // write descriptor set
     std::array<VkWriteDescriptorSet, texturesCount> descriptorWrites;
-    core::forEach<0, descriptorWrites.size()>(
-        [&]<int binding>()
-        {
-            const auto& texture = std::get<binding>(std::forward_as_tuple(textures...));
+    core::forEach<0, descriptorWrites.size()>([&]<int binding>() {
+        const auto& texture = std::get<binding>(std::forward_as_tuple(textures...));
 
-            descriptorWrites[binding] = VkWriteDescriptorSet {
-                .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .pNext            = nullptr,
-                .dstSet           = descriptorSet,
-                .dstBinding       = binding,
-                .dstArrayElement  = 0,
-                .descriptorCount  = 1,
-                .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .pImageInfo       = texture.imageInfo(),
-                .pBufferInfo      = texture.bufferInfo(),
-                .pTexelBufferView = nullptr,
-            };
-        });
+        descriptorWrites[binding] = VkWriteDescriptorSet {
+            .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .pNext            = nullptr,
+            .dstSet           = descriptorSet,
+            .dstBinding       = binding,
+            .dstArrayElement  = 0,
+            .descriptorCount  = 1,
+            .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .pImageInfo       = texture.imageInfo(),
+            .pBufferInfo      = texture.bufferInfo(),
+            .pTexelBufferView = nullptr,
+        };
+    });
     vkUpdateDescriptorSets(context.device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0,
                            nullptr);
 
@@ -103,22 +95,18 @@ auto createDescriptorSet(const core::Context& context, const Textures&... textur
 }
 
 template<int radius>
-constexpr auto generateTranslations()
-{
+constexpr auto generateTranslations() {
     constexpr auto                          length = 2 * radius + 1;
     constexpr auto                          size   = length * length;
     std::array<core::math::Vector<3>, size> translations;
-    core::forEach<0, length, 0, length>(
-        [&]<int i, int j>()
-        {
-            constexpr auto index = i * length + j;
-            translations[index]  = core::math::Vector<3> { 4 * (i - radius), -3, 4 * (j - radius) };
-        });
+    core::forEach<0, length, 0, length>([&]<int i, int j>() {
+        constexpr auto index = i * length + j;
+        translations[index]  = core::math::Vector<3> { 4 * (i - radius), -3, 4 * (j - radius) };
+    });
     return translations;
 }
 
-class Engine
-{
+class Engine {
 public:
     Engine(const std::string& windowName, const std::string& appName, const core::Window::Resolution& resolution)
         : input {}
@@ -127,24 +115,19 @@ public:
         , presenter { command }
         , defaults { command }
         , renderer { context }
-        , overlay { command, assets }
-    {
+        , overlay { command, assets } {
         log::checkpoint("The surge of urge to purge started");
     }
 
-    void loadAsset(const std::string& name, const load::AssetHandle& handle)
-    {
-        if (assets.contains(name))
-        {
+    void loadAsset(const std::string& name, const load::AssetHandle& handle) {
+        if (assets.contains(name)) {
             throw std::runtime_error("Asset [" + name + "] already exits");
         }
         const auto start = std::chrono::high_resolution_clock::now();
         std::visit(
             core::overload {
-                [&](const load::LoadedTexture::Handle& handle)
-                {
-                    switch (handle.type)
-                    {
+                [&](const load::LoadedTexture::Handle& handle) {
+                    switch (handle.type) {
                     case load::LoadedTexture::Type::texture2d:
                         textures.emplace(std::piecewise_construct, std::forward_as_tuple(name),
                                          std::forward_as_tuple(command, load::LoadedTexture { handle },
@@ -158,8 +141,7 @@ public:
                     }
                     log::info(core::math::toString(elapsed(start)) + " Loaded texture asset " + handle.path.string());
                 },
-                [&](const load::LoadedSkybox::Handle& handle)
-                {
+                [&](const load::LoadedSkybox::Handle& handle) {
                     const auto [iter, inserted] =
                         assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
                                        std::forward_as_tuple(command, load::LoadedSkybox { handle, defaults }));
@@ -170,8 +152,7 @@ public:
                     log::info(core::math::toString(elapsed(start)) + " Loaded skybox asset " +
                               handle.texturePath.string());
                 },
-                [&](const load::Gltf::Handle& handle)
-                {
+                [&](const load::Gltf::Handle& handle) {
                     const auto [iter, inserted] =
                         assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
                                        std::forward_as_tuple(command, load::Gltf { handle, defaults }));
@@ -183,8 +164,7 @@ public:
                     //                         asset.jointMatricesDescriptorSetLayout);
                     log::info(core::math::toString(elapsed(start)) + " Loaded gltf asset " + handle.path.string());
                 },
-                [&](const load::Obj::Handle& handle)
-                {
+                [&](const load::Obj::Handle& handle) {
                     const auto [iter, inserted] =
                         assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
                                        std::forward_as_tuple(command, load::Obj { handle, defaults }));
@@ -198,8 +178,7 @@ public:
             handle);
     }
 
-    entity::Entity createEntity(const std::string& name, const core::math::StaticMatrix auto& matrix)
-    {
+    entity::Entity createEntity(const std::string& name, const core::math::StaticMatrix auto& matrix) {
         const auto& asset                     = assets.at(name);
         const auto [pipelineLayout, pipeline] = renderer.pipelines.contains(name) ?
                                                     renderer.pipelines.at(name) :
@@ -207,20 +186,17 @@ public:
         return entity::Entity { asset, pipelineLayout, pipeline, matrix };
     }
 
-    entity::Skybox createSkybox(const std::string& name)
-    {
+    entity::Skybox createSkybox(const std::string& name) {
         const auto& asset                     = assets.at(name);
         const auto [pipelineLayout, pipeline] = renderer.pipelines.at(name);
         return entity::Skybox { asset, pipelineLayout, pipeline, core::math::identity<4> };
     }
 
-    ~Engine()
-    {
+    ~Engine() {
         log::checkpoint("The surge of urge to purge terminated");
     }
 
-    void run()
-    {
+    void run() {
         double elapsedTime = {};
         // bool   physicsActive = false;
 
@@ -241,16 +217,13 @@ public:
         constexpr core::Size        sizeY = 1;
         entities.reserve(assets.size() * sizeY + 1);
         float offsetX = 0;
-        for (const auto& name : assetNames)
-        {
+        for (const auto& name : assetNames) {
             float offsetY = 0;
-            for (float y = 0; y < sizeY; ++y)
-            {
+            for (float y = 0; y < sizeY; ++y) {
                 auto& entity = entities.emplace_back(
                     createEntity(name, core::math::Translation { core::math::Vector<3> { offsetX, 0, offsetY } }));
 
-                if (entity.animation)
-                {
+                if (entity.animation) {
                     entity.animation->state.progress += 0.5 * y;
                 }
                 offsetY += stepY;
@@ -273,8 +246,7 @@ public:
         entities.back().nodes.get(1).state.translation = core::math::Vector<3> { 0, 0, 0 };
 
         // === initialize ===
-        struct PushConstants
-        {
+        struct PushConstants {
             core::math::Matrix<4, 4> matrix;
             core::math::Vector<4>    baseColor;
             uint32_t                 isLight;
@@ -380,10 +352,8 @@ public:
         constexpr bool drawCerberusNormals = false;
         constexpr bool drawDragon          = false;
 
-        while (input.proceed)
-        {
-            if (elapsedTime > 1.0 / 144.0)
-            {
+        while (input.proceed) {
+            if (elapsedTime > 1.0 / 144.0) {
                 input.reset();
                 context.pollEvents();
 
@@ -391,8 +361,7 @@ public:
                 // === entity playground ===
                 entities.back().nodes.get(1).state.translation = lightCamera.vecs.position;
 
-                for (auto& entity : entities)
-                {
+                for (auto& entity : entities) {
                     entity.update(0, elapsedTime);
                 }
                 // === entity playground ===
@@ -436,8 +405,7 @@ public:
                 vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, sceneIndex, 1,
                                         &renderer.descriptor.set, 0, nullptr);
 
-                if constexpr (drawLight)
-                {  // bind container
+                if constexpr (drawLight) {  // bind container
                     constexpr VkDeviceSize containerOffset { 0 };
                     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &container.vertexBuffer.buffer, &containerOffset);
                     vkCmdBindIndexBuffer(commandBuffer, container.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
@@ -457,8 +425,7 @@ public:
                     vkCmdDrawIndexed(commandBuffer, container.indexCount, 1, 0, 0, 0);
                 }
 
-                if constexpr (drawContainer)
-                {  // bind container
+                if constexpr (drawContainer) {  // bind container
                     constexpr VkDeviceSize containerOffset { 0 };
                     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &container.vertexBuffer.buffer, &containerOffset);
                     vkCmdBindIndexBuffer(commandBuffer, container.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
@@ -476,8 +443,7 @@ public:
                     vkCmdDrawIndexed(commandBuffer, container.indexCount, 1, 0, 0, 0);
                 }
 
-                if constexpr (drawBrickwall)
-                {  // bind brickwall
+                if constexpr (drawBrickwall) {  // bind brickwall
                     constexpr VkDeviceSize brickwallOffset { 0 };
                     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &brickwall.vertexBuffer.buffer, &brickwallOffset);
                     vkCmdBindIndexBuffer(commandBuffer, brickwall.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
@@ -493,29 +459,27 @@ public:
                     constexpr auto radius { 10 };
                     constexpr auto brickwallTranslations { generateTranslations<radius>() };
 
-                    core::forEach<0, brickwallTranslations.size()>(
-                        [&]<int i>()
-                        {
-                            constexpr core::math::Translation brickwallTranslation { brickwallTranslations.at(i) };
-                            constexpr core::math::Rotation    brickwallRotation { core::math::Quaternion<> {
-                                std::sqrt(2) / 2,
-                                -std::sqrt(2) / 2,
-                                0,
-                                0,
-                            } };
-                            // constexpr auto                  brickwallRotation = core::math::identity<4>;
+                    core::forEach<0, brickwallTranslations.size()>([&]<int i>() {
+                        constexpr core::math::Translation brickwallTranslation { brickwallTranslations.at(i) };
+                        constexpr core::math::Rotation    brickwallRotation { core::math::Quaternion<> {
+                            std::sqrt(2) / 2,
+                            -std::sqrt(2) / 2,
+                            0,
+                            0,
+                        } };
+                        // constexpr auto                  brickwallRotation = core::math::identity<4>;
 
-                            constexpr core::math::Vector<3> brickwallScaling { 4, 4, 4 };
-                            const PushConstants             brickwallPushConstants {
-                                            .matrix =
-                                    brickwallTranslation * brickwallRotation * core::math::Scaling { brickwallScaling },
-                                            .baseColor = core::Colors<core::Type::rgba>::coral,
-                                            .isLight   = false,
-                            };
-                            vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
-                                               &brickwallPushConstants);
-                            vkCmdDrawIndexed(commandBuffer, brickwall.indexCount, 1, 0, 0, 0);
-                        });
+                        constexpr core::math::Vector<3> brickwallScaling { 4, 4, 4 };
+                        const PushConstants             brickwallPushConstants {
+                                        .matrix =
+                                brickwallTranslation * brickwallRotation * core::math::Scaling { brickwallScaling },
+                                        .baseColor = core::Colors<core::Type::rgba>::coral,
+                                        .isLight   = false,
+                        };
+                        vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                                           &brickwallPushConstants);
+                        vkCmdDrawIndexed(commandBuffer, brickwall.indexCount, 1, 0, 0, 0);
+                    });
 
                     {  // draw brickwall
                         const PushConstants brickwallPushConstants {
@@ -529,8 +493,7 @@ public:
                     }
                 }
 
-                if constexpr (drawCerberus)
-                {  // bind cerberus
+                if constexpr (drawCerberus) {  // bind cerberus
                     constexpr VkDeviceSize cerberusOffset { 0 };
                     const auto&            cerberusAsset     = assets.at("cerberus");
                     const auto&            cerberusModel     = cerberusAsset.model;
@@ -567,8 +530,7 @@ public:
                     }
                 }
 
-                if constexpr (drawDragon)
-                {  // bind dragon mesh
+                if constexpr (drawDragon) {  // bind dragon mesh
                     constexpr VkDeviceSize dragonOffset { 0 };
                     const auto&            dragonAsset     = assets.at("dragon");
                     const auto&            dragonModel     = dragonAsset.model;
@@ -601,38 +563,34 @@ public:
                 }
 
                 // draw normals
-                if constexpr (1 == 0)
-                {
+                if constexpr (1 == 0) {
                     const auto [linePipelineLayout, linePipeline] = renderer.pipelines.at("line");
                     core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
                     vkCmdSetLineWidth(commandBuffer, 1.0);
                     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, linePipeline);
                     vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, linePipelineLayout, 0, 1,
                                             &renderer.descriptor.set, 0, nullptr);
-                    core::forEach<0, 3, 0, 8>(
-                        [&]<int dimension, int vertex>()
-                        {
-                            constexpr std::array colors { core::Colors<core::Type::rgba>::red,
-                                                          core::Colors<core::Type::rgba>::green,
-                                                          core::Colors<core::Type::rgba>::blue };
+                    core::forEach<0, 3, 0, 8>([&]<int dimension, int vertex>() {
+                        constexpr std::array colors { core::Colors<core::Type::rgba>::red,
+                                                      core::Colors<core::Type::rgba>::green,
+                                                      core::Colors<core::Type::rgba>::blue };
 
-                            using namespace core::geometry;
-                            constexpr auto        index    = dimension * 8 + vertex;
-                            constexpr auto        position = cube2.vertices.at(index).get<Attribute::position>();
-                            constexpr auto        normal   = cube2.vertices.at(index).get<Attribute::normal>();
-                            constexpr asset::Line line {
-                                .a     = position,
-                                .b     = position + normal,
-                                .color = colors.at(dimension),
-                            };
-                            vkCmdPushConstants(commandBuffer, linePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                                               sizeof(asset::Line), &line);
-                            vkCmdDraw(commandBuffer, 2, 1, 0, 0);
-                        });
+                        using namespace core::geometry;
+                        constexpr auto        index    = dimension * 8 + vertex;
+                        constexpr auto        position = cube2.vertices.at(index).get<Attribute::position>();
+                        constexpr auto        normal   = cube2.vertices.at(index).get<Attribute::normal>();
+                        constexpr asset::Line line {
+                            .a     = position,
+                            .b     = position + normal,
+                            .color = colors.at(dimension),
+                        };
+                        vkCmdPushConstants(commandBuffer, linePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+                                           sizeof(asset::Line), &line);
+                        vkCmdDraw(commandBuffer, 2, 1, 0, 0);
+                    });
                 }
 
-                if constexpr (drawBrickwallNormal)
-                {  // bind brickwall
+                if constexpr (drawBrickwallNormal) {  // bind brickwall
                     core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
                     vkCmdBindPipeline(commandBuffer, graphicsBindPoint, normalPipeline);
                     constexpr uint32_t sceneIndex { 0 };
@@ -665,8 +623,7 @@ public:
                     }
                 }
 
-                if constexpr (drawContainerNormal)
-                {  // bind container
+                if constexpr (drawContainerNormal) {  // bind container
                     core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
                     vkCmdBindPipeline(commandBuffer, graphicsBindPoint, normalPipeline);
                     constexpr uint32_t sceneIndex { 0 };
@@ -706,8 +663,7 @@ public:
                     // }
                 }
 
-                if constexpr (drawCerberusNormals)
-                {  // bind cerberus
+                if constexpr (drawCerberusNormals) {  // bind cerberus
                     core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
                     vkCmdBindPipeline(commandBuffer, graphicsBindPoint, normalPipeline);
                     constexpr uint32_t sceneIndex { 0 };

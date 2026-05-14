@@ -2,8 +2,7 @@
 
 #include <cstdint>
 
-namespace surge::core
-{
+namespace surge::core {
 
 using Int8  = char;
 using UInt8 = unsigned char;
@@ -21,15 +20,9 @@ using Size = long unsigned int;
 
 using Index = uint32_t;
 
-enum class PolygonMode : UInt8
-{
-    point = 0,
-    line,
-    fill
-};
+enum class PolygonMode : UInt8 { point = 0, line, fill };
 
-bool operator<(const PolygonMode a, const PolygonMode b)
-{
+bool operator<(const PolygonMode a, const PolygonMode b) {
     return static_cast<UInt8>(a) < static_cast<UInt8>(b);
 }
 

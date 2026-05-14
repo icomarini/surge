@@ -5,10 +5,8 @@
 #include <map>
 #include <string>
 
-namespace surge::core::input
-{
-enum class Key
-{
+namespace surge::core::input {
+enum class Key {
     space        = 32,
     apostrophe   = 39, /* ' */
     comma        = 44, /* , */
@@ -132,15 +130,13 @@ enum class Key
     menu           = 348
 };
 
-enum class Button
-{
+enum class Button {
     left = 0,
     middle,
     right,
 };
 
-enum class Action
-{
+enum class Action {
     release = 0,
     press,
     repeat,

@@ -5,20 +5,16 @@
 
 #include <optional>
 
-namespace surge::asset
-{
-struct Node
-{
-    struct PushConstants
-    {
+namespace surge::asset {
+struct Node {
+    struct PushConstants {
         core::math::Matrix<4, 4> matrix;
         core::math::Vector<4>    baseColorFactor;
         uint32_t                 isLight;
         // uint32_t                 fragmentStageFlag;
     };
 
-    struct State
-    {
+    struct State {
         bool              active;
         core::PolygonMode polygonMode;
         // uint32_t                 vertexStageFlag;
@@ -36,8 +32,7 @@ struct Node
     uint32_t                         isLight;
     mutable State                    state;
 
-    static auto update(Node& node, const core::math::Matrix<4, 4>& parentMatrix)
-    {
+    static auto update(Node& node, const core::math::Matrix<4, 4>& parentMatrix) {
         node.state.localMatrix = core::math::Translation { node.state.translation } *
                                  core::math::Rotation { node.state.rotation } *
                                  core::math::Scaling { node.state.scale };
@@ -45,15 +40,13 @@ struct Node
         return node.state.globalMatrix;
     }
 
-    void draw(const VkCommandBuffer commandBuffer, const asset::Mesh& mesh, const VkPipelineLayout pipelineLayout) const
-    {
-        if (!state.active)
-        {
+    void draw(const VkCommandBuffer commandBuffer, const asset::Mesh& mesh,
+              const VkPipelineLayout pipelineLayout) const {
+        if (!state.active) {
             return;
         }
 
-        for (const auto& primitive : mesh.primitives)
-        {
+        for (const auto& primitive : mesh.primitives) {
             core::Extern::setPolygonMode(commandBuffer, core::translate(state.polygonMode));
 
             // bind material

@@ -11,14 +11,11 @@
 #include <memory>
 #include <set>
 
-namespace surge::core
-{
+namespace surge::core {
 
-class Window
-{
+class Window {
 public:
-    struct Resolution
-    {
+    struct Resolution {
         uint32_t width;
         uint32_t height;
     };
@@ -28,8 +25,7 @@ public:
         : glfwContext {}
         , glfwWindow { glfwCreateWindow(resolution.width, resolution.height, windowName.c_str(), nullptr, nullptr) }
         , inputPtr { &callbacks.input }
-        , resolution { resolution }
-    {
+        , resolution { resolution } {
         static auto castInput = [](void* input) { return reinterpret_cast<typename Callbacks::Type*>(input); };
 
         static constexpr std::array<input::Action, 3> action {
@@ -45,97 +41,77 @@ public:
         };
 
         glfwSetWindowUserPointer(glfwWindow, this);
-        glfwSetErrorCallback([](int error, const char* description)
-                             { throw std::runtime_error("GLFW error " + std::to_string(error) + ": " + description); });
-        glfwSetFramebufferSizeCallback(glfwWindow,
-                                       [](GLFWwindow* glfwWindow, int width, int height)
-                                       {
-                                           auto& window             = Window::self(glfwWindow);
-                                           window.resolution.width  = static_cast<std::size_t>(width);
-                                           window.resolution.height = static_cast<std::size_t>(height);
-                                       });
-        glfwSetKeyCallback(glfwWindow,
-                           [](GLFWwindow* glfwWindow, int rawKey, int /*scancode*/, int rawAction, int /*mods*/)
-                           {
-                               auto& window = Window::self(glfwWindow);
-                               auto& input  = *castInput(window.inputPtr);
-                               Callbacks::keyboard(window, input, static_cast<input::Key>(rawKey),
-                                                   static_cast<input::Action>(rawAction));
-                           });
-        glfwSetCursorPosCallback(glfwWindow,
-                                 [](GLFWwindow* glfwWindow, double x, double y)
-                                 {
-                                     auto& window = Window::self(glfwWindow);
-                                     auto& input  = *castInput(window.inputPtr);
-                                     Callbacks::mousePosition(window, input, input::Position { x, y });
-                                 });
-        glfwSetMouseButtonCallback(glfwWindow,
-                                   [](GLFWwindow* glfwWindow, int rawButton, int rawAction, int /*mods*/)
-                                   {
-                                       auto& window = Window::self(glfwWindow);
-                                       auto& input  = *castInput(window.inputPtr);
-                                       Callbacks::mouseButton(window, input, button.at(rawButton),
-                                                              action.at(rawAction));
-                                   });
-        glfwSetScrollCallback(glfwWindow,
-                              [](GLFWwindow* glfwWindow, double x, double y)
-                              {
-                                  auto& window = Window::self(glfwWindow);
-                                  auto& input  = *castInput(window.inputPtr);
-                                  Callbacks::mouseWheel(window, input, input::Offset { x, y });
-                              });
+        glfwSetErrorCallback([](int error, const char* description) {
+            throw std::runtime_error("GLFW error " + std::to_string(error) + ": " + description);
+        });
+        glfwSetFramebufferSizeCallback(glfwWindow, [](GLFWwindow* glfwWindow, int width, int height) {
+            auto& window             = Window::self(glfwWindow);
+            window.resolution.width  = static_cast<std::size_t>(width);
+            window.resolution.height = static_cast<std::size_t>(height);
+        });
+        glfwSetKeyCallback(glfwWindow, [](GLFWwindow* glfwWindow, int rawKey, int /*scancode*/, int rawAction,
+                                          int /*mods*/) {
+            auto& window = Window::self(glfwWindow);
+            auto& input  = *castInput(window.inputPtr);
+            Callbacks::keyboard(window, input, static_cast<input::Key>(rawKey), static_cast<input::Action>(rawAction));
+        });
+        glfwSetCursorPosCallback(glfwWindow, [](GLFWwindow* glfwWindow, double x, double y) {
+            auto& window = Window::self(glfwWindow);
+            auto& input  = *castInput(window.inputPtr);
+            Callbacks::mousePosition(window, input, input::Position { x, y });
+        });
+        glfwSetMouseButtonCallback(glfwWindow, [](GLFWwindow* glfwWindow, int rawButton, int rawAction, int /*mods*/) {
+            auto& window = Window::self(glfwWindow);
+            auto& input  = *castInput(window.inputPtr);
+            Callbacks::mouseButton(window, input, button.at(rawButton), action.at(rawAction));
+        });
+        glfwSetScrollCallback(glfwWindow, [](GLFWwindow* glfwWindow, double x, double y) {
+            auto& window = Window::self(glfwWindow);
+            auto& input  = *castInput(window.inputPtr);
+            Callbacks::mouseWheel(window, input, input::Offset { x, y });
+        });
     }
 
-    std::vector<const char*> extensions() const
-    {
+    std::vector<const char*> extensions() const {
         uint32_t     count      = 0;
         const char** extensions = glfwGetRequiredInstanceExtensions(&count);
         return std::vector<const char*>(extensions, extensions + count);
     }
 
-    VkSurfaceKHR createSurface(const VkInstance instance) const
-    {
+    VkSurfaceKHR createSurface(const VkInstance instance) const {
         VkSurfaceKHR surface;
-        if (glfwCreateWindowSurface(instance, glfwWindow, nullptr, &surface) != VK_SUCCESS)
-        {
+        if (glfwCreateWindowSurface(instance, glfwWindow, nullptr, &surface) != VK_SUCCESS) {
             throw std::runtime_error(std::string("Failed to create ") + typeid(VkSurfaceKHR).name());
         }
         return surface;
     }
 
-    void pollEvents() const
-    {
+    void pollEvents() const {
         glfwPollEvents();
     }
 
-    void activateCursor()
-    {
+    void activateCursor() {
         glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         // glfwSetInputMode(glfwWindow, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
     }
 
-    void deactivateCursor()
-    {
+    void deactivateCursor() {
         glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         // glfwSetInputMode(glfwWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
     }
 
-    ~Window()
-    {
+    ~Window() {
         glfwDestroyWindow(glfwWindow);
     }
 
 public:
-    static Window& self(GLFWwindow* window)
-    {
+    static Window& self(GLFWwindow* window) {
         return *reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
     }
 
-    class GlfwContext
-    {
+    class GlfwContext {
     public:
-        GlfwContext()
-        {
+        GlfwContext() {
             glfwInit();
             glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
             glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
@@ -143,8 +119,7 @@ public:
             log::checkpoint("Window created");
         }
 
-        ~GlfwContext()
-        {
+        ~GlfwContext() {
             glfwTerminate();
             log::checkpoint("Window destroyed");
         }

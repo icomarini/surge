@@ -2,8 +2,7 @@
 #include "surge/Engine.hpp"
 
 void createRope(surge::physics::Physics& physics, const surge::physics::Position& first,
-                const surge::physics::Position& second, const int size)
-{
+                const surge::physics::Position& second, const int size) {
     auto& firstAnchor  = physics.addAnchor(first);
     auto& secondAnchor = physics.addAnchor(second);
 
@@ -13,8 +12,7 @@ void createRope(surge::physics::Physics& physics, const surge::physics::Position
 
     std::vector<surge::physics::Particle*> particles;
     particles.reserve(size - 2);
-    for (int index = 1; index < size - 1; ++index)
-    {
+    for (int index = 1; index < size - 1; ++index) {
         const auto step     = index * distance / size;
         const auto position = first + step * direction;
         particles.emplace_back(&physics.addParticle(surge::physics::Mass { 0.01 }, position));
@@ -24,14 +22,12 @@ void createRope(surge::physics::Physics& physics, const surge::physics::Position
     // const physics::Scalar     restLength     = distance / size;
     physics.addAnchoredSpring(firstAnchor, *particles.front(), springConstant, restLength);
     physics.addAnchoredSpring(secondAnchor, *particles.back(), springConstant, restLength);
-    for (int index = 0; index < size - 3; ++index)
-    {
+    for (int index = 0; index < size - 3; ++index) {
         physics.addSpring(*particles.at(index), *particles.at(index + 1), springConstant, restLength);
     };
 }
 
-void resetPhysics(surge::physics::Physics& physics)
-{
+void resetPhysics(surge::physics::Physics& physics) {
     using namespace surge::physics;
     physics.clear();
 
@@ -55,8 +51,7 @@ void resetPhysics(surge::physics::Physics& physics)
     createRope(physics, Position { -9, 0, 0 }, Position { 0, 0, -9 }, 32);
 }
 
-void physicsPlayground()
-{
+void physicsPlayground() {
     // using Action = core::input::Action;
     // if (!physicsActive && input.mouse.left == Action::press)
     // {
@@ -77,10 +72,8 @@ void physicsPlayground()
     // }
 }
 
-int main()
-{
-    try
-    {
+int main() {
+    try {
         const std::filesystem::path home { "/home/ico/projects/" };
 
         const std::string                         windowName = "A Surge Of Engine";
@@ -116,14 +109,10 @@ int main()
                                      });
 
         engine.run();
-    }
-    catch (const std::exception& e)
-    {
+    } catch (const std::exception& e) {
         surge::log::error(e.what());
         return EXIT_FAILURE;
-    }
-    catch (...)
-    {
+    } catch (...) {
         std::cerr << "\033[1;31m[surge of ERROR]\033[0m" << std::endl;
         return EXIT_FAILURE;
     }

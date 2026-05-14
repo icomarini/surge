@@ -5,14 +5,11 @@
 #include <filesystem>
 #include <vector>
 
-namespace surge::asset
-{
-class Model : public core::Contextualized
-{
+namespace surge::asset {
+class Model : public core::Contextualized {
 public:
     template<VkBufferUsageFlags usage, VkMemoryPropertyFlags property>
-    struct Info
-    {
+    struct Info {
         static constexpr auto bufferUsageFlags    = usage;
         static constexpr auto memoryPropertyFlags = property;
     };
@@ -30,22 +27,19 @@ public:
         , indexBuffer { context, loadedModel.indexBufferSize(),
                         core::Buffer::Info<I::bufferUsageFlags | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                                            I::memoryPropertyFlags> {} }
-        , indexCount { static_cast<uint32_t>(loadedModel.indexSize()) }
-    {
+        , indexCount { static_cast<uint32_t>(loadedModel.indexSize()) } {
     }
 
     template<typename LoadedModel, typename I>
     Model(const core::Command& command, const LoadedModel& loadedModel, I)
-        : Model(command.context, loadedModel, I {})
-    {
+        : Model(command.context, loadedModel, I {}) {
         static_assert(I::memoryPropertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         command.transferBuffer(vertexBuffer.buffer, loadedModel.vertexData(), loadedModel.vertexBufferSize());
         command.transferBuffer(indexBuffer.buffer, loadedModel.indexData(), loadedModel.indexBufferSize());
     }
 
     template<typename Type>
-    void transfer(const Type& loadedModel)
-    {
+    void transfer(const Type& loadedModel) {
         Type::copyVertex(vertexBuffer.mapped, loadedModel.vertexData(), loadedModel.vertexSize());
         Type::copyIndex(indexBuffer.mapped, loadedModel.indexData(), loadedModel.indexSize());
 
@@ -56,8 +50,7 @@ public:
             .offset = 0,
             .size   = VK_WHOLE_SIZE,
         };
-        if (vkFlushMappedMemoryRanges(context.device, 1, &vertexMappedRange) != VK_SUCCESS)
-        {
+        if (vkFlushMappedMemoryRanges(context.device, 1, &vertexMappedRange) != VK_SUCCESS) {
             throw std::runtime_error("Failed to flush vertex model");
         }
 
@@ -68,8 +61,7 @@ public:
             .offset = 0,
             .size   = VK_WHOLE_SIZE,
         };
-        if (vkFlushMappedMemoryRanges(context.device, 1, &indexMappedRange) != VK_SUCCESS)
-        {
+        if (vkFlushMappedMemoryRanges(context.device, 1, &indexMappedRange) != VK_SUCCESS) {
             throw std::runtime_error("Failed to flush index model");
         }
     }

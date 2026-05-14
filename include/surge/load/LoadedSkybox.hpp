@@ -11,14 +11,11 @@
 #include <optional>
 #include <vector>
 
-namespace surge::load
-{
+namespace surge::load {
 
-class LoadedSkybox
-{
+class LoadedSkybox {
 public:
-    struct Handle
-    {
+    struct Handle {
         std::filesystem::path texturePath;
     };
 
@@ -30,37 +27,31 @@ public:
         : name { handle.texturePath.filename() }
         , path { handle.texturePath }
         , defaults { defaults }
-        , loadedTexture { LoadedTexture::Handle { LoadedTexture::Type::cube, handle.texturePath } }
-    {
+        , loadedTexture { LoadedTexture::Handle { LoadedTexture::Type::cube, handle.texturePath } } {
     }
 
-    core::shader::Type shader() const
-    {
+    core::shader::Type shader() const {
         return core::shader::Type::skybox;
     }
 
-    std::vector<asset::Texture> createTextures(const core::Command& command) const
-    {
+    std::vector<asset::Texture> createTextures(const core::Command& command) const {
         std::vector<asset::Texture> textures;
         textures.emplace_back(command, loadedTexture, load::Defaults::sampler, asset::Texture::cube);
         return textures;
     }
 
-    VkDescriptorPool createDescriptorPool(const core::Context& context) const
-    {
+    VkDescriptorPool createDescriptorPool(const core::Context& context) const {
         return core::Descriptor::createDescriptorPool(context, 1U,
                                                       std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1U });
     }
 
-    VkDescriptorSetLayout createMaterialDescriptorSetLayout(const core::Context& context) const
-    {
+    VkDescriptorSetLayout createMaterialDescriptorSetLayout(const core::Context& context) const {
         return core::Descriptor::createDescriptorSetLayout<TextureDescr>(context, 1);
     }
 
     std::vector<asset::Material> createMaterials(const core::Context& context, const VkDescriptorPool descriptorPool,
                                                  const VkDescriptorSetLayout        materialDescriptorSetLayout,
-                                                 const std::vector<asset::Texture>& textures) const
-    {
+                                                 const std::vector<asset::Texture>& textures) const {
         assert(textures.size() == 1);
         using TextureData = asset::Material::TextureData;
         return { asset::Material {
@@ -85,8 +76,7 @@ public:
                                                                    TextureDescr { textures.front() }) } };
     }
 
-    std::vector<asset::Mesh> createMeshes(const std::vector<asset::Material>& materials) const
-    {
+    std::vector<asset::Mesh> createMeshes(const std::vector<asset::Material>& materials) const {
         const auto& material = materials.size() > 0 ? materials.front() : defaults.material;
 
         core::math::Vector<3>             min { -1, -1, -1 };
@@ -108,15 +98,12 @@ public:
         return meshes;
     }
 
-    asset::Model createModel(const core::Command& command, const std::vector<asset::Mesh>&) const
-    {
+    asset::Model createModel(const core::Command& command, const std::vector<asset::Mesh>&) const {
         return asset::Model { command, core::geometry::cube, asset::Model::scene };
     }
 
-    core::utils::Tree<asset::Node> createTree() const
-    {
-        auto createNode = [this]()
-        {
+    core::utils::Tree<asset::Node> createTree() const {
+        auto createNode = [this]() {
             core::utils::Tree<asset::Node>::Nodes nodes;
             nodes.reserve(1);
             nodes.emplace_back(
@@ -145,26 +132,22 @@ public:
         };
     }
 
-    std::vector<asset::Scene> createScenes() const
-    {
+    std::vector<asset::Scene> createScenes() const {
         std::vector<asset::Scene> scenes;
         scenes.reserve(1);
         scenes.emplace_back(baptize<This::scene>(0), createTree());
         return scenes;
     }
 
-    std::size_t mainSceneIndex() const
-    {
+    std::size_t mainSceneIndex() const {
         return 0;
     }
 
-    std::vector<asset::Skin> createSkins() const
-    {
+    std::vector<asset::Skin> createSkins() const {
         return {};
     }
 
-    std::vector<asset::Animation> createAnimations() const
-    {
+    std::vector<asset::Animation> createAnimations() const {
         return {};
     }
 

@@ -17,13 +17,10 @@
 
 // #include <optional>
 
-namespace surge::overlay
-{
-class Overlay : public core::Contextualized
-{
+namespace surge::overlay {
+class Overlay : public core::Contextualized {
 public:
-    struct PushConstBlock
-    {
+    struct PushConstBlock {
         core::math::Vector<2> scale;
         core::math::Vector<2> translate;
     };
@@ -85,14 +82,12 @@ public:
                   .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
                                     VK_COLOR_COMPONENT_A_BIT,
               }) }
-        , assets { assets }
-    {
+        , assets { assets } {
     }
 
 
     void newFrame(const float scale, std::array<float, 50>& frameTimes, const Input& input,
-                  const std::map<std::string, asset::Asset>& assets, const Camera<false>& camera) const
-    {
+                  const std::map<std::string, asset::Asset>& assets, const Camera<false>& camera) const {
         ImGuiIO&    io             = ImGui::GetIO();
         const auto& extent         = context.window.resolution;
         io.DisplaySize             = ImVec2(extent.width, extent.height);
@@ -104,12 +99,10 @@ public:
                             scaling * static_cast<float>(input.mouse.position.at(1)));
         io.AddMouseWheelEvent(input.mouse.wheel.at(0), input.mouse.wheel.at(1));
 
-        if (input.mouse.left == core::input::Action::press)
-        {
+        if (input.mouse.left == core::input::Action::press) {
             io.AddMouseButtonEvent(0, true);
         }
-        if (input.mouse.left == core::input::Action::release)
-        {
+        if (input.mouse.left == core::input::Action::release) {
             io.AddMouseButtonEvent(0, false);
         }
 
@@ -169,8 +162,7 @@ public:
 
         core::math::Vector<2> previousWindowPosition { pos.x, pos.y };
         core::math::Vector<2> previousWindowSize { size.x, size.y };
-        for (const auto& [name, asset] : assets)
-        {
+        for (const auto& [name, asset] : assets) {
             const auto [pos, size] = overlay(asset, previousWindowPosition, previousWindowSize);
             previousWindowPosition = pos;
             previousWindowSize     = size;
@@ -179,11 +171,9 @@ public:
         ImGui::Render();
     }
 
-    void updateBuffers(const VkQueue graphicsQueue, std::optional<asset::Model>& model) const
-    {
+    void updateBuffers(const VkQueue graphicsQueue, std::optional<asset::Model>& model) const {
         const ImDrawData* const imDrawData = ImGui::GetDrawData();
-        if (imDrawData == nullptr)
-        {
+        if (imDrawData == nullptr) {
             throw std::runtime_error("Failed to retrieve ImGui data");
         }
 
@@ -191,16 +181,14 @@ public:
         const auto vertexCount = static_cast<std::size_t>(imDrawData->TotalVtxCount);
         const auto indexCount  = static_cast<std::size_t>(imDrawData->TotalIdxCount);
 
-        if ((vertexCount == 0) || (indexCount == 0))
-        {
+        if ((vertexCount == 0) || (indexCount == 0)) {
             return;
         }
 
         const LoadedOverlay loadedOverlay;
 
         // Update buffers only if vertex or index count has been changed compared to current buffer size
-        if (!model || model->vertexCount != vertexCount || model->indexCount != indexCount)
-        {
+        if (!model || model->vertexCount != vertexCount || model->indexCount != indexCount) {
             vkQueueWaitIdle(graphicsQueue);
             model.emplace(context, loadedOverlay,
                           asset::Model::Info<VkBufferUsageFlags {}, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT> {});
@@ -208,16 +196,13 @@ public:
         model->transfer(loadedOverlay);
     }
 
-    void update(const Input& input, const Camera<false>& camera) const
-    {
+    void update(const Input& input, const Camera<false>& camera) const {
         newFrame(imGuiContext.scale, frameTimes, input, assets, camera);
         updateBuffers(graphicsQueue, model);
     }
 
-    void draw(const VkCommandBuffer commandBuffer) const
-    {
-        if (!model)
-        {
+    void draw(const VkCommandBuffer commandBuffer) const {
+        if (!model) {
             return;
         }
 
@@ -249,24 +234,20 @@ public:
 
         // Render commands
         ImDrawData* imDrawData = ImGui::GetDrawData();
-        if (imDrawData == nullptr)
-        {
+        if (imDrawData == nullptr) {
             throw std::runtime_error("Failed to retrieve ImGui data");
         }
         int32_t vertexOffset = 0;
         int32_t indexOffset  = 0;
 
-        if (imDrawData->CmdListsCount > 0)
-        {
+        if (imDrawData->CmdListsCount > 0) {
             VkDeviceSize offsets[1] = { 0 };
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model->vertexBuffer.buffer, offsets);
             vkCmdBindIndexBuffer(commandBuffer, model->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT16);
 
-            for (int32_t i = 0; i < imDrawData->CmdListsCount; i++)
-            {
+            for (int32_t i = 0; i < imDrawData->CmdListsCount; i++) {
                 const ImDrawList* cmd_list = imDrawData->CmdLists[i];
-                for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++)
-                {
+                for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++) {
                     const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[j];
                     const VkRect2D   scissorRect {
                           .offset {
@@ -287,20 +268,17 @@ public:
         }
     }
 
-    ~Overlay()
-    {
+    ~Overlay() {
         // ImGui::DestroyContext();
         context.destroy(pipeline);
         context.destroy(pipelineLayout);
     }
 
 private:
-    class ImGuiContext
-    {
+    class ImGuiContext {
     public:
         ImGuiContext(const float scale)
-            : scale { scale }
-        {
+            : scale { scale } {
             ImGui::CreateContext();
             [[maybe_unused]] auto& io = ImGui::GetIO();
             // io.FontGlobalScale = scale;
@@ -309,8 +287,7 @@ private:
             // io.WantCaptureMouse = true;
         }
 
-        ~ImGuiContext()
-        {
+        ~ImGuiContext() {
             ImGui::DestroyContext();
         }
 

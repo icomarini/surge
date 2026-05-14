@@ -2,30 +2,24 @@
 
 #include "surge/core/Image.hpp"
 
-namespace surge::core
-{
+namespace surge::core {
 
-class Swapchain : Contextualized
-{
+class Swapchain : Contextualized {
 public:
     Swapchain(const Context& context)
         : Contextualized { context }
         , extent { computeExtent(context) }
         , swapchain { createSwapChain(context, extent) }
         , depthImage { context, extent, Image::depth }
-        , frames { createFrames(context, swapchain) }
-    {
+        , frames { createFrames(context, swapchain) } {
     }
 
-    uint32_t imageCount() const
-    {
+    uint32_t imageCount() const {
         return frames.size();
     }
 
-    ~Swapchain()
-    {
-        for (const auto [_, imageView] : frames)
-        {
+    ~Swapchain() {
+        for (const auto [_, imageView] : frames) {
             context.destroy(imageView);
         }
         context.destroy(swapchain);
@@ -36,8 +30,7 @@ public:
     VkSwapchainKHR swapchain;
 
 private:
-    struct Frame
-    {
+    struct Frame {
         VkImage     image;
         VkImageView imageView;
     };
@@ -48,8 +41,7 @@ public:
     std::vector<Frame> frames;
 
 private:
-    static VkExtent2D computeExtent(const Context& context)
-    {
+    static VkExtent2D computeExtent(const Context& context) {
         const auto surfaceCapabilities = context.getSurfaceCapabilities();
         return surfaceCapabilities.currentExtent.width != std::numeric_limits<uint32_t>::max() ?
                    surfaceCapabilities.currentExtent :
@@ -61,8 +53,7 @@ private:
                    };
     }
 
-    static VkSwapchainKHR createSwapChain(const Context& context, const VkExtent2D extent)
-    {
+    static VkSwapchainKHR createSwapChain(const Context& context, const VkExtent2D extent) {
         const std::array indices { context.physicalDevice.graphicsFamilyIndex,
                                    context.physicalDevice.presentFamilyIndex };
         const auto       sameQueueFamilies = indices.at(0) == indices.at(1);
@@ -97,8 +88,7 @@ private:
         });
     }
 
-    static std::vector<Frame> createFrames(const Context& context, const VkSwapchainKHR swapchain)
-    {
+    static std::vector<Frame> createFrames(const Context& context, const VkSwapchainKHR swapchain) {
         uint32_t count {};
         vkGetSwapchainImagesKHR(context.device, swapchain, &count, VK_NULL_HANDLE);
         std::vector<VkImage> images(count);
@@ -106,8 +96,7 @@ private:
 
         std::vector<Frame> frames;
         frames.reserve(count);
-        for (const auto image : images)
-        {
+        for (const auto image : images) {
             const auto imageView = context.create(VkImageViewCreateInfo {
                 .sType      = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                 .pNext      = nullptr,

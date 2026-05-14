@@ -5,15 +5,14 @@
 
 #include <imgui.h>
 
-namespace surge::overlay
-{
+namespace surge::overlay {
 std::pair<core::math::Vector<2>, core::math::Vector<2>> overlay(const asset::Asset&          asset,
                                                                 const core::math::Vector<2>& previousWindowPosition,
-                                                                const core::math::Vector<2>& previousWindowSize)
-{
+                                                                const core::math::Vector<2>& previousWindowSize) {
     constexpr auto to_string   = [](const bool b) { return b ? "true" : "false"; };
-    constexpr auto textureName = [](const asset::Material::TextureData& textureData)
-    { return textureData.texture ? textureData.texture->name : std::string { "none" }; };
+    constexpr auto textureName = [](const asset::Material::TextureData& textureData) {
+        return textureData.texture ? textureData.texture->name : std::string { "none" };
+    };
 
     ImGui::SetNextWindowPos(ImVec2(10, previousWindowPosition.at(1) + previousWindowSize.at(1) + 10), ImGuiCond_None);
 
@@ -24,13 +23,10 @@ std::pair<core::math::Vector<2>, core::math::Vector<2>> overlay(const asset::Ass
     // ImGui::Checkbox("active", &asset.state.active);
 
     if (ImGui::CollapsingHeader(("Textures: " + std::to_string(asset.textures.size())).c_str(),
-                                ImGuiTreeNodeFlags_None))
-    {
+                                ImGuiTreeNodeFlags_None)) {
         uint32_t id {};
-        for (const auto& texture : asset.textures)
-        {
-            if (ImGui::TreeNode(idName(id++, texture.name).c_str()))
-            {
+        for (const auto& texture : asset.textures) {
+            if (ImGui::TreeNode(idName(id++, texture.name).c_str())) {
                 ImGui::Text("width:  %d", texture.image.extent.width);
                 ImGui::Text("height: %d", texture.image.extent.width);
                 ImGui::TreePop();
@@ -39,13 +35,10 @@ std::pair<core::math::Vector<2>, core::math::Vector<2>> overlay(const asset::Ass
     }
 
     if (ImGui::CollapsingHeader(("Materials: " + std::to_string(asset.materials.size())).c_str(),
-                                ImGuiTreeNodeFlags_None))
-    {
+                                ImGuiTreeNodeFlags_None)) {
         uint32_t id {};
-        for (const auto& material : asset.materials)
-        {
-            if (ImGui::TreeNode(idName(id++, material.name).c_str()))
-            {
+        for (const auto& material : asset.materials) {
+            if (ImGui::TreeNode(idName(id++, material.name).c_str())) {
                 ImGui::Text("double sided:       %s", to_string(material.doubleSided));
                 ImGui::Text("unlit:              %s", to_string(material.unlit));
                 ImGui::Text("alpha mode:         %s", asset::Material::toString(material.alphaMode).c_str());
@@ -76,18 +69,13 @@ std::pair<core::math::Vector<2>, core::math::Vector<2>> overlay(const asset::Ass
         }
     }
 
-    if (ImGui::CollapsingHeader(("Meshes: " + std::to_string(asset.meshes.size())).c_str(), ImGuiTreeNodeFlags_None))
-    {
+    if (ImGui::CollapsingHeader(("Meshes: " + std::to_string(asset.meshes.size())).c_str(), ImGuiTreeNodeFlags_None)) {
         uint32_t meshId {};
-        for (const auto& mesh : asset.meshes)
-        {
-            if (ImGui::TreeNode((std::to_string(meshId++) + ": " + mesh.name).c_str()))
-            {
+        for (const auto& mesh : asset.meshes) {
+            if (ImGui::TreeNode((std::to_string(meshId++) + ": " + mesh.name).c_str())) {
                 uint32_t primitivieId = 0;
-                for (const auto& primitive : mesh.primitives)
-                {
-                    if (ImGui::TreeNode(idName(primitivieId++, "primitive").c_str()))
-                    {
+                for (const auto& primitive : mesh.primitives) {
+                    if (ImGui::TreeNode(idName(primitivieId++, "primitive").c_str())) {
                         ImGui::Text("first index:  %d", primitive.firstIndex);
                         ImGui::Text("index count:  %d", primitive.indexCount);
                         ImGui::Text("vertex count: %d", primitive.vertexCount);
@@ -117,15 +105,12 @@ std::pair<core::math::Vector<2>, core::math::Vector<2>> overlay(const asset::Ass
         }
     }
 
-    if (ImGui::CollapsingHeader(("Scenes: " + std::to_string(asset.scenes.size())).c_str(), ImGuiTreeNodeFlags_None))
-    {
+    if (ImGui::CollapsingHeader(("Scenes: " + std::to_string(asset.scenes.size())).c_str(), ImGuiTreeNodeFlags_None)) {
         uint32_t sceneId {};
         // uint32_t nodeId {};
         ImGui::Text("main scene: %lo", asset.mainSceneIndex);
-        for (const auto& scene : asset.scenes)
-        {
-            if (ImGui::TreeNode(idName(sceneId++, scene.name).c_str()))
-            {
+        for (const auto& scene : asset.scenes) {
+            if (ImGui::TreeNode(idName(sceneId++, scene.name).c_str())) {
                 // for (const auto& node : scene.nodes)
                 // {
                 //     overlay(node, nodeId);
@@ -135,19 +120,14 @@ std::pair<core::math::Vector<2>, core::math::Vector<2>> overlay(const asset::Ass
         }
     }
 
-    if (ImGui::CollapsingHeader(("Skins: " + std::to_string(asset.skins.size())).c_str(), ImGuiTreeNodeFlags_Framed))
-    {
+    if (ImGui::CollapsingHeader(("Skins: " + std::to_string(asset.skins.size())).c_str(), ImGuiTreeNodeFlags_Framed)) {
         uint32_t skinId {};
-        for (const auto& skin : asset.skins)
-        {
-            if (ImGui::TreeNode(idName(skinId++, skin.name).c_str()))
-            {
+        for (const auto& skin : asset.skins) {
+            if (ImGui::TreeNode(idName(skinId++, skin.name).c_str())) {
                 // ImGui::Text("skeleton:   %s", skin.skeleton ? "yes" : "none");
-                if (ImGui::TreeNode(("joints:     " + std::to_string(skin.joints.size())).c_str()))
-                {
+                if (ImGui::TreeNode(("joints:     " + std::to_string(skin.joints.size())).c_str())) {
                     uint32_t jointId = 0;
-                    for (const auto& joint : skin.joints)
-                    {
+                    for (const auto& joint : skin.joints) {
                         ImGui::Text(idName(jointId++, std::to_string(joint.nodeIndex)).c_str(), 0);
                     }
                     ImGui::TreePop();
@@ -158,13 +138,10 @@ std::pair<core::math::Vector<2>, core::math::Vector<2>> overlay(const asset::Ass
     }
 
     if (ImGui::CollapsingHeader(("Animations: " + std::to_string(asset.animations.size())).c_str(),
-                                ImGuiTreeNodeFlags_None))
-    {
+                                ImGuiTreeNodeFlags_None)) {
         uint32_t animationsId {};
-        for (const auto& animation : asset.animations)
-        {
-            if (ImGui::TreeNode(idName(animationsId++, animation.name).c_str()))
-            {
+        for (const auto& animation : asset.animations) {
+            if (ImGui::TreeNode(idName(animationsId++, animation.name).c_str())) {
                 ImGui::Text("active:   %s", to_string(animation.state.active));
                 ImGui::Text("progress: %f", animation.state.progress);
                 ImGui::Text("start:    %f", animation.start);

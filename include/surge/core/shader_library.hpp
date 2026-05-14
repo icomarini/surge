@@ -3,18 +3,15 @@
 #include <array>
 #include <string_view>
 
-namespace surge::core::shader
-{
+namespace surge::core::shader {
 
-enum class Stage
-{
+enum class Stage {
     geometry,
     vertex,
     fragment,
 };
 
-enum class Type
-{
+enum class Type {
     gltfAnimated,
     gltfStatic,
     bbox,
@@ -28,8 +25,7 @@ enum class Type
 };
 
 
-struct Entry
-{
+struct Entry {
     Type                 type;
     Stage                stage;
     const unsigned char* data = nullptr;
@@ -37,8 +33,7 @@ struct Entry
 };
 
 template<typename EmbeddedData>
-constexpr Entry entry(const Type type, const Stage stage, const EmbeddedData& data)
-{
+constexpr Entry entry(const Type type, const Stage stage, const EmbeddedData& data) {
     return Entry { type, stage, data, sizeof(EmbeddedData) };
 }
 
@@ -143,14 +138,11 @@ constexpr std::array library {
     entry(Type::base, Stage::fragment, baseFrag),
 };
 
-constexpr Entry get(const Type type, const Stage stage)
-{
+constexpr Entry get(const Type type, const Stage stage) {
     static constexpr unsigned char* invalid = nullptr;
     Entry                           requested { entry(type, stage, invalid) };
-    for (const auto& entry : library)
-    {
-        if (entry.type == type && entry.stage == stage)
-        {
+    for (const auto& entry : library) {
+        if (entry.type == type && entry.stage == stage) {
             requested = entry;
         }
     }

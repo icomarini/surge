@@ -2,10 +2,8 @@
 
 #include "surge/core/math/Vector.hpp"
 
-namespace surge::core
-{
-enum class Type
-{
+namespace surge::core {
+enum class Type {
     rgba,
     ansi,
 };
@@ -14,8 +12,7 @@ template<Type>
 struct Colors;
 
 template<>
-struct Colors<Type::rgba>
-{
+struct Colors<Type::rgba> {
     using Format = math::Vector<4>;
     static constexpr Format black { 0, 0, 0, 1 };
     static constexpr Format grey { 0.5, 0.5, 0.5, 1 };
@@ -27,8 +24,7 @@ struct Colors<Type::rgba>
 };
 
 template<>
-struct Colors<Type::ansi>
-{
+struct Colors<Type::ansi> {
     using Format = std::uint8_t;
     static constexpr Format black { 30 };
     static constexpr Format white { 37 };

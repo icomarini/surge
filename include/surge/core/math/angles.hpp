@@ -5,15 +5,13 @@
 #include <numbers>
 #include <algorithm>
 
-namespace surge::core::math
-{
+namespace surge::core::math {
 
 template<typename Type = float>
 using Quaternion = Vector<4, Type>;
 
 // roll, pitch, yaw
-enum class Angle
-{
+enum class Angle {
     radians,
     degrees,
 };
@@ -23,8 +21,7 @@ template<Angle angle = Angle::radians, typename Type = float>
 using EulerAngles = Vector<3, Type>;
 
 template<typename Type>
-constexpr Type yaw(const Quaternion<Type>& quaternion)
-{
+constexpr Type yaw(const Quaternion<Type>& quaternion) {
     const auto qx = quaternion.at(0);
     const auto qy = quaternion.at(1);
     const auto qz = quaternion.at(2);
@@ -36,8 +33,7 @@ constexpr Type yaw(const Quaternion<Type>& quaternion)
 }
 
 template<typename Type>
-constexpr Type roll(const Quaternion<Type>& quaternion)
-{
+constexpr Type roll(const Quaternion<Type>& quaternion) {
     const auto qx = quaternion.at(0);
     const auto qy = quaternion.at(1);
     const auto qz = quaternion.at(2);
@@ -49,8 +45,7 @@ constexpr Type roll(const Quaternion<Type>& quaternion)
 }
 
 template<typename Type>
-constexpr Type pitch(const Quaternion<Type>& quaternion)
-{
+constexpr Type pitch(const Quaternion<Type>& quaternion) {
     const auto qx = quaternion.at(0);
     const auto qy = quaternion.at(1);
     const auto qz = quaternion.at(2);
@@ -66,15 +61,13 @@ constexpr Type pitch(const Quaternion<Type>& quaternion)
 
 
 template<typename Type>
-constexpr EulerAngles<Angle::radians, Type> toEulerAngles(const Quaternion<Type>& quaternion)
-{
+constexpr EulerAngles<Angle::radians, Type> toEulerAngles(const Quaternion<Type>& quaternion) {
     return Vector<3> { yaw(quaternion), pitch(quaternion), roll(quaternion) };
 }
 
 
 template<typename Type>
-constexpr Quaternion<Type> toQuaternion(const Type& roll, const Type& pitch, const Type& yaw)
-{
+constexpr Quaternion<Type> toQuaternion(const Type& roll, const Type& pitch, const Type& yaw) {
     // roll (x), pitch (y), yaw (z), angles are in radians
     constexpr Type half { 0.5 };
 
@@ -100,8 +93,7 @@ constexpr Quaternion<Type> toQuaternion(const Type& roll, const Type& pitch, con
 }
 
 template<typename Type>
-constexpr Quaternion<Type> slerp(const Quaternion<Type>& x, const Quaternion<Type>& y, const Type& a)
-{
+constexpr Quaternion<Type> slerp(const Quaternion<Type>& x, const Quaternion<Type>& y, const Type& a) {
     constexpr Type zero { 0 };
     constexpr Type one { 1 };
 
@@ -111,22 +103,18 @@ constexpr Quaternion<Type> slerp(const Quaternion<Type>& x, const Quaternion<Typ
 
     // If cosTheta < 0, the interpolation will take the long way around the sphere.
     // To fix this, one quat must be negated.
-    if (cosTheta < zero)
-    {
+    if (cosTheta < zero) {
         z        = -y;
         cosTheta = -cosTheta;
     }
 
     // Perform a linear interpolation when cosTheta is close to 1 to avoid side effect of sin(angle) becoming a zero
     // denominator
-    if (cosTheta > one - std::numeric_limits<Type>::epsilon())
-    {
+    if (cosTheta > one - std::numeric_limits<Type>::epsilon()) {
         // Linear interpolation
         // return Quaternion<Type> { mix(x.w, z.w, a), mix(x.x, z.x, a), mix(x.y, z.y, a), mix(x.z, z.z, a) };
         return lerp(x, z, a);
-    }
-    else
-    {
+    } else {
         // Essential Mathematics, page 467
         Type angle = std::acos(cosTheta);
         return (std::sin((one - a) * angle) * x + std::sin(a * angle) * z) / std::sin(angle);
