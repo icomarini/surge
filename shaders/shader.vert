@@ -25,6 +25,7 @@ layout(location = 1) out vec3 outNormal;
 layout(location = 2) out vec2 outTextureCoordinate;
 layout(location = 3) out vec3 outLightPosition;
 layout(location = 4) out vec3 outTangent;
+layout(location = 5) out mat3 outTBN;
 // layout(location = 2) out vec3 outColor;
 
 void main() {
@@ -35,6 +36,13 @@ void main() {
     outLightPosition     = vec3(vec4(lightPosition, 1.0) * view);
     // outTangent           = vec4(mat3(inverse(model * view)) * inTangent.xyz, inTangent.w);
     outTangent = vec3(inverse(model * view) * inTangent);
+
+    // Calculate Bitangent
+    vec3 N = normalize(mat3(inverse(model)) * inNormal);
+    vec3 T = normalize(vec3(inverse(model) * inTangent));
+    T      = normalize(T - dot(T, N) * N);  // Re-orthogonalize T
+    vec3 B = cross(N, T);
+    outTBN = mat3(T, B, N);
 
     // outColor    = baseColor;
 }

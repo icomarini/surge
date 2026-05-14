@@ -202,7 +202,7 @@ public:
 
         auto start = std::chrono::high_resolution_clock::now();
 
-        Camera<false> playerCamera { 16.0 / 9.0, { 0.0f, 1.0f, 3.0f }, { 0.0f, 0.0f, -1.0f } };
+        Camera<false> playerCamera { 16.0 / 9.0, { 0.0f, 3.0f, 4.0f }, { 0.0f, -0.5f, -1.0f } };
         Camera<true>  skyboxCamera { 16.0 / 9.0, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } };
         Camera<false> lightCamera { 16.0 / 9.0, { -1.0f, 1.0f, 3.0f }, { -1.0f, -1.0f, -1.0f } };
 
@@ -339,11 +339,29 @@ public:
             core::createPipelineLayout(context, pushConstantRange, renderer.descriptor.setLayout);
         const auto normalPipeline =
             core::createGraphicPipeline(context, vertexInputState, normalPipelineLayout, core::shader::Type::normal);
+
+        const auto coordinatesPipelineLayout =
+            core::createPipelineLayout(context, pushConstantRange, renderer.descriptor.setLayout);
+        const auto coordinatesPipeline =
+            core::createGraphicPipeline(context, core::createVertexInputState<core::geometry::PositionAndColor>(),
+                                        coordinatesPipelineLayout, core::shader::Type::coordinates);
+
+        const auto planePipelineLayout =
+            core::createPipelineLayout(context, pushConstantRange, renderer.descriptor.setLayout);
+        const auto planePipeline =
+            core::createGraphicPipeline(context, core::createVertexInputState<core::geometry::Position>(),
+                                        planePipelineLayout, core::shader::Type::primitive);
+
+        // === coordinates ===
+        asset::Model coordinatesModel { command, core::geometry::coordinates, asset::Model::scene };
+
+        asset::Model planeModel { command, core::geometry::plane, asset::Model::scene };
+
         // === initialize ===
 
         log::checkpoint("Main loop start");
 
-        constexpr bool drawLight           = true;
+        constexpr bool drawLight           = false;
         constexpr bool drawContainer       = false;
         constexpr bool drawContainerNormal = false;
         constexpr bool drawBrickwall       = true;
@@ -351,6 +369,8 @@ public:
         constexpr bool drawCerberus        = false;
         constexpr bool drawCerberusNormals = false;
         constexpr bool drawDragon          = false;
+        constexpr bool drawCoordinates     = true;
+        constexpr bool drawPlane           = true;
 
         while (input.proceed) {
             if (elapsedTime > 1.0 / 144.0) {
@@ -374,7 +394,7 @@ public:
                 renderer.lightPosition = lightCamera.vecs.position;
                 skybox.update(skyboxCamera);
                 renderer.update(playerCamera);
-                overlay.update(input, playerCamera);
+                // overlay.update(input, playerCamera);
 
                 constexpr core::math::Translation brickwallTranslation { core::math::Vector<3> { 0, -3, 0 } };
                 constexpr core::math::Rotation    brickwallRotation { core::math::Quaternion<> {
@@ -702,13 +722,80 @@ public:
                                          0, 0);
                     }
                 }
+
+
+                if constexpr (drawCoordinates) {  // bind coordinates
+                    core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+                    vkCmdBindPipeline(commandBuffer, graphicsBindPoint, coordinatesPipeline);
+                    vkCmdSetLineWidth(commandBuffer, 2.0);
+                    vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, coordinatesPipelineLayout, sceneIndex, 1,
+                                            &renderer.descriptor.set, 0, nullptr);
+                    constexpr PushConstants coordinatesPushConstants {
+                        .matrix    = core::math::fullMatrix(core::math::identity<4>),
+                        .baseColor = core::RGBA::white,
+                        .isLight   = false,
+                    };
+                    vkCmdPushConstants(commandBuffer, coordinatesPipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                                       &coordinatesPushConstants);
+                    constexpr VkDeviceSize offset { 0 };
+                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &coordinatesModel.vertexBuffer.buffer, &offset);
+                    vkCmdBindIndexBuffer(commandBuffer, coordinatesModel.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                    vkCmdDrawIndexed(commandBuffer, core::geometry::coordinates.indices.size(), 1, 0, 0, 0);
+                }
+
+                if constexpr (drawPlane) {  // bind plane
+                    core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+                    vkCmdBindPipeline(commandBuffer, graphicsBindPoint, planePipeline);
+                    vkCmdSetLineWidth(commandBuffer, 2.0);
+                    vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, planePipelineLayout, sceneIndex, 1,
+                                            &renderer.descriptor.set, 0, nullptr);
+
+                    // constexpr core::math::Quaternion<> flipX {  };
+                    using namespace core::math;
+                    constexpr auto          I = fullMatrix(identity<4>);
+                    constexpr Translation<> T { 2, 0, 0 };
+
+                    constexpr auto sqrt2 = std::sqrt(2) / 2;
+
+                    // Rotate 90deg around X axis
+                    constexpr Rotation<> rpx { Quaternion<> { -sqrt2, 0, 0, sqrt2 } };
+                    // Rotate -90deg around X axis
+                    constexpr Rotation<> rmx { Quaternion<> { sqrt2, 0, 0, sqrt2 } };
+
+                    // Rotate -90deg around Y axis
+                    constexpr Rotation<> rpy { Quaternion<> { 0, sqrt2, 0, sqrt2 } };
+                    // Rotate 90deg around Y axis
+                    constexpr Rotation<> rmy { Quaternion<> { 0, -sqrt2, 0, sqrt2 } };
+
+                    // Rotate -90deg around Z axis
+                    constexpr Rotation<> rpz { Quaternion<> { 0, 0, sqrt2, sqrt2 } };
+                    // Rotate 90deg around Z axis
+                    constexpr Rotation<> rmz { Quaternion<> { 0, 0, -sqrt2, sqrt2 } };
+
+                    for (const auto& [color, matrix] : {
+                             std::pair { core::RGBA::darkRed, Translation<> { -0.5, 0, 0 } * rmy },
+                             std::pair { core::RGBA::red, Translation<> { 0.5, 0, 0 } * rpy },
+                             std::pair { core::RGBA::darkGreen, Translation<> { 0, -0.5, 0 } * rmx },
+                             std::pair { core::RGBA::green, Translation<> { 0, 0.5, 0 } * rpx },
+                             std::pair { core::RGBA::darkBlue, Translation<> { 0, 0, -0.5 } * rpx * rpx },
+                             std::pair { core::RGBA::blue, Translation<> { 0, 0, 0.5 } * I },
+                         }) {
+                        const PushConstants planePushConstants { .matrix = matrix, .baseColor = color };
+                        vkCmdPushConstants(commandBuffer, planePipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                                           &planePushConstants);
+                        constexpr VkDeviceSize offset { 0 };
+                        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &planeModel.vertexBuffer.buffer, &offset);
+                        vkCmdBindIndexBuffer(commandBuffer, planeModel.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                        vkCmdDrawIndexed(commandBuffer, core::geometry::coordinates.indices.size(), 1, 0, 0, 0);
+                    }
+                }
                 // === draw ===
 
                 // for (const auto& entity : entities)
                 // {
                 //     entity.draw(commandBuffer, renderer.descriptor.set);
                 // }
-                overlay.draw(commandBuffer);
+                // overlay.draw(commandBuffer);
 
                 presenter.endRendering();
                 presenter.present(command);
@@ -725,6 +812,10 @@ public:
         vkDeviceWaitIdle(context.device);
 
         // === finalize ===
+        context.destroy(planePipeline);
+        context.destroy(planePipelineLayout);
+        context.destroy(coordinatesPipeline);
+        context.destroy(coordinatesPipelineLayout);
         context.destroy(normalPipeline);
         context.destroy(normalPipelineLayout);
         context.destroy(pipeline);

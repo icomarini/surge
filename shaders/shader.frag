@@ -6,6 +6,7 @@ layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 inTextureCoordinate;
 layout(location = 3) in vec3 inLightPosition;
 layout(location = 4) in vec3 inTangent;
+layout(location = 5) in mat3 inTBN;
 // layout(location = 2) in vec3 inColor;
 
 layout(push_constant) uniform PushConstants {
@@ -29,13 +30,16 @@ layout(set = 1, binding = 2) uniform sampler2D normalSampler;
 layout(location = 0) out vec4 outColor;
 
 vec3 computeNormal() {
-    vec3 tangentNormal = texture(normalSampler, inTextureCoordinate).rgb * 2.0 - 1.0;
+    vec3 tangentNormal = normalize(texture(normalSampler, inTextureCoordinate).rgb * 2.0 - 1.0);
+    // tangentNormal      = vec3(tangentNormal.x, -tangentNormal.y, tangentNormal.z);
+    // // vec3 tangentNormal = texture(normalSampler, inTextureCoordinate).rgb;
 
-    vec3 N = normalize(inNormal);
-    vec3 T = normalize(inTangent);
-    vec3 B = normalize(cross(N, T));
-    return normalize(normalize(tangentNormal) * mat3(T, B, N));
+    // vec3 T = normalize(inTangent);
+    // vec3 N = normalize(inNormal);
+    // vec3 B = normalize(cross(N, T));
+    // return normalize(mat3(T, B, N) * normalize(tangentNormal));
     // return normalize(inNormal);
+    return normalize(inTBN * tangentNormal);
 }
 
 void main() {

@@ -2,6 +2,7 @@
 
 #include "surge/core/geometry/Shape.hpp"
 #include "surge/core/geometry/Vertex.hpp"
+#include "surge/core/colors.hpp"
 
 namespace surge::core::geometry {
 // using PositionAndColor = Vertex<Attribute::position, Attribute::color>;
@@ -68,6 +69,8 @@ static constexpr Shape cube { "cube",
                                   2, 1, 0, 2, 3, 1,  // z = -1
                                   5, 6, 4, 7, 6, 5,  // z = +1
                               } };
+
+static constexpr math::Vector<3> origin { 0, 0, 0 };
 
 static constexpr math::Vector<3> normalI { 1, 0, 0 };
 static constexpr math::Vector<3> normalJ { 0, 1, 0 };
@@ -193,4 +196,31 @@ static constexpr Shape coordinateSystem { "coord",
                                                        PositionAndColor { { -0.9, -0.9, -0.9 }, { 0, 0, 1, 1 } },
                                                        PositionAndColor { { -0.9, -0.9, 0.1 }, { 0, 0, 1, 1 } } },
                                           std::array { 0, 1, 2, 3, 4, 5 } };
+
+static constexpr Shape coordinates {
+    "coordinates",
+    std::array { PositionAndColor { -normalI, RGBA::darkRed }, PositionAndColor { normalI, RGBA::red },
+                 PositionAndColor { -normalJ, RGBA::darkGreen }, PositionAndColor { normalJ, RGBA::green },
+                 PositionAndColor { -normalK, RGBA::darkBlue }, PositionAndColor { normalK, RGBA::blue } },
+    std::array { 0, 1, 2, 3, 4, 5 }
+};
+
+
+static constexpr Shape plane { "plane",
+                               std::array {
+                                   //
+                                   //  z
+                                   //  | y          2----------3
+                                   //  |/          /          /
+                                   //  O---x      /          /
+                                   //            0----------1
+                                   //
+                                   Position { math::Vector<3> { -0.5, -0.5, 0 } },
+                                   Position { math::Vector<3> { 0.5, -0.5, 0 } },
+                                   Position { math::Vector<3> { -0.5, 0.5, 0 } },
+                                   Position { math::Vector<3> { 0.5, 0.5, 0 } },
+                               },
+                               std::array { 0, 1, 2, 1, 3, 2 } };
+
+
 }  // namespace surge::core::geometry

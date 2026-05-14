@@ -111,7 +111,7 @@ constexpr auto get(const glm::mat4& m) {
 
 // operations
 template<StaticMatrix M>
-Matrix<rows<M>, cols<M>, ValueType<M>> fullMatrix(const M& matrix) {
+constexpr Matrix<rows<M>, cols<M>, ValueType<M>> fullMatrix(const M& matrix) {
     Matrix<rows<M>, cols<M>, ValueType<M>> full {};
     forEach<0, rows<M>, 0, cols<M>>([&]<Size row, Size col>() {
         if constexpr (nonzero<row, col, M>) {

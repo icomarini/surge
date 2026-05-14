@@ -154,6 +154,10 @@ set(SHADERS
     normal.geom
     base.vert
     base.frag
+    coordinates.vert
+    coordinates.frag
+    primitive.vert
+    primitive.frag
 )
 
 list(TRANSFORM SHADERS PREPEND "${PROJECT_SOURCE_DIR}/shaders/")

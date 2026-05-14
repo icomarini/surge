@@ -14,14 +14,26 @@ struct Colors;
 template<>
 struct Colors<Type::rgba> {
     using Format = math::Vector<4>;
+
     static constexpr Format black { 0, 0, 0, 1 };
     static constexpr Format grey { 0.5, 0.5, 0.5, 1 };
     static constexpr Format white { 1, 1, 1, 1 };
+
+    static constexpr Format darkRed { 0.1, 0, 0, 1 };
     static constexpr Format red { 1, 0, 0, 1 };
+    static constexpr Format lightRed { 1, 0.5, 0.5, 1 };
+
+    static constexpr Format darkGreen { 0, 0.1, 0, 1 };
     static constexpr Format green { 0, 1, 0, 1 };
+    static constexpr Format lightGreen { 0.5, 1, 0.5, 1 };
+
+    static constexpr Format darkBlue { 0, 0, 0.1, 1 };
     static constexpr Format blue { 0, 0, 1, 1 };
+    static constexpr Format lightBlue { 0.5, 0.5, 1, 1 };
+
     static constexpr Format coral { 1, 0.5, 0.31, 1 };
 };
+using RGBA = Colors<Type::rgba>;
 
 template<>
 struct Colors<Type::ansi> {

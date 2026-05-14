@@ -445,6 +445,44 @@ VkPipeline createGraphicPipeline(const Context& context, const VkPipelineVertexI
                                          shader::ShaderInfo<shader::Type::base, shader::Stage::vertex> { nullptr },
                                          shader::ShaderInfo<shader::Type::base, shader::Stage::fragment> { nullptr },
                                      });
+    case shader::Type::coordinates:
+        return createGraphicPipeline(
+            context, vertexInputState, VK_NULL_HANDLE, pipelineLayout,
+            shader::Shader {
+                context,
+                shader::ShaderInfo<shader::Type::coordinates, shader::Stage::vertex> { nullptr },
+                shader::ShaderInfo<shader::Type::coordinates, shader::Stage::fragment> { nullptr },
+            },
+            VkPipelineInputAssemblyStateCreateInfo {
+                .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+                .pNext                  = nullptr,
+                .flags                  = {},
+                .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
+                .primitiveRestartEnable = VK_FALSE,
+            },
+            VkPipelineRasterizationStateCreateInfo {
+                .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+                .pNext                   = nullptr,
+                .flags                   = {},
+                .depthClampEnable        = VK_FALSE,
+                .rasterizerDiscardEnable = VK_FALSE,
+                .polygonMode             = VK_POLYGON_MODE_LINE,
+                .cullMode                = VK_CULL_MODE_FRONT_BIT,
+                .frontFace               = VK_FRONT_FACE_CLOCKWISE,
+                .depthBiasEnable         = VK_FALSE,
+                .depthBiasConstantFactor = 0.0f,
+                .depthBiasClamp          = 0.0f,
+                .depthBiasSlopeFactor    = 0.0f,
+                .lineWidth               = 1.0f,
+            });
+    case shader::Type::primitive:
+        return createGraphicPipeline(
+            context, vertexInputState, VK_NULL_HANDLE, pipelineLayout,
+            shader::Shader {
+                context,
+                shader::ShaderInfo<shader::Type::primitive, shader::Stage::vertex> { nullptr },
+                shader::ShaderInfo<shader::Type::primitive, shader::Stage::fragment> { nullptr },
+            });
     default:
         throw std::runtime_error("Unknown shader type");
     }

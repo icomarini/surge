@@ -22,6 +22,8 @@ enum class Type {
     ui,
     normal,
     base,
+    coordinates,
+    primitive,
 };
 
 
@@ -113,6 +115,22 @@ constexpr unsigned char baseVert[] {
 constexpr unsigned char baseFrag[] {
 #embed "/home/ico/projects/surge/build/debug/shaders/base.frag.spv"
 };
+
+constexpr unsigned char coordinatesVert[] {
+#embed "/home/ico/projects/surge/build/debug/shaders/coordinates.vert.spv"
+};
+
+constexpr unsigned char coordinatesFrag[] {
+#embed "/home/ico/projects/surge/build/debug/shaders/coordinates.frag.spv"
+};
+
+constexpr unsigned char primitiveVert[] {
+#embed "/home/ico/projects/surge/build/debug/shaders/primitive.vert.spv"
+};
+
+constexpr unsigned char primitiveFrag[] {
+#embed "/home/ico/projects/surge/build/debug/shaders/primitive.frag.spv"
+};
 // clang-format on
 
 
@@ -136,6 +154,10 @@ constexpr std::array library {
     entry(Type::normal, Stage::geometry, normalGeom),
     entry(Type::base, Stage::vertex, baseVert),
     entry(Type::base, Stage::fragment, baseFrag),
+    entry(Type::coordinates, Stage::vertex, coordinatesVert),
+    entry(Type::coordinates, Stage::fragment, coordinatesFrag),
+    entry(Type::primitive, Stage::vertex, primitiveVert),
+    entry(Type::primitive, Stage::fragment, primitiveFrag),
 };
 
 constexpr Entry get(const Type type, const Stage stage) {
