@@ -96,9 +96,7 @@ public:
     }
 
     void endRendering() {
-        const auto& frame                 = swapchain->frames.at(imageIndex);
         const auto [fence, commandBuffer] = frames.current();
-
         Extern::endRendering(commandBuffer);
     }
 

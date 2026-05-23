@@ -101,13 +101,12 @@ struct Callbacks {
         }
     }
 
-    static void mousePosition(core::Window& window, Input& input, const core::input::Position& position) {
+    static void mousePosition(core::Window&, Input& input, const core::input::Position& position) {
         input.mouse.offset   = position - input.mouse.position;
         input.mouse.position = position;
     }
 
-    static void mouseButton(core::Window& window, Input& input, core::input::Button button,
-                            core::input::Action action) {
+    static void mouseButton(core::Window&, Input& input, core::input::Button button, core::input::Action action) {
         switch (button) {
         case core::input::Button::left: {
             input.mouse.left = action;
@@ -124,7 +123,7 @@ struct Callbacks {
         }
     }
 
-    static void mouseWheel(core::Window& window, Input& input, const core::input::Offset& offset) {
+    static void mouseWheel(core::Window&, Input& input, const core::input::Offset& offset) {
         input.mouse.wheel = offset;
     }
 };

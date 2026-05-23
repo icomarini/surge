@@ -11,6 +11,8 @@
 #include "surge/entity/Skybox.hpp"
 
 #include "surge/Log.hpp"
+#define sqrt2 1.41421356237
+#define sqrt2o2 0.70710678118
 
 namespace surge {
 
@@ -548,8 +550,8 @@ public:
 
                 constexpr core::math::Translation brickwallTranslation { core::math::Vector<3> { 0, -3, 0 } };
                 constexpr core::math::Rotation    brickwallRotation { core::math::Quaternion<> {
-                    std::sqrt(2) / 2,
-                    -std::sqrt(2) / 2,
+                    sqrt2o2,
+                    sqrt2o2,
                     0,
                     0,
                 } };
@@ -632,8 +634,8 @@ public:
                     core::forEach<0, brickwallTranslations.size()>([&]<int i>() {
                         constexpr core::math::Translation brickwallTranslation { brickwallTranslations.at(i) };
                         constexpr core::math::Rotation    brickwallRotation { core::math::Quaternion<> {
-                            std::sqrt(2) / 2,
-                            -std::sqrt(2) / 2,
+                            sqrt2o2,
+                            -sqrt2o2,
                             0,
                             0,
                         } };
@@ -855,10 +857,8 @@ public:
                         const core::math::Vector<3> cerberusTranslation {
                             1.0, 0.1 * cerberusPrimitive.boundingBox.min.at(1) + 0.8, 0.0
                         };
-                        constexpr core::math::Quaternion<> cerberusRotation1 { std::sqrt(2) / 2, 0, 0,
-                                                                               std::sqrt(2) / 2 };
-                        constexpr core::math::Quaternion<> cerberusRotation2 { std::sqrt(2) / 2, 0, std::sqrt(2) / 2,
-                                                                               0 };
+                        constexpr core::math::Quaternion<> cerberusRotation1 { sqrt2o2, 0, 0, sqrt2o2 };
+                        constexpr core::math::Quaternion<> cerberusRotation2 { sqrt2o2, 0, sqrt2o2, 0 };
                         const PushConstants                cerberusPushConstants {
                                            .matrix = core::math::Translation { cerberusTranslation } *
                                       core::math::Rotation { cerberusRotation1 } *
@@ -895,22 +895,20 @@ public:
 
                 constexpr auto I = fullMatrix(core::math::identity<4>);
 
-                constexpr auto sqrt2 = std::sqrt(2) / 2;
-
                 // Rotate 90deg around X axis
-                constexpr core::math::Rotation<> rpx { core::math::Quaternion<> { -sqrt2, 0, 0, sqrt2 } };
+                constexpr core::math::Rotation<> rpx { core::math::Quaternion<> { -sqrt2o2, 0, 0, sqrt2o2 } };
                 // Rotate -90deg around X axis
-                constexpr core::math::Rotation<> rmx { core::math::Quaternion<> { sqrt2, 0, 0, sqrt2 } };
+                constexpr core::math::Rotation<> rmx { core::math::Quaternion<> { sqrt2o2, 0, 0, sqrt2o2 } };
 
                 // Rotate -90deg around Y axis
-                constexpr core::math::Rotation<> rpy { core::math::Quaternion<> { 0, sqrt2, 0, sqrt2 } };
+                constexpr core::math::Rotation<> rpy { core::math::Quaternion<> { 0, sqrt2o2, 0, sqrt2o2 } };
                 // Rotate 90deg around Y axis
-                constexpr core::math::Rotation<> rmy { core::math::Quaternion<> { 0, -sqrt2, 0, sqrt2 } };
+                constexpr core::math::Rotation<> rmy { core::math::Quaternion<> { 0, -sqrt2o2, 0, sqrt2o2 } };
 
                 // Rotate -90deg around Z axis
-                constexpr core::math::Rotation<> rpz { core::math::Quaternion<> { 0, 0, sqrt2, sqrt2 } };
+                constexpr core::math::Rotation<> rpz { core::math::Quaternion<> { 0, 0, sqrt2o2, sqrt2o2 } };
                 // Rotate 90deg around Z axis
-                constexpr core::math::Rotation<> rmz { core::math::Quaternion<> { 0, 0, -sqrt2, sqrt2 } };
+                constexpr core::math::Rotation<> rmz { core::math::Quaternion<> { 0, 0, -sqrt2o2, sqrt2o2 } };
 
                 if constexpr (drawPrimitive) {
                     using namespace core::math;
