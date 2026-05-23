@@ -483,6 +483,14 @@ VkPipeline createGraphicPipeline(const Context& context, const VkPipelineVertexI
                 shader::ShaderInfo<shader::Type::primitive, shader::Stage::vertex> { nullptr },
                 shader::ShaderInfo<shader::Type::primitive, shader::Stage::fragment> { nullptr },
             });
+    case shader::Type::primitiveTextured:
+        return createGraphicPipeline(
+            context, vertexInputState, VK_NULL_HANDLE, pipelineLayout,
+            shader::Shader {
+                context,
+                shader::ShaderInfo<shader::Type::primitiveTextured, shader::Stage::vertex> { nullptr },
+                shader::ShaderInfo<shader::Type::primitiveTextured, shader::Stage::fragment> { nullptr },
+            });
     default:
         throw std::runtime_error("Unknown shader type");
     }

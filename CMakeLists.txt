@@ -158,6 +158,8 @@ set(SHADERS
     coordinates.frag
     primitive.vert
     primitive.frag
+    primitiveTextured.vert
+    primitiveTextured.frag
 )
 
 list(TRANSFORM SHADERS PREPEND "${PROJECT_SOURCE_DIR}/shaders/")

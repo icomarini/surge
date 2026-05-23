@@ -24,6 +24,7 @@ enum class Type {
     base,
     coordinates,
     primitive,
+    primitiveTextured,
 };
 
 
@@ -131,6 +132,14 @@ constexpr unsigned char primitiveVert[] {
 constexpr unsigned char primitiveFrag[] {
 #embed "/home/ico/projects/surge/build/debug/shaders/primitive.frag.spv"
 };
+
+constexpr unsigned char primitiveTexturedVert[] {
+#embed "/home/ico/projects/surge/build/debug/shaders/primitiveTextured.vert.spv"
+};
+
+constexpr unsigned char primitiveTexturedFrag[] {
+#embed "/home/ico/projects/surge/build/debug/shaders/primitiveTextured.frag.spv"
+};
 // clang-format on
 
 
@@ -158,6 +167,8 @@ constexpr std::array library {
     entry(Type::coordinates, Stage::fragment, coordinatesFrag),
     entry(Type::primitive, Stage::vertex, primitiveVert),
     entry(Type::primitive, Stage::fragment, primitiveFrag),
+    entry(Type::primitiveTextured, Stage::vertex, primitiveTexturedVert),
+    entry(Type::primitiveTextured, Stage::fragment, primitiveTexturedFrag),
 };
 
 constexpr Entry get(const Type type, const Stage stage) {

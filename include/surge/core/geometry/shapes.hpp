@@ -8,6 +8,9 @@ namespace surge::core::geometry {
 // using PositionAndColor = Vertex<Attribute::position, Attribute::color>;
 using Position = Vertex<AttributeSlot<Attribute::position, math::Vector<3>, 3, Format::sfloat>>;
 
+using PositionTexture = Vertex<AttributeSlot<Attribute::position, math::Vector<3>, 3, Format::sfloat>,
+                               AttributeSlot<Attribute::texCoord, core::math::Vector<2>, 2, Format::sfloat>>;
+
 using PositionNormalTexture = Vertex<AttributeSlot<Attribute::position, math::Vector<3>, 3, Format::sfloat>,
                                      AttributeSlot<Attribute::normal, core::math::Vector<3>, 3, Format::sfloat>,
                                      AttributeSlot<Attribute::texCoord, core::math::Vector<2>, 2, Format::sfloat>>;
@@ -222,5 +225,20 @@ static constexpr Shape plane { "plane",
                                },
                                std::array { 0, 1, 2, 1, 3, 2 } };
 
+static constexpr Shape planeTextured { "planeTextured",
+                                       std::array {
+                                           //
+                                           //  z
+                                           //  | y          2----------3
+                                           //  |/          /          /
+                                           //  O---x      /          /
+                                           //            0----------1
+                                           //
+                                           PositionTexture { math::Vector<3> { -0.5, -0.5, 0 }, texture00 },
+                                           PositionTexture { math::Vector<3> { 0.5, -0.5, 0 }, texture01 },
+                                           PositionTexture { math::Vector<3> { -0.5, 0.5, 0 }, texture10 },
+                                           PositionTexture { math::Vector<3> { 0.5, 0.5, 0 }, texture11 },
+                                       },
+                                       std::array { 0, 1, 2, 1, 3, 2 } };
 
 }  // namespace surge::core::geometry

@@ -80,6 +80,102 @@ static constexpr auto textureData() {
     };
 }
 
+static constexpr auto textureDataNorth(const core::Colors<core::Type::rgba>::Format& background,
+                                       const core::Colors<core::Type::rgba>::Format& text) {
+    const auto b = toUint8(background);
+    const auto t = toUint8(text);
+    return std::array {
+        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+        b, b, b, t, t, b, b, b, b, b, b, t, t, b, b, b,  //
+        b, b, b, t, t, t, b, b, b, b, b, t, t, b, b, b,  //
+        b, b, b, t, t, t, t, b, b, b, b, t, t, b, b, b,  //
+        b, b, b, t, t, t, t, t, b, b, b, t, t, b, b, b,  //
+        b, b, b, t, t, b, t, t, t, b, b, t, t, b, b, b,  //
+        b, b, b, t, t, b, b, t, t, t, b, t, t, b, b, b,  //
+        b, b, b, t, t, b, b, b, t, t, t, t, t, b, b, b,  //
+        b, b, b, t, t, b, b, b, b, t, t, t, t, b, b, b,  //
+        b, b, b, t, t, b, b, b, b, b, t, t, t, b, b, b,  //
+        b, b, b, t, t, b, b, b, b, b, b, t, t, b, b, b,  //
+        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+        b, b, b, t, t, t, t, t, t, t, t, t, t, b, b, b,  //
+        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+    };
+}
+
+static constexpr auto textureDataX(const core::Colors<core::Type::rgba>::Format& background,
+                                   const core::Colors<core::Type::rgba>::Format& text) {
+    const auto b = toUint8(background);
+    const auto t = toUint8(text);
+    return std::array {
+        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+        b, b, b, t, t, b, b, b, b, b, b, t, t, b, b, b,  //
+        b, b, b, t, t, t, b, b, b, b, t, t, t, b, b, b,  //
+        b, b, b, b, t, t, t, b, b, t, t, t, b, b, b, b,  //
+        b, b, b, b, b, t, t, t, t, t, t, b, b, b, b, b,  //
+        b, b, b, b, b, b, t, t, t, t, b, b, b, b, b, b,  //
+        b, b, b, b, b, t, t, t, t, t, t, b, b, b, b, b,  //
+        b, b, b, b, t, t, t, b, b, t, t, t, b, b, b, b,  //
+        b, b, b, t, t, t, b, b, b, b, t, t, t, b, b, b,  //
+        b, b, b, t, t, b, b, b, b, b, b, t, t, b, b, b,  //
+        b, b, b, t, t, b, b, b, b, b, b, t, t, b, b, b,  //
+        b, b, b, t, t, b, b, b, b, b, b, t, t, b, b, b,  //
+        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+        b, b, b, t, t, t, t, t, t, t, t, t, t, b, b, b,  //
+        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+    };
+}
+
+static constexpr auto textureDataY(const core::Colors<core::Type::rgba>::Format& background,
+                                   const core::Colors<core::Type::rgba>::Format& text) {
+    const auto b = toUint8(background);
+    const auto t = toUint8(text);
+    return std::array {
+        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+        b, b, b, t, t, b, b, b, b, b, b, t, t, b, b, b,  //
+        b, b, b, t, t, t, b, b, b, b, t, t, t, b, b, b,  //
+        b, b, b, b, t, t, t, b, b, t, t, t, b, b, b, b,  //
+        b, b, b, b, b, t, t, t, t, t, t, b, b, b, b, b,  //
+        b, b, b, b, b, b, t, t, t, t, b, b, b, b, b, b,  //
+        b, b, b, b, b, b, b, t, t, b, b, b, b, b, b, b,  //
+        b, b, b, b, b, b, b, t, t, b, b, b, b, b, b, b,  //
+        b, b, b, b, b, b, b, t, t, b, b, b, b, b, b, b,  //
+        b, b, b, b, b, b, b, t, t, b, b, b, b, b, b, b,  //
+        b, b, b, b, b, b, b, t, t, b, b, b, b, b, b, b,  //
+        b, b, b, b, b, b, b, t, t, b, b, b, b, b, b, b,  //
+        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+        b, b, b, t, t, t, t, t, t, t, t, t, t, b, b, b,  //
+        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+    };
+}
+
+static constexpr auto textureDataZ(const core::Colors<core::Type::rgba>::Format& background,
+                                   const core::Colors<core::Type::rgba>::Format& text) {
+    const auto b = toUint8(background);
+    const auto t = toUint8(text);
+    return std::array {
+        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+        b, b, b, t, t, t, t, t, t, t, t, t, t, b, b, b,  //
+        b, b, b, b, b, b, b, b, b, b, t, t, t, b, b, b,  //
+        b, b, b, b, b, b, b, b, b, t, t, t, b, b, b, b,  //
+        b, b, b, b, b, b, b, b, t, t, t, b, b, b, b, b,  //
+        b, b, b, b, b, b, b, t, t, t, b, b, b, b, b, b,  //
+        b, b, b, b, b, b, t, t, t, b, b, b, b, b, b, b,  //
+        b, b, b, b, b, t, t, t, b, b, b, b, b, b, b, b,  //
+        b, b, b, b, t, t, t, b, b, b, b, b, b, b, b, b,  //
+        b, b, b, t, t, t, b, b, b, b, b, b, b, b, b, b,  //
+        b, b, b, t, t, b, b, b, b, b, b, b, b, b, b, b,  //
+        b, b, b, t, t, t, t, t, t, t, t, t, t, b, b, b,  //
+        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+        b, b, b, t, t, t, t, t, t, t, t, t, t, b, b, b,  //
+        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+    };
+}
+
 static constexpr auto textureData2() {
     const auto w = toUint8(core::Colors<core::Type::rgba>::white);
     return std::array<decltype(w), 1> { w };
