@@ -19,6 +19,18 @@ constexpr void forEach(const Operation& operation) {
     }
 }
 
+template<Size begin, Size end, typename Array, typename Operation>
+constexpr void forEach(Array& array, const Operation& operation) {
+    if constexpr (begin == end) {
+        return;
+    } else {
+        operation.template operator()<begin>(array[begin]);
+        if constexpr (begin < end - 1) {
+            forEach<begin + 1, end>(array, operation);
+        }
+    }
+}
+
 template<Size begin0, Size end0, Size begin1, Size end1, typename Operation>
 constexpr void forEach(const Operation& operation) {
     static_assert(begin0 <= end0);

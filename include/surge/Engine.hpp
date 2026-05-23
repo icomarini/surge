@@ -11,6 +11,9 @@
 #include "surge/entity/Skybox.hpp"
 
 #include "surge/Log.hpp"
+
+#include <type_traits>
+
 #define sqrt2 1.41421356237
 #define sqrt2o2 0.70710678118
 
@@ -26,17 +29,19 @@ auto createDescriptorSet(const core::Context& context, const Textures&... textur
     constexpr uint32_t texturesCount { sizeof...(Textures) };
 
     // descriptor pool
-    const std::array poolSizes { VkDescriptorPoolSize {
-        .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-        .descriptorCount = sizeof...(Textures),
-    } };
-    const auto       descriptorPool = context.create(VkDescriptorPoolCreateInfo {
-              .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-              .pNext         = nullptr,
-              .flags         = {},
-              .maxSets       = 1,
-              .poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
-              .pPoolSizes    = poolSizes.data(),
+    const std::array poolSizes {
+        VkDescriptorPoolSize {
+                              .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                              .descriptorCount = sizeof...(Textures),
+                              }
+    };
+    const auto descriptorPool = context.create(VkDescriptorPoolCreateInfo {
+        .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+        .pNext         = nullptr,
+        .flags         = {},
+        .maxSets       = 1,
+        .poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
+        .pPoolSizes    = poolSizes.data(),
     });
 
     // descriptor set layout
@@ -96,13 +101,22 @@ auto createDescriptorSet(const core::Context& context, const Textures&... textur
     return std::make_tuple(descriptorPool, descriptorSetLayout, descriptorSet);
 }
 
-template<std::size_t descriptorCount, std::size_t descriptorSize>
-auto createDescriptorSets(const core::Context&                                                            context,
-                          const std::array<std::array<asset::Texture*, descriptorSize>, descriptorCount>& textures) {
+template<typename T, std::size_t size, typename Construct>
+constexpr auto createArray(const Construct& construct) {
+    // using Type = typename std::function<Construct>::result_type;
+    std::array<T, size> array;
+    core::forEach<0, size>(array, construct);
+    return array;
+}
+
+
+template<std::size_t descriptorCount, std::size_t bindingCount>
+auto createDescriptorSets(const core::Context&                                                          context,
+                          const std::array<std::array<asset::Texture*, bindingCount>, descriptorCount>& textures) {
     // descriptor pool
     constexpr VkDescriptorPoolSize descriptorPoolSize {
         .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-        .descriptorCount = descriptorCount * descriptorSize,
+        .descriptorCount = descriptorCount * bindingCount,
     };
     const auto descriptorPool = context.create(VkDescriptorPoolCreateInfo {
         .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
@@ -114,16 +128,17 @@ auto createDescriptorSets(const core::Context&                                  
     });
 
     // descriptor set layout
-    std::array<VkDescriptorSetLayoutBinding, descriptorSize> bindings;
-    core::forEach<0, bindings.size()>([&]<int binding>() {
-        bindings[binding] = VkDescriptorSetLayoutBinding {
-            .binding            = binding,
-            .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .descriptorCount    = 1,
-            .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
-            .pImmutableSamplers = nullptr,
-        };
-    });
+    constexpr auto bindings =
+        createArray<VkDescriptorSetLayoutBinding, bindingCount>([&]<int index>(VkDescriptorSetLayoutBinding& binding) {
+            binding = VkDescriptorSetLayoutBinding {
+                .binding            = index,
+                .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .descriptorCount    = 1,
+                .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
+                .pImmutableSamplers = nullptr,
+            };
+        });
+
     const auto descriptorSetLayout = context.create(VkDescriptorSetLayoutCreateInfo {
         .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
         .pNext        = nullptr,
@@ -131,8 +146,15 @@ auto createDescriptorSets(const core::Context&                                  
         .bindingCount = static_cast<uint32_t>(bindings.size()),
         .pBindings    = bindings.data(),
     });
-    std::array<VkDescriptorSetLayout, descriptorCount> descriptorSetLayouts;
-    descriptorSetLayouts.fill(descriptorSetLayout);
+
+    const auto descriptorSetLayouts = createArray<VkDescriptorSetLayout, descriptorCount>(
+        [&]<int index>(VkDescriptorSetLayout& layout) { layout = descriptorSetLayout; });
+
+    // const auto descriptorSetLayouts =
+    //     createArray2([&]<int index>(std::array<VkDescriptorSetLayout, descriptorCount>& layout) {
+    //         layout[index] = descriptorSetLayout;
+    //     });
+
 
     // allocate descriptor sets
     const VkDescriptorSetAllocateInfo allocInfo {
@@ -149,23 +171,22 @@ auto createDescriptorSets(const core::Context&                                  
 
     // write descriptor sets
     core::forEach<0, descriptorCount>([&]<int index>() {
-        std::array<VkWriteDescriptorSet, descriptorSize> descriptorWrites;
-        core::forEach<0, descriptorWrites.size()>([&]<int binding>() {
-            const auto& texture = *textures.at(index).at(binding);
-
-            descriptorWrites[binding] = VkWriteDescriptorSet {
-                .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .pNext            = nullptr,
-                .dstSet           = descriptorSets[index],
-                .dstBinding       = binding,
-                .dstArrayElement  = 0,
-                .descriptorCount  = 1,
-                .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .pImageInfo       = texture.imageInfo(),
-                .pBufferInfo      = texture.bufferInfo(),
-                .pTexelBufferView = nullptr,
-            };
-        });
+        const auto descriptorWrites =
+            createArray<VkWriteDescriptorSet, bindingCount>([&]<int binding>(VkWriteDescriptorSet& descriptorWrite) {
+                const auto& texture = *textures.at(index).at(binding);
+                descriptorWrite     = VkWriteDescriptorSet {
+                        .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                        .pNext            = nullptr,
+                        .dstSet           = descriptorSets[index],
+                        .dstBinding       = binding,
+                        .dstArrayElement  = 0,
+                        .descriptorCount  = 1,
+                        .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                        .pImageInfo       = texture.imageInfo(),
+                        .pBufferInfo      = texture.bufferInfo(),
+                        .pTexelBufferView = nullptr,
+                };
+            });
         vkUpdateDescriptorSets(context.device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),
                                0, nullptr);
     });
@@ -184,6 +205,52 @@ constexpr auto generateTranslations() {
     });
     return translations;
 }
+
+
+enum Coordinate {
+    x = 0,
+    y,
+    z,
+};
+
+template<Coordinate c>
+constexpr auto translate(const float t) {
+    if constexpr (c == x) {
+        return core::math::Translation<> { t, 0, 0 };
+    } else if constexpr (c == y) {
+        return core::math::Translation<> { 0, t, 0 };
+    } else if constexpr (c == z) {
+        return core::math::Translation<> { 0, 0, t };
+    } else {
+        throw;
+    }
+};
+
+template<Coordinate c>
+constexpr auto rotate(const float d) {
+    const auto coef = d > 0 ? -sqrt2o2 : sqrt2o2;
+    if constexpr (c == x) {
+        return core::math::Rotation<> {
+            core::math::Quaternion<> { coef, 0, 0, sqrt2o2 }
+        };
+    } else if constexpr (c == y) {
+        return core::math::Rotation<> {
+            core::math::Quaternion<> { 0, coef, 0, sqrt2o2 }
+        };
+    } else if constexpr (c == z) {
+        return core::math::Rotation<> {
+            core::math::Quaternion<> { 0, 0, coef, sqrt2o2 }
+        };
+    } else {
+        throw;
+    }
+}
+
+template<Coordinate c>
+constexpr auto flip() {
+    return rotate<c>(90) * rotate<c>(90);
+}
+
 
 class Engine {
 public:
@@ -281,9 +348,21 @@ public:
 
         auto start = std::chrono::high_resolution_clock::now();
 
-        Camera<false> playerCamera { 16.0 / 9.0, { 0.0f, 3.0f, 4.0f }, { 0.0f, -0.5f, -1.0f } };
-        Camera<true>  skyboxCamera { 16.0 / 9.0, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } };
-        Camera<false> lightCamera { 16.0 / 9.0, { -1.0f, 1.0f, 3.0f }, { -1.0f, -1.0f, -1.0f } };
+        Camera<false> playerCamera {
+            16.0 / 9.0,
+            { 0.0f, 3.0f,  4.0f  },
+            { 0.0f, -0.5f, -1.0f },
+        };
+        Camera<true> skyboxCamera {
+            16.0 / 9.0,
+            { 0.0f, 0.0f, 0.0f  },
+            { 0.0f, 0.0f, -1.0f },
+        };
+        Camera<false> lightCamera {
+            16.0 / 9.0,
+            { -1.0f, 1.0f,  3.0f  },
+            { -1.0f, -1.0f, -1.0f },
+        };
 
         constexpr std::array assetNames {
             // "man",
@@ -299,8 +378,10 @@ public:
         for (const auto& name : assetNames) {
             float offsetY = 0;
             for (float y = 0; y < sizeY; ++y) {
-                auto& entity = entities.emplace_back(
-                    createEntity(name, core::math::Translation { core::math::Vector<3> { offsetX, 0, offsetY } }));
+                auto& entity =
+                    entities.emplace_back(createEntity(name, core::math::Translation {
+                                                                 core::math::Vector<3> { offsetX, 0, offsetY }
+                }));
 
                 if (entity.animation) {
                     entity.animation->state.progress += 0.5 * y;
@@ -321,7 +402,8 @@ public:
         auto skybox = createSkybox("skybox");
 
         // shadow map playground
-        // core::Image shadowMapImage { context, VkExtent2D { .width = 1024, .height = 1024 }, core::Image::shadowMap };
+        // core::Image shadowMapImage { context, VkExtent2D { .width = 1024, .height = 1024 },
+        // core::Image::shadowMap };
         entities.back().nodes.get(1).state.translation = core::math::Vector<3> { 0, 0, 0 };
 
         // === initialize ===
@@ -439,36 +521,22 @@ public:
         asset::Model planeTexturedModel { command, core::geometry::planeTextured, asset::Model::scene };
 
         // === primitive textured pipeline ===
-        constexpr asset::Texture::Sampler primitiveTexturedSampler {
-            .magFilter    = VK_FILTER_NEAREST,
-            .minFilter    = VK_FILTER_NEAREST,
-            .mipmapMode   = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-            .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-        };
-
-        constexpr auto northFront = load::textureDataNorth(core::RGBA::red, core::RGBA::white);
-        asset::Texture northFrontTexture {
-            command,
-            load::LoadedTexture { "northFront", northFront.front().data(), 16, 16 },
-            primitiveTexturedSampler,
-            asset::Texture::texture2d,
-        };
-
         auto createTexture = [&](const std::string& name, const core::Colors<core::Type::rgba>::Format background,
                                  auto&& create) {
+            const auto                        texture = create(background, core::RGBA::white);
+            constexpr asset::Texture::Sampler sampler {
+                .magFilter    = VK_FILTER_NEAREST,
+                .minFilter    = VK_FILTER_NEAREST,
+                .mipmapMode   = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+                .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+                .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+                .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            };
             return asset::Texture {
-                command, load::LoadedTexture { name, create(background, core::RGBA::white).front().data(), 16, 16 },
-                asset::Texture::Sampler {
-                    .magFilter    = VK_FILTER_NEAREST,
-                    .minFilter    = VK_FILTER_NEAREST,
-                    .mipmapMode   = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-                    .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-                    .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-                    .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-                },
-                asset::Texture::texture2d
+                command,
+                load::LoadedTexture { name, texture.front().data(), 16, 16 },
+                sampler,
+                asset::Texture::texture2d,
             };
         };
         asset::Texture xBack  = createTexture("xBack", core::RGBA::darkRed, load::textureDataX);
@@ -488,25 +556,11 @@ public:
                                                                                          std::array { &zFront },
                                                                                      });
 
-        // asset::Texture northBackTexture {
-        //     command,
-        //     load::LoadedTexture {
-        //         "northBack", load::textureDataNorth(core::RGBA::darkRed, core::RGBA::white).front().data(), 16, 16 },
-        //     primitiveTexturedSampler,
-        //     asset::Texture::texture2d,
-        // };
-
-
-        // const auto [primitiveTexturedDescriptorPool, primitiveTexturedDescriptorSetLayout,
-        //             primitiveTexturedDescriptorSet] = createDescriptorSet(context, northFrontTexture);
-
-
         const auto primitiveTexturedPipelineLayout = core::createPipelineLayout(
             context, pushConstantRange, renderer.descriptor.setLayout, primitiveTexturedDescriptorSetLayout);
         const auto primitiveTexturedPipeline =
             core::createGraphicPipeline(context, core::createVertexInputState<core::geometry::PositionTexture>(),
                                         primitiveTexturedPipelineLayout, core::shader::Type::primitiveTextured);
-
 
         // === initialize ===
 
@@ -539,7 +593,8 @@ public:
                 // === entity playground ===
 
                 playerCamera.update(input, context.window.resolution);
-                // playerCamera = Camera<false> { 16.0 / 9.0, lightCamera.vecs.position, -lightCamera.vecs.position };
+                // playerCamera = Camera<false> { 16.0 / 9.0, lightCamera.vecs.position, -lightCamera.vecs.position
+                // };
                 skyboxCamera.update(input, context.window.resolution);
                 // lightCamera.update(input.timer, context.window.resolution);
                 // playerCamera           = lightCamera;
@@ -548,16 +603,18 @@ public:
                 renderer.update(playerCamera);
                 // overlay.update(input, playerCamera);
 
-                constexpr core::math::Translation brickwallTranslation { core::math::Vector<3> { 0, -3, 0 } };
-                constexpr core::math::Rotation    brickwallRotation { core::math::Quaternion<> {
-                    sqrt2o2,
-                    sqrt2o2,
-                    0,
-                    0,
-                } };
-                // const core::math::Rotation    brickwallRotation { core::math::toQuaternion(0.0f, 0.0f, input.timer)
+                constexpr core::math::Translation brickwallTranslation {
+                    core::math::Vector<3> { 0, -3, 0 }
+                };
+                constexpr core::math::Rotation brickwallRotation {
+                    core::math::Quaternion<> { sqrt2o2, sqrt2o2, 0, 0 }
+                };
+                // const core::math::Rotation    brickwallRotation { core::math::toQuaternion(0.0f, 0.0f,
+                // input.timer)
                 // };
-                constexpr core::math::Scaling brickwallScaling { core::math::Vector<3> { 4, 4, 4 } };
+                constexpr core::math::Scaling brickwallScaling {
+                    core::math::Vector<3> { 4, 4, 4 }
+                };
                 const auto brickwallMatrix = brickwallTranslation * brickwallRotation * brickwallScaling;
 
 
@@ -633,12 +690,12 @@ public:
 
                     core::forEach<0, brickwallTranslations.size()>([&]<int i>() {
                         constexpr core::math::Translation brickwallTranslation { brickwallTranslations.at(i) };
-                        constexpr core::math::Rotation    brickwallRotation { core::math::Quaternion<> {
-                            sqrt2o2,
-                            -sqrt2o2,
-                            0,
-                            0,
-                        } };
+                        constexpr core::math::Rotation    brickwallRotation {
+                            core::math::Quaternion<> {
+                                                      sqrt2o2, -sqrt2o2,
+                                                      0, 0,
+                                                      }
+                        };
                         // constexpr auto                  brickwallRotation = core::math::identity<4>;
 
                         constexpr core::math::Vector<3> brickwallScaling { 4, 4, 4 };
@@ -691,8 +748,10 @@ public:
                         };
 
                         // static_assert(core::math::get<3, 3>(core::math::Rotation { cerberusRotation1 } *
-                        //                                     core::math::Perspective<> { core::math::deg2rad(45.0f),
-                        //                                                                 16.0 / 9.0, 0.1f, 100.0f })
+                        //                                     core::math::Perspective<> {
+                        //                                     core::math::deg2rad(45.0f),
+                        //                                                                 16.0 / 9.0, 0.1f, 100.0f
+                        //                                                                 })
                         //                                                                 ==
                         //               1);
                         vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
@@ -893,23 +952,6 @@ public:
                     vkCmdDrawIndexed(commandBuffer, core::geometry::coordinates.indices.size(), 1, 0, 0, 0);
                 }
 
-                constexpr auto I = fullMatrix(core::math::identity<4>);
-
-                // Rotate 90deg around X axis
-                constexpr core::math::Rotation<> rpx { core::math::Quaternion<> { -sqrt2o2, 0, 0, sqrt2o2 } };
-                // Rotate -90deg around X axis
-                constexpr core::math::Rotation<> rmx { core::math::Quaternion<> { sqrt2o2, 0, 0, sqrt2o2 } };
-
-                // Rotate -90deg around Y axis
-                constexpr core::math::Rotation<> rpy { core::math::Quaternion<> { 0, sqrt2o2, 0, sqrt2o2 } };
-                // Rotate 90deg around Y axis
-                constexpr core::math::Rotation<> rmy { core::math::Quaternion<> { 0, -sqrt2o2, 0, sqrt2o2 } };
-
-                // Rotate -90deg around Z axis
-                constexpr core::math::Rotation<> rpz { core::math::Quaternion<> { 0, 0, sqrt2o2, sqrt2o2 } };
-                // Rotate 90deg around Z axis
-                constexpr core::math::Rotation<> rmz { core::math::Quaternion<> { 0, 0, -sqrt2o2, sqrt2o2 } };
-
                 if constexpr (drawPrimitive) {
                     using namespace core::math;
                     constexpr core::math::Translation<> T { 0, 0, 0 };
@@ -920,13 +962,13 @@ public:
                     vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, primitivePipelineLayout, sceneIndex, 1,
                                             &renderer.descriptor.set, 0, nullptr);
                     for (const auto& [color, matrix] : {
-                             std::pair { core::RGBA::darkRed, T * Translation<> { -0.5, 0, 0 } * rmy },
-                             std::pair { core::RGBA::red, T * Translation<> { 0.5, 0, 0 } * rpy },
-                             std::pair { core::RGBA::darkGreen, T * Translation<> { 0, -0.5, 0 } * rmx },
-                             std::pair { core::RGBA::green, T * Translation<> { 0, 0.5, 0 } * rpx },
-                             std::pair { core::RGBA::darkBlue, T * Translation<> { 0, 0, -0.5 } * rpx * rpx },
-                             std::pair { core::RGBA::blue, T * Translation<> { 0, 0, 0.5 } * I },
-                         }) {
+                             std::pair { core::RGBA::darkRed,   T * translate<x>(-0.5) * rotate<y>(+90) },
+                             std::pair { core::RGBA::red,       T * translate<x>(+0.5) * rotate<y>(-90) },
+                             std::pair { core::RGBA::darkGreen, T * translate<y>(-0.5) * rotate<x>(-90) },
+                             std::pair { core::RGBA::green,     T * translate<y>(+0.5) * rotate<x>(+90) },
+                             std::pair { core::RGBA::darkBlue,  T * translate<z>(-0.5) * flip<x>()      },
+                             std::pair { core::RGBA::blue,      T * translate<z>(+0.5)                  },
+                    }) {
                         const PushConstants planePushConstants { .matrix = matrix, .baseColor = color };
                         vkCmdPushConstants(commandBuffer, primitivePipelineLayout, shaderStages, 0,
                                            sizeof(PushConstants), &planePushConstants);
@@ -946,19 +988,15 @@ public:
                     vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, primitiveTexturedPipelineLayout,
                                             sceneIndex, 1, &renderer.descriptor.set, 0, nullptr);
 
+                    const auto& sets = primitiveTexturedDescriptorSets;
                     for (const auto& [descriptorSet, matrix] : {
-                             std::pair { &primitiveTexturedDescriptorSets.at(0),
-                                         T * Translation<> { -0.5, 0, 0 } * rmy },
-                             std::pair { &primitiveTexturedDescriptorSets.at(1),
-                                         T * Translation<> { 0.5, 0, 0 } * rpy },
-                             std::pair { &primitiveTexturedDescriptorSets.at(2),
-                                         T * Translation<> { 0, -0.5, 0 } * rmx },
-                             std::pair { &primitiveTexturedDescriptorSets.at(3),
-                                         T * Translation<> { 0, 0.5, 0 } * rpx },
-                             std::pair { &primitiveTexturedDescriptorSets.at(4),
-                                         T * Translation<> { 0, 0, -0.5 } * rpx * rpx },
-                             std::pair { &primitiveTexturedDescriptorSets.at(5), T * Translation<> { 0, 0, 0.5 } * I },
-                         }) {
+                             std::pair { &sets.at(0), T * translate<x>(-0.5) * rotate<y>(+90) },
+                             std::pair { &sets.at(1), T * translate<x>(+0.5) * rotate<y>(-90) },
+                             std::pair { &sets.at(2), T * translate<y>(-0.5) * rotate<x>(-90) },
+                             std::pair { &sets.at(3), T * translate<y>(+0.5) * rotate<x>(+90) },
+                             std::pair { &sets.at(4), T * translate<z>(-0.5) * flip<x>()      },
+                             std::pair { &sets.at(5), T * translate<z>(+0.5)                  },
+                    }) {
                         constexpr uint32_t materialIndex { 1 };
                         vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, primitiveTexturedPipelineLayout,
                                                 materialIndex, 1, descriptorSet, 0, nullptr);

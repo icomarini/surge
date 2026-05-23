@@ -9,6 +9,8 @@ AlignConsecutiveDeclarations: true
 #AlignEscapedNewlines: Right
 AlignOperands:   true
 AlignTrailingComments: true
+# ArrayInitializerAlignmentStyle:
+AlignArrayOfStructures: Left
 #AllowAllParametersOfDeclarationOnNextLine: true
 #AllowShortBlocksOnASingleLine: false
 #AllowShortCaseLabelsOnASingleLine: false
