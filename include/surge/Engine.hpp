@@ -219,6 +219,10 @@ struct Storage {
     VkDescriptorSetLayout                                simpleMaterialLayout;
     VkDescriptorSetLayout                                pbrMaterialLayout;
     core::LazyAccessContainer<EntityID, VkDescriptorSet> materials;
+    core::LazyAccessContainer<EntityID, asset::Material> materials2;
+    EntityID                                             defaultTextureId;
+    EntityID                                             whiteTextureId;
+    EntityID                                             blackTextureId;
 
     Storage(const core::Command& command, const Descriptor& mainCamera)
         : command { command }
@@ -226,7 +230,10 @@ struct Storage {
         , matrices {}
         , materialPool { createDescriptorPool<1, 3>(32, 32) }
         , simpleMaterialLayout { createDescriptorSetLayout<1>() }
-        , pbrMaterialLayout { createDescriptorSetLayout<3>() } {
+        , pbrMaterialLayout { createDescriptorSetLayout<3>() }
+        , defaultTextureId { createTexture("default", load::textureData) }
+        , whiteTextureId { createTexture("white", core::RGBA::white, load::flatTextureData) }
+        , blackTextureId { createTexture("black", core::RGBA::black, load::flatTextureData) } {
     }
 
     ~Storage() {
@@ -452,44 +459,44 @@ private:
         return descriptorSet;
     }
 
-    template<std::size_t bindingCount>
-    VkDescriptorSet createMaterialDescriptorSet(const VkDescriptorSetLayout descriptorSetLayout,
-                                                const EntityID              textureId) const {
-        // allocate descriptor sets
-        const VkDescriptorSetAllocateInfo allocInfo {
-            .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-            .pNext              = nullptr,
-            .descriptorPool     = materialPool,
-            .descriptorSetCount = 1,
-            .pSetLayouts        = &descriptorSetLayout,
-        };
-        VkDescriptorSet descriptorSet;
-        if (vkAllocateDescriptorSets(command.context.device, &allocInfo, &descriptorSet) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate descriptor sets");
-        }
+    // template<std::size_t bindingCount>
+    // VkDescriptorSet createMaterialDescriptorSet(const VkDescriptorSetLayout descriptorSetLayout,
+    //                                             const EntityID              textureId) const {
+    //     // allocate descriptor sets
+    //     const VkDescriptorSetAllocateInfo allocInfo {
+    //         .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+    //         .pNext              = nullptr,
+    //         .descriptorPool     = materialPool,
+    //         .descriptorSetCount = 1,
+    //         .pSetLayouts        = &descriptorSetLayout,
+    //     };
+    //     VkDescriptorSet descriptorSet;
+    //     if (vkAllocateDescriptorSets(command.context.device, &allocInfo, &descriptorSet) != VK_SUCCESS) {
+    //         throw std::runtime_error("Failed to allocate descriptor sets");
+    //     }
 
-        // write descriptor sets
-        const auto& texture = textures.at(textureId);
-        const auto  descriptorWrites =
-            createArray<VkWriteDescriptorSet, bindingCount>([&]<int binding>(auto& descriptorWrite) {
-                descriptorWrite = {
-                    .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .pNext            = nullptr,
-                    .dstSet           = descriptorSet,
-                    .dstBinding       = binding,
-                    .dstArrayElement  = 0,
-                    .descriptorCount  = 1,
-                    .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .pImageInfo       = texture.imageInfo(),
-                    .pBufferInfo      = texture.bufferInfo(),
-                    .pTexelBufferView = nullptr,
-                };
-            });
-        vkUpdateDescriptorSets(command.context.device, static_cast<uint32_t>(descriptorWrites.size()),
-                               descriptorWrites.data(), 0, nullptr);
+    //     // write descriptor sets
+    //     const auto& texture = textures.at(textureId);
+    //     const auto  descriptorWrites =
+    //         createArray<VkWriteDescriptorSet, bindingCount>([&]<int binding>(auto& descriptorWrite) {
+    //             descriptorWrite = {
+    //                 .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+    //                 .pNext            = nullptr,
+    //                 .dstSet           = descriptorSet,
+    //                 .dstBinding       = binding,
+    //                 .dstArrayElement  = 0,
+    //                 .descriptorCount  = 1,
+    //                 .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+    //                 .pImageInfo       = texture.imageInfo(),
+    //                 .pBufferInfo      = texture.bufferInfo(),
+    //                 .pTexelBufferView = nullptr,
+    //             };
+    //         });
+    //     vkUpdateDescriptorSets(command.context.device, static_cast<uint32_t>(descriptorWrites.size()),
+    //                            descriptorWrites.data(), 0, nullptr);
 
-        return descriptorSet;
-    }
+    //     return descriptorSet;
+    // }
 };
 
 class Engine {
@@ -720,9 +727,9 @@ public:
         // === initialize ===
         const Descriptor mainCamera { renderer.descriptor.setLayout, renderer.descriptor.set };
         Storage          storage(command, mainCamera);
-        const auto       defaultTexture = storage.createTexture("default", load::textureData);
-        const auto       whiteTexture   = storage.createTexture("black", core::RGBA::white, load::flatTextureData);
-        const auto       blackTexture   = storage.createTexture("white", core::RGBA::black, load::flatTextureData);
+        // const auto       defaultTexture = storage.createTexture("default", load::textureData);
+        // const auto whiteTexture = storage.createTexture("white", core::RGBA::white, load::flatTextureData);
+        const auto blackTexture = storage.createTexture("black", core::RGBA::black, load::flatTextureData);
 
         const Entity coordinates {
             // coordinate system
@@ -784,7 +791,7 @@ public:
         std::vector<Entity> brickwalls;
         {  // brickwall
             const auto diffuse  = storage.createTexture("/home/ico/projects/surge/textures/brickwall_diffuse.jpg");
-            const auto specular = whiteTexture;
+            const auto specular = storage.whiteTextureId;
             const auto normal   = storage.createTexture("/home/ico/projects/surge/textures/brickwall_normal.jpg");
             const auto model    = storage.createModel(core::geometry::square);
             const auto pipeline = storage.createPipeline<Vertex>(core::shader::Type::shader, storage.pbrMaterialLayout);

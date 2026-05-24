@@ -686,5 +686,230 @@ private:
 
         return std::move(load.get());
     }
+
+public:
+    template<typename EntityID>
+    std::map<EntityID, const asset::Texture*> createTextures2(const core::Command&                command,
+                                                              std::map<EntityID, asset::Texture>& textures) const {
+        std::map<EntityID, const asset::Texture*> textureIds;
+        // texturesIds.reserve(asset.images.size() + externalTextures.size());
+        Index textureId = 0;
+
+        // internal textures
+        for (const fastgltf::Texture& texture : asset.textures) {
+            assert(texture.imageIndex && texture.imageIndex.value() < asset.images.size());
+
+            const auto& image = asset.images.at(texture.imageIndex.value());
+            const auto  name  = baptize<This::texture>(texture.name, textureId);
+
+            const fastgltf::visitor visitor {
+                [](const auto&) -> LoadedTexture { throw std::runtime_error("Unsupported visitor"); },
+                [&](const fastgltf::sources::URI& uri) -> LoadedTexture {
+                    return LoadedTexture {
+                        LoadedTexture::Handle { load::LoadedTexture::Type::texture2d,
+                                               path.parent_path() / uri.uri.path() }
+                    };
+                },
+                [&](const fastgltf::sources::Vector& vector) -> LoadedTexture {
+                    return LoadedTexture { name, reinterpret_cast<const uint8_t*>(vector.bytes.data()),
+                                           vector.bytes.size() };
+                },
+                [&](const fastgltf::sources::Array& array) -> LoadedTexture {
+                    return LoadedTexture { name, reinterpret_cast<const uint8_t*>(array.bytes.data()),
+                                           array.bytes.size() };
+                },
+                [&](const fastgltf::sources::BufferView& view) -> LoadedTexture {
+                    const auto&     bufferView = asset.bufferViews.at(view.bufferViewIndex);
+                    const auto&     buffer     = asset.buffers.at(bufferView.bufferIndex);
+                    const fastgltf::visitor visitor    = {
+                        [](const auto&) -> LoadedTexture { throw std::runtime_error("Unsupported visitor"); },
+                        [&](const fastgltf::sources::Vector& vector) -> LoadedTexture {
+                            return LoadedTexture { name,
+                                                   reinterpret_cast<const uint8_t*>(vector.bytes.data()) +
+                                                       bufferView.byteOffset,
+                                                   bufferView.byteLength };
+                        },
+                        [&](const fastgltf::sources::Array& array) -> LoadedTexture {
+                            return LoadedTexture { name,
+                                                   reinterpret_cast<const uint8_t*>(array.bytes.data()) +
+                                                       bufferView.byteOffset,
+                                                   bufferView.byteLength };
+                        }
+                    };
+                    return std::visit(visitor, buffer.data);
+                },
+            };
+
+            const auto sampler =
+                texture.samplerIndex ? createSampler(texture.samplerIndex.value()) : load::Defaults::sampler;
+
+            // textures.emplace(command, std::visit(visitor, image.data), sampler, asset::Texture::texture2d);
+
+            const auto [newTexture, inserted] = textures.emplace(
+                std::piecewise_construct, std::forward_as_tuple(textures.size()),
+                std::forward_as_tuple(command, std::visit(visitor, image.data), sampler, asset::Texture::texture2d));
+            if (!inserted) {
+                throw std::runtime_error("Texture already present");
+            }
+            textureIds.emplace(textureId, &newTexture->second);
+            ++textureId;
+        }
+
+        // external textures
+        // for (const auto& [textureType, path] : externalTextures) {
+        //     const auto insertion = textures.emplace(
+        //         std::piecewise_construct, std::forward_as_tuple(textures.size()),
+        //         std::forward_as_tuple(
+        //             command, LoadedTexture(LoadedTexture::Handle { load::LoadedTexture::Type::texture2d, path }),
+        //             load::Defaults::sampler, asset::Texture::texture2d));
+
+        //     // textures.emplace(textures.size() command,
+        //     //                  LoadedTexture(LoadedTexture::Handle { load::LoadedTexture::Type::texture2d, path }),
+        //     //                  load::Defaults::sampler, asset::Texture::texture2d);
+        //     texturesIds.emplace(textureId.first->first);
+        //     ++textureId;
+        // }
+
+        return textureIds;
+    }
+
+    template<typename... Textures>
+    VkDescriptorSet createMaterialDescriptorSet2(const core::Context& context, const VkDescriptorPool descriptorPool,
+                                                 const VkDescriptorSetLayout descriptorSetLayout,
+                                                 const Textures&... textures) const {
+        // allocate descriptor sets
+        const VkDescriptorSetAllocateInfo allocInfo {
+            .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            .pNext              = nullptr,
+            .descriptorPool     = descriptorPool,
+            .descriptorSetCount = 1,
+            .pSetLayouts        = &descriptorSetLayout,
+        };
+        VkDescriptorSet descriptorSet;
+        if (vkAllocateDescriptorSets(context.device, &allocInfo, &descriptorSet) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate descriptor sets");
+        }
+
+        // write descriptor sets
+        constexpr auto bindingCount = sizeof...(Textures);
+        const auto     descriptorWrites =
+            core::createArray<VkWriteDescriptorSet, bindingCount>([&]<int binding>(auto& descriptorWrite) {
+                const auto& texture = std::get<binding>(std::forward_as_tuple(textures...));
+                descriptorWrite     = {
+                        .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                        .pNext            = nullptr,
+                        .dstSet           = descriptorSet,
+                        .dstBinding       = binding,
+                        .dstArrayElement  = 0,
+                        .descriptorCount  = 1,
+                        .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                        .pImageInfo       = texture.imageInfo(),
+                        .pBufferInfo      = texture.bufferInfo(),
+                        .pTexelBufferView = nullptr,
+                };
+            });
+        vkUpdateDescriptorSets(context.device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),
+                               0, nullptr);
+
+        return descriptorSet;
+    }
+
+    template<typename EntityID>
+    std::map<EntityID, const asset::Material*>
+    createMaterials2(const core::Context& context, const VkDescriptorPool descriptorPool,
+                     const VkDescriptorSetLayout                           descriptorSetLayout,
+                     const std::map<EntityID, const asset::Texture*>&      textures,
+                     core::LazyAccessContainer<EntityID, asset::Material>& materials) const {
+        constexpr auto extractAlphaMode = [](const fastgltf::AlphaMode alphaMode) {
+            switch (alphaMode) {
+            case fastgltf::AlphaMode::Blend:
+                return asset::Material::AlphaMode::blend;
+            case fastgltf::AlphaMode::Mask:
+                return asset::Material::AlphaMode::mask;
+            case fastgltf::AlphaMode::Opaque:
+                return asset::Material::AlphaMode::opaque;
+            }
+            throw;
+        };
+
+        // const auto externalTexturesMap = createExternalTexturesMap(textures);
+        const auto extractTexture = [&](const TextureType textureType, const auto& textureInfo) {
+            if (textureInfo) {
+                const auto textureIndex  = textureInfo.value().textureIndex;
+                const auto texCoordIndex = textureInfo.value().texCoordIndex;
+                assert(0 <= textureIndex && textureIndex < textures.size());
+                return asset::Material::TextureData {
+                    .texture  = textures.at(textureIndex),
+                    .texCoord = static_cast<uint8_t>(texCoordIndex),
+                };
+            }
+
+            // if (externalTexturesMap.contains(textureType)) {
+            //     return asset::Material::TextureData {
+            //              .texture  = externalTexturesMap.at(textureType),
+            //              .texCoord = 0,
+            //     };
+            // }
+
+            return asset::Material::TextureData {
+                .texture  = &defaults.texture,
+                .texCoord = 0,
+            };
+        };
+
+        std::map<EntityID, const asset::Material*> materialIds;
+        // materialIds.reserve(asset.materials.size());
+        uint32_t materialId = 0;
+        for (const fastgltf::Material& material : asset.materials) {
+            using Type = TextureType;
+
+            const auto baseColorTexture = extractTexture(Type::baseColorTexture, material.pbrData.baseColorTexture);
+            const core::math::Vector<4> baseColorFactor { material.pbrData.baseColorFactor[0],
+                                                          material.pbrData.baseColorFactor[1],
+                                                          material.pbrData.baseColorFactor[2],
+                                                          material.pbrData.baseColorFactor[3] };
+
+            const auto metallicRoughnessTexture =
+                extractTexture(Type::metallicRoughnessTexture, material.pbrData.metallicRoughnessTexture);
+
+            const auto emissiveTexture = extractTexture(Type::emissiveTexture, material.emissiveTexture);
+            const core::math::Vector<4> emissiveFactor { material.emissiveFactor[0], material.emissiveFactor[1],
+                                                         material.emissiveFactor[2], 1 };
+
+            const auto normalTexture = extractTexture(Type::normalTexture, material.normalTexture);
+            const auto normalScale   = material.normalTexture ? material.normalTexture.value().scale : 1.0f;
+
+            const auto occlusionTexture = extractTexture(Type::occlusionTexture, material.occlusionTexture);
+            const auto occlusionStrength =
+                material.occlusionTexture ? material.occlusionTexture.value().strength : 1.0f;
+
+            const auto newMaterial = materials.create(asset::Material {
+                .name                     = baptize<This::material>(material.name, materialId),
+                .doubleSided              = material.doubleSided,
+                .unlit                    = material.unlit,
+                .alphaMode                = extractAlphaMode(material.alphaMode),
+                .alphaCutoff              = material.alphaCutoff,
+                .baseColorTexture         = baseColorTexture,
+                .baseColorFactor          = baseColorFactor,
+                .metallicRoughnessTexture = metallicRoughnessTexture,
+                .metallicFactor           = material.pbrData.metallicFactor,
+                .roughnessFactor          = material.pbrData.roughnessFactor,
+                .emissiveTexture          = emissiveTexture,
+                .emissiveFactor           = emissiveFactor,
+                .emissiveStrength         = material.emissiveStrength,
+                .normalTexture            = normalTexture,
+                .normalScale              = normalScale,
+                .occlusionTexture         = occlusionTexture,
+                .occlusionStrength        = occlusionStrength,
+                .descriptorSet            = createMaterialDescriptorSet2(
+                    context, descriptorPool, descriptorSetLayout, *baseColorTexture.texture,
+                    *metallicRoughnessTexture.texture, *normalTexture.texture),
+            });
+            materialIds.emplace(materialId, &materials.get(newMaterial));
+            ++materialId;
+        }
+
+        return materialIds;
+    }
 };
 }  // namespace surge::load
