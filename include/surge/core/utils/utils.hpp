@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <filesystem>
+#include <map>
 #include <tuple>
 
 namespace surge::core {
@@ -62,6 +63,59 @@ constexpr int findElement() {
         return findElement<Requested, Tuple, I + 1>();
     }
 }
+
+template<typename T, std::size_t size, typename Construct>
+constexpr auto createArray(const Construct& construct) {
+    std::array<T, size> array;
+    core::forEach<0, size>(array, construct);
+    return array;
+}
+
+template<typename Key, typename Value>
+struct LazyAccessContainer {
+    std::map<Key, Value>       objects;
+    mutable std::optional<Key> lastAccess;
+
+    template<typename Operation>
+    void apply(const Key key, const Operation& operation) const {
+        if (!lastAccess || (lastAccess && *lastAccess != key)) {
+            operation(objects.at(key));
+            lastAccess = key;
+            // log::info("bound object " + std::to_string(key));
+        } else {
+            // log::info("object " + std::to_string(key) + " already bound");
+        }
+    }
+
+    template<typename Operation>
+    void apply(const Operation& operation) {
+        for (auto& object : objects) {
+            operation(object.second);
+        }
+    }
+
+    void reset() {
+        lastAccess.reset();
+    }
+
+    const Value& get(const Key key) const {
+        return objects.at(key);
+    }
+
+    Value& get(const Key key) {
+        return objects.at(key);
+    }
+
+    template<typename... Args>
+    Key create(Args&&... args) {
+        const auto insertion = objects.emplace(std::piecewise_construct, std::forward_as_tuple(objects.size()),
+                                               std::forward_as_tuple(args...));
+        if (!insertion.second) {
+            throw std::runtime_error("Object already present");
+        }
+        return insertion.first->first;
+    }
+};
 
 template<class T, template<class...> class Primary>
 struct is_specialization_of : std::false_type { };

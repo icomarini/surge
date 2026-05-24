@@ -101,14 +101,6 @@ auto createDescriptorSet(const core::Context& context, const Textures&... textur
     return std::make_tuple(descriptorPool, descriptorSetLayout, descriptorSet);
 }
 
-template<typename T, std::size_t size, typename Construct>
-constexpr auto createArray(const Construct& construct) {
-    std::array<T, size> array;
-    core::forEach<0, size>(array, construct);
-    return array;
-}
-
-
 template<int radius>
 constexpr auto generateTranslations() {
     constexpr auto                          length = 2 * radius + 1;
@@ -166,51 +158,6 @@ constexpr auto flip() {
     return rotate<c>(90) * rotate<c>(90);
 }
 
-template<typename Key, typename Value>
-struct LazyAccessContainer {
-    std::map<Key, Value>       objects;
-    mutable std::optional<Key> lastAccess;
-
-    template<typename Operation>
-    void apply(const Key key, const Operation& operation) const {
-        if (!lastAccess || (lastAccess && *lastAccess != key)) {
-            operation(objects.at(key));
-            lastAccess = key;
-            // log::info("bound object " + std::to_string(key));
-        } else {
-            // log::info("object " + std::to_string(key) + " already bound");
-        }
-    }
-
-    template<typename Operation>
-    void apply(const Operation& operation) {
-        for (auto& object : objects) {
-            operation(object.second);
-        }
-    }
-
-    void reset() {
-        lastAccess.reset();
-    }
-
-    const Value& get(const Key key) const {
-        return objects.at(key);
-    }
-
-    Value& get(const Key key) {
-        return objects.at(key);
-    }
-
-    template<typename... Args>
-    Key create(Args&&... args) {
-        const auto insertion = objects.emplace(std::piecewise_construct, std::forward_as_tuple(objects.size()),
-                                               std::forward_as_tuple(args...));
-        if (!insertion.second) {
-            throw std::runtime_error("Object already present");
-        }
-        return insertion.first->first;
-    }
-};
 
 using EntityID = uint32_t;
 
@@ -262,16 +209,16 @@ struct Storage {
     static constexpr VkPushConstantRange pushConstantRange { core::createPushConstantRange<PushConstants>(
         shaderStages) };
 
-    const core::Command&                           command;
-    const Descriptor&                              mainCamera;
-    LazyAccessContainer<EntityID, asset::Model>    models;
-    LazyAccessContainer<EntityID, Pipeline>        pipelines;
-    std::map<EntityID, PushConstants>              matrices;
-    std::map<EntityID, asset::Texture>             textures;
-    VkDescriptorPool                               materialPool;
-    VkDescriptorSetLayout                          simpleMaterialLayout;
-    VkDescriptorSetLayout                          pbrMaterialLayout;
-    LazyAccessContainer<EntityID, VkDescriptorSet> materials;
+    const core::Command&                                 command;
+    const Descriptor&                                    mainCamera;
+    core::LazyAccessContainer<EntityID, asset::Model>    models;
+    core::LazyAccessContainer<EntityID, Pipeline>        pipelines;
+    std::map<EntityID, PushConstants>                    matrices;
+    std::map<EntityID, asset::Texture>                   textures;
+    VkDescriptorPool                                     materialPool;
+    VkDescriptorSetLayout                                simpleMaterialLayout;
+    VkDescriptorSetLayout                                pbrMaterialLayout;
+    core::LazyAccessContainer<EntityID, VkDescriptorSet> materials;
 
     Storage(const core::Command& command, const Descriptor& mainCamera)
         : command { command }
@@ -446,7 +393,7 @@ private:
     template<std::size_t bindingCount>
     VkDescriptorSetLayout createDescriptorSetLayout() const {
         constexpr auto bindings =
-            createArray<VkDescriptorSetLayoutBinding, bindingCount>([&]<int index>(auto& binding) {
+            core::createArray<VkDescriptorSetLayoutBinding, bindingCount>([&]<int index>(auto& binding) {
                 binding = {
                     .binding            = index,
                     .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -484,7 +431,7 @@ private:
         // write descriptor sets
         constexpr auto bindingCount = sizeof...(TextureIDs);
         const auto     descriptorWrites =
-            createArray<VkWriteDescriptorSet, bindingCount>([&]<int binding>(auto& descriptorWrite) {
+            core::createArray<VkWriteDescriptorSet, bindingCount>([&]<int binding>(auto& descriptorWrite) {
                 const auto& texture = textures.at(std::get<binding>(std::tuple { textureIds... }));
                 descriptorWrite     = {
                         .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,

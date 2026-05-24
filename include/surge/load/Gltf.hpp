@@ -162,8 +162,10 @@ public:
             const fastgltf::visitor visitor {
                 [](const auto&) -> LoadedTexture { throw std::runtime_error("Unsupported visitor"); },
                 [&](const fastgltf::sources::URI& uri) -> LoadedTexture {
-                    return LoadedTexture { LoadedTexture::Handle { load::LoadedTexture::Type::texture2d,
-                                                                   path.parent_path() / uri.uri.path() } };
+                    return LoadedTexture {
+                        LoadedTexture::Handle { load::LoadedTexture::Type::texture2d,
+                                               path.parent_path() / uri.uri.path() }
+                    };
                 },
                 [&](const fastgltf::sources::Vector& vector) -> LoadedTexture {
                     return LoadedTexture { name, reinterpret_cast<const uint8_t*>(vector.bytes.data()),
@@ -372,14 +374,14 @@ public:
                 mesh.primitives.emplace_back(
                     partialIndexCount, indexCount, vertexCount, material,
                     asset::Mesh::Primitive::Attributes {
-                        { core::geometry::Attribute::position, primitive.findAttribute("POSITION") != end },
-                        { core::geometry::Attribute::color, primitive.findAttribute("COLOR_0") != end },
-                        { core::geometry::Attribute::normal, primitive.findAttribute("NORMAL") != end },
-                        { core::geometry::Attribute::tangent, primitive.findAttribute("TANGENT") != end },
-                        { core::geometry::Attribute::texCoord, primitive.findAttribute("TEXCOORD_0") != end },
-                        { core::geometry::Attribute::jointIndex, primitive.findAttribute("JOINTS_0") != end },
-                        { core::geometry::Attribute::jointWeight, primitive.findAttribute("WEIGHTS_0") != end },
-                    },
+                        { core::geometry::Attribute::position,    primitive.findAttribute("POSITION") != end   },
+                        { core::geometry::Attribute::color,       primitive.findAttribute("COLOR_0") != end    },
+                        { core::geometry::Attribute::normal,      primitive.findAttribute("NORMAL") != end     },
+                        { core::geometry::Attribute::tangent,     primitive.findAttribute("TANGENT") != end    },
+                        { core::geometry::Attribute::texCoord,    primitive.findAttribute("TEXCOORD_0") != end },
+                        { core::geometry::Attribute::jointIndex,  primitive.findAttribute("JOINTS_0") != end   },
+                        { core::geometry::Attribute::jointWeight, primitive.findAttribute("WEIGHTS_0") != end  },
+                },
                     core::geometry::BoundingBox { min, max }, asset::Mesh::Primitive::State { false });
 
                 partialIndexCount += indexCount;
@@ -413,9 +415,9 @@ public:
                     [&](std::uint32_t index) { indices.emplace_back(vertexOffset + index); });
 
                 constexpr std::array attributes {
-                    std::pair { "POSITION", core::geometry::Attribute::position },
-                    std::pair { "NORMAL", core::geometry::Attribute::normal },
-                    std::pair { "TANGENT", core::geometry::Attribute::tangent },
+                    std::pair { "POSITION",   core::geometry::Attribute::position },
+                    std::pair { "NORMAL",     core::geometry::Attribute::normal   },
+                    std::pair { "TANGENT",    core::geometry::Attribute::tangent  },
                     std::pair { "TEXCOORD_0", core::geometry::Attribute::texCoord },
                     // std::pair { "COLOR_0", core::geometry::Attribute::color },
                     // std::pair { "JOINTS_0", core::geometry::Attribute::jointIndex },
@@ -437,8 +439,10 @@ public:
                 vertexOffset += asset.accessors.at(primitive.findAttribute("POSITION")->accessorIndex).count;
             }
         }
-        return asset::Model { command, core::geometry::Shape { "asset", std::move(vertices), std::move(indices) },
-                              asset::Model::scene };
+        return asset::Model {
+            command, core::geometry::Shape { "asset", std::move(vertices), std::move(indices) },
+              asset::Model::scene
+        };
     }
 
     // static auto decomposeMatrix(const fastgltf::math::fmat4x4& matrix)
@@ -493,26 +497,29 @@ public:
                 nodes.emplace_back(
                     asset::Node {
                         .meshIndex = gltfNode.meshIndex ?
-                                         std::optional<Index> { static_cast<Index>(gltfNode.meshIndex.value()) } :
+                                         std::optional<Index> { static_cast<Index>(gltfNode.meshIndex.value()) }
+                                          :
                                          std::optional<Index> {},
                         .skinIndex = gltfNode.skinIndex ?
-                                         std::optional<Index> { static_cast<Index>(gltfNode.skinIndex.value()) } :
+                                         std::optional<Index> { static_cast<Index>(gltfNode.skinIndex.value()) }
+                                          :
                                          std::optional<Index> {},
                         .isLight   = 0,
                         .state =
                             asset::Node::State {
-                                .active      = true,
-                                .polygonMode = core::PolygonMode::fill,
-                                // .vertexStageFlag   = 0,
+                                                               .active      = true,
+                                                               .polygonMode = core::PolygonMode::fill,
+                                                               // .vertexStageFlag   = 0,
                                 // .fragmentStageFlag = 0,
                                 .translation  = core::math::Vector<3> { trs.translation.x(), trs.translation.y(),
                                                                         trs.translation.z() },
-                                .rotation     = core::math::Quaternion<> { trs.rotation.x(), trs.rotation.y(),
+                                                               .rotation     = core::math::Quaternion<> { trs.rotation.x(), trs.rotation.y(),
                                                                            trs.rotation.z(), trs.rotation.w() },
-                                .scale        = core::math::Vector<3> { trs.scale.x(), trs.scale.y(), trs.scale.z() },
-                                .localMatrix  = core::math::Matrix<4, 4> {},
-                                .globalMatrix = core::math::Matrix<4, 4> {},
-                            } },
+                                                               .scale        = core::math::Vector<3> { trs.scale.x(), trs.scale.y(), trs.scale.z() },
+                                                               .localMatrix  = core::math::Matrix<4, 4> {},
+                                                               .globalMatrix = core::math::Matrix<4, 4> {},
+                                                               }
+                },
                     std::vector<Index> { gltfNode.children.begin(), gltfNode.children.end() });
             }
             return nodes;
@@ -615,10 +622,10 @@ public:
                 }
 
                 const std::map<fastgltf::AnimationInterpolation, asset::Animation::Sampler::Interpolation> convert {
-                    { fastgltf::AnimationInterpolation::Linear, asset::Animation::Sampler::Interpolation::linear },
-                    { fastgltf::AnimationInterpolation::Step, asset::Animation::Sampler::Interpolation::step },
+                    { fastgltf::AnimationInterpolation::Linear,      asset::Animation::Sampler::Interpolation::linear },
+                    { fastgltf::AnimationInterpolation::Step,        asset::Animation::Sampler::Interpolation::step   },
                     { fastgltf::AnimationInterpolation::CubicSpline,
-                      asset::Animation::Sampler::Interpolation::cubicspline },
+                     asset::Animation::Sampler::Interpolation::cubicspline                                            },
                 };
                 samplers.emplace_back(convert.at(fastgltfSampler.interpolation), std::move(inputs), std::move(outputs));
             }
@@ -629,9 +636,9 @@ public:
             for (const auto& fastgltfChannel : fastgltfAnimation.channels) {
                 const std::map<fastgltf::AnimationPath, asset::Animation::Channel::Path> convert {
                     { fastgltf::AnimationPath::Translation, asset::Animation::Channel::Path::translation },
-                    { fastgltf::AnimationPath::Rotation, asset::Animation::Channel::Path::rotation },
-                    { fastgltf::AnimationPath::Scale, asset::Animation::Channel::Path::scale },
-                    { fastgltf::AnimationPath::Weights, asset::Animation::Channel::Path::weights },
+                    { fastgltf::AnimationPath::Rotation,    asset::Animation::Channel::Path::rotation    },
+                    { fastgltf::AnimationPath::Scale,       asset::Animation::Channel::Path::scale       },
+                    { fastgltf::AnimationPath::Weights,     asset::Animation::Channel::Path::weights     },
                 };
                 channels.emplace_back(convert.at(fastgltfChannel.path),
                                       fastgltfChannel.nodeIndex ? std::optional<Index> { static_cast<Index>(
