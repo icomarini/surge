@@ -21,10 +21,15 @@ enum class This {
     texture,
 };
 
-const std::map<This, std::string> toString { { This::animation, "animation" }, { This::material, "material" },
-                                             { This::mesh, "mesh" },           { This::node, "node" },
-                                             { This::scene, "scene" },         { This::skin, "skin" },
-                                             { This::texture, "texture" } };
+const std::map<This, std::string> toString {
+    { This::animation, "animation" },
+    { This::material,  "material"  },
+    { This::mesh,      "mesh"      },
+    { This::node,      "node"      },
+    { This::scene,     "scene"     },
+    { This::skin,      "skin"      },
+    { This::texture,   "texture"   }
+};
 
 template<This t>
 std::string baptize() {
@@ -80,29 +85,29 @@ static constexpr auto textureData() {
     };
 }
 
-static constexpr auto textureDataNorth(const core::Colors<core::Type::rgba>::Format& background,
-                                       const core::Colors<core::Type::rgba>::Format& text) {
-    const auto b = toUint8(background);
-    const auto t = toUint8(text);
-    return std::array {
-        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
-        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
-        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
-        b, b, b, t, t, b, b, b, b, b, b, t, t, b, b, b,  //
-        b, b, b, t, t, t, b, b, b, b, b, t, t, b, b, b,  //
-        b, b, b, t, t, t, t, b, b, b, b, t, t, b, b, b,  //
-        b, b, b, t, t, t, t, t, b, b, b, t, t, b, b, b,  //
-        b, b, b, t, t, b, t, t, t, b, b, t, t, b, b, b,  //
-        b, b, b, t, t, b, b, t, t, t, b, t, t, b, b, b,  //
-        b, b, b, t, t, b, b, b, t, t, t, t, t, b, b, b,  //
-        b, b, b, t, t, b, b, b, b, t, t, t, t, b, b, b,  //
-        b, b, b, t, t, b, b, b, b, b, t, t, t, b, b, b,  //
-        b, b, b, t, t, b, b, b, b, b, b, t, t, b, b, b,  //
-        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
-        b, b, b, t, t, t, t, t, t, t, t, t, t, b, b, b,  //
-        b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
-    };
-}
+// static constexpr auto textureDataNorth(const core::Colors<core::Type::rgba>::Format& background,
+//                                        const core::Colors<core::Type::rgba>::Format& text) {
+//     const auto b = toUint8(background);
+//     const auto t = toUint8(text);
+//     return std::array {
+//         b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+//         b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+//         b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+//         b, b, b, t, t, b, b, b, b, b, b, t, t, b, b, b,  //
+//         b, b, b, t, t, t, b, b, b, b, b, t, t, b, b, b,  //
+//         b, b, b, t, t, t, t, b, b, b, b, t, t, b, b, b,  //
+//         b, b, b, t, t, t, t, t, b, b, b, t, t, b, b, b,  //
+//         b, b, b, t, t, b, t, t, t, b, b, t, t, b, b, b,  //
+//         b, b, b, t, t, b, b, t, t, t, b, t, t, b, b, b,  //
+//         b, b, b, t, t, b, b, b, t, t, t, t, t, b, b, b,  //
+//         b, b, b, t, t, b, b, b, b, t, t, t, t, b, b, b,  //
+//         b, b, b, t, t, b, b, b, b, b, t, t, t, b, b, b,  //
+//         b, b, b, t, t, b, b, b, b, b, b, t, t, b, b, b,  //
+//         b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+//         b, b, b, t, t, t, t, t, t, t, t, t, t, b, b, b,  //
+//         b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
+//     };
+// }
 
 static constexpr auto textureDataX(const core::Colors<core::Type::rgba>::Format& background,
                                    const core::Colors<core::Type::rgba>::Format& text) {
@@ -176,13 +181,13 @@ static constexpr auto textureDataZ(const core::Colors<core::Type::rgba>::Format&
     };
 }
 
-static constexpr auto textureData2() {
-    const auto w = toUint8(core::Colors<core::Type::rgba>::white);
-    return std::array<decltype(w), 1> { w };
-}
+// static constexpr auto textureData2() {
+//     const auto w = toUint8(core::Colors<core::Type::rgba>::white);
+//     return std::array<decltype(w), 1> { w };
+// }
 
-template<typename Color>
-static constexpr auto flatTextureData(const Color& color) {
+static constexpr auto flatTextureData(const core::Colors<core::Type::rgba>::Format& color,
+                                      const core::Colors<core::Type::rgba>::Format&) {
     const auto c = toUint8(color);
     return std::array<decltype(c), 1> { toUint8(color) };
 }
@@ -200,8 +205,10 @@ public:
 
 
     static constexpr auto defaultTextureData = textureData();
-    static constexpr auto whiteTextureData   = flatTextureData(core::Colors<core::Type::rgba>::white);
-    static constexpr auto blackTextureData   = flatTextureData(core::Colors<core::Type::rgba>::black);
+    static constexpr auto whiteTextureData =
+        flatTextureData(core::Colors<core::Type::rgba>::white, core::Colors<core::Type::rgba>::white);
+    static constexpr auto blackTextureData =
+        flatTextureData(core::Colors<core::Type::rgba>::black, core::Colors<core::Type::rgba>::white);
 
     asset::Texture        texture;
     asset::Texture        whiteTexture;
