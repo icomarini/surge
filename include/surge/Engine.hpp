@@ -149,12 +149,6 @@ auto createDescriptorSets(const core::Context&                                  
     const auto descriptorSetLayouts = createArray<VkDescriptorSetLayout, descriptorCount>(
         [&]<int index>(auto& layout) { layout = descriptorSetLayout; });
 
-    // const auto descriptorSetLayouts =
-    //     createArray2([&]<int index>(std::array<VkDescriptorSetLayout, descriptorCount>& layout) {
-    //         layout[index] = descriptorSetLayout;
-    //     });
-
-
     // allocate descriptor sets
     const VkDescriptorSetAllocateInfo allocInfo {
         .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
@@ -192,6 +186,7 @@ auto createDescriptorSets(const core::Context&                                  
 
     return std::make_tuple(descriptorPool, descriptorSetLayout, descriptorSets);
 }
+
 
 template<int radius>
 constexpr auto generateTranslations() {
@@ -299,9 +294,10 @@ struct LazyAccessContainer {
 using EntityID = uint32_t;
 
 struct Entity {
-    EntityID model;
-    EntityID pipeline;
-    EntityID matrix;
+    EntityID                model;
+    EntityID                pipeline;
+    EntityID                matrix;
+    std::optional<EntityID> material;
 };
 
 struct Pipeline {
@@ -345,19 +341,31 @@ struct Storage {
     static constexpr VkPushConstantRange pushConstantRange { core::createPushConstantRange<PushConstants>(
         shaderStages) };
 
-    const core::Command&                        command;
-    const Descriptor&                           mainCamera;
-    LazyAccessContainer<EntityID, asset::Model> models;
-    LazyAccessContainer<EntityID, Pipeline>     pipelines;
-    std::map<EntityID, PushConstants>           matrices;
+    const core::Command&                           command;
+    const Descriptor&                              mainCamera;
+    LazyAccessContainer<EntityID, asset::Model>    models;
+    LazyAccessContainer<EntityID, Pipeline>        pipelines;
+    std::map<EntityID, PushConstants>              matrices;
+    std::map<EntityID, asset::Texture>             textures;
+    VkDescriptorPool                               materialPool;
+    VkDescriptorSetLayout                          simpleMaterialLayout;
+    VkDescriptorSetLayout                          pbrMaterialLayout;
+    LazyAccessContainer<EntityID, VkDescriptorSet> materials;
 
     Storage(const core::Command& command, const Descriptor& mainCamera)
         : command { command }
-        , mainCamera { mainCamera } {
+        , mainCamera { mainCamera }
+        , matrices {}
+        , materialPool { createDescriptorPool<1, 1>(32, 32) }
+        , simpleMaterialLayout { createDescriptorSetLayout<1>() }
+        , pbrMaterialLayout { createDescriptorSetLayout<1>() } {
     }
 
     ~Storage() {
         pipelines.apply([&](Pipeline& pipeline) { pipeline.destroy(command.context); });
+        command.context.destroy(pbrMaterialLayout);
+        command.context.destroy(simpleMaterialLayout);
+        command.context.destroy(materialPool);
     }
 
     template<typename LoadedModel>
@@ -383,13 +391,51 @@ struct Storage {
         return insertion.first->first;
     }
 
+    EntityID createTexture(const std::string& name, const core::Colors<core::Type::rgba>::Format background,
+                           auto&& create) {
+        const auto                        texture = create(background, core::RGBA::white);
+        constexpr asset::Texture::Sampler sampler {
+            .magFilter    = VK_FILTER_NEAREST,
+            .minFilter    = VK_FILTER_NEAREST,
+            .mipmapMode   = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+            .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+        };
+        const auto insertion = textures.emplace(
+            std::piecewise_construct, std::forward_as_tuple(textures.size()),
+            std::forward_as_tuple(command, load::LoadedTexture { name, texture.front().data(), 16, 16 }, sampler,
+                                  asset::Texture::texture2d));
+        if (!insertion.second) {
+            throw std::runtime_error("Texture already present");
+        }
+        return insertion.first->first;
+    }
+
+    EntityID createSimpleMaterial(const asset::Texture* texture) {
+        return materials.create(createMaterialDescriptorSet<1>(simpleMaterialLayout, texture));
+    }
+
+    EntityID createPbrMaterial(const asset::Texture* texture) {
+        return materials.create(createMaterialDescriptorSet<1>(pbrMaterialLayout, texture));
+    }
+
+    EntityID createSimpleMaterial(const EntityID texture) {
+        return materials.create(createMaterialDescriptorSet<1>(simpleMaterialLayout, texture));
+    }
+
+    EntityID createPbrMaterial(const EntityID texture) {
+        return materials.create(createMaterialDescriptorSet<1>(pbrMaterialLayout, texture));
+    }
+
     void draw(const VkCommandBuffer commandBuffer, const Entity& entity) const {
         vkCmdSetLineWidth(commandBuffer, 2.0);
+        const auto pipelineLayout = pipelines.get(entity.pipeline).layout();
 
         // bind main camera
         constexpr uint32_t sceneIndex { 0 };
-        vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelines.get(entity.pipeline).layout(), sceneIndex,
-                                1, &mainCamera.get(), 0, nullptr);
+        vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, sceneIndex, 1, &mainCamera.get(), 0,
+                                nullptr);
 
         // bind model
         models.apply(entity.model, [&](const asset::Model& model) {
@@ -405,8 +451,17 @@ struct Storage {
         });
 
         // bind matrix
-        vkCmdPushConstants(commandBuffer, pipelines.get(entity.pipeline).layout(), shaderStages, 0,
-                           sizeof(PushConstants), &matrices.at(entity.matrix));
+        vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                           &matrices.at(entity.matrix));
+
+        // bind material
+        if (entity.material) {
+            materials.apply(*entity.material, [&](const VkDescriptorSet& material) {
+                constexpr uint32_t materialIndex { 1 };
+                vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, materialIndex, 1, &material,
+                                        0, nullptr);
+            });
+        }
 
         vkCmdDrawIndexed(commandBuffer, models.get(entity.model).indexCount, 1, 0, 0, 0);
     }
@@ -414,6 +469,125 @@ struct Storage {
     void reset() {
         models.reset();
         pipelines.reset();
+        materials.reset();
+    }
+
+private:
+    template<std::uint32_t simpleBindingCount, std::uint32_t pbrBindingCount>
+    VkDescriptorPool createDescriptorPool(const std::uint32_t simpleMaxCount, const std::uint32_t pbrMaxCount) const {
+        const auto maxCount = simpleMaxCount * simpleBindingCount + pbrMaxCount * pbrBindingCount;
+
+        const VkDescriptorPoolSize descriptorPoolSize {
+            .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .descriptorCount = maxCount,
+        };
+        return command.context.create(VkDescriptorPoolCreateInfo {
+            .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            .pNext         = nullptr,
+            .flags         = {},
+            .maxSets       = maxCount,
+            .poolSizeCount = 1,
+            .pPoolSizes    = &descriptorPoolSize,
+        });
+    }
+
+    template<std::size_t bindingCount>
+    VkDescriptorSetLayout createDescriptorSetLayout() const {
+        constexpr auto bindings =
+            createArray<VkDescriptorSetLayoutBinding, bindingCount>([&]<int index>(auto& binding) {
+                binding = {
+                    .binding            = index,
+                    .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount    = 1,
+                    .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = nullptr,
+                };
+            });
+
+        return command.context.create(VkDescriptorSetLayoutCreateInfo {
+            .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .pNext        = nullptr,
+            .flags        = {},
+            .bindingCount = static_cast<uint32_t>(bindings.size()),
+            .pBindings    = bindings.data(),
+        });
+    }
+
+    template<std::size_t bindingCount>
+    VkDescriptorSet createMaterialDescriptorSet(const VkDescriptorSetLayout descriptorSetLayout,
+                                                const asset::Texture*       texture) const {
+        // allocate descriptor sets
+        const VkDescriptorSetAllocateInfo allocInfo {
+            .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            .pNext              = nullptr,
+            .descriptorPool     = materialPool,
+            .descriptorSetCount = 1,
+            .pSetLayouts        = &descriptorSetLayout,
+        };
+        VkDescriptorSet descriptorSet;
+        if (vkAllocateDescriptorSets(command.context.device, &allocInfo, &descriptorSet) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate descriptor sets");
+        }
+
+        // write descriptor sets
+        const auto descriptorWrites =
+            createArray<VkWriteDescriptorSet, bindingCount>([&]<int binding>(auto& descriptorWrite) {
+                descriptorWrite = {
+                    .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .pNext            = nullptr,
+                    .dstSet           = descriptorSet,
+                    .dstBinding       = binding,
+                    .dstArrayElement  = 0,
+                    .descriptorCount  = 1,
+                    .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .pImageInfo       = texture->imageInfo(),
+                    .pBufferInfo      = texture->bufferInfo(),
+                    .pTexelBufferView = nullptr,
+                };
+            });
+        vkUpdateDescriptorSets(command.context.device, static_cast<uint32_t>(descriptorWrites.size()),
+                               descriptorWrites.data(), 0, nullptr);
+
+        return descriptorSet;
+    }
+
+    template<std::size_t bindingCount>
+    VkDescriptorSet createMaterialDescriptorSet(const VkDescriptorSetLayout descriptorSetLayout,
+                                                const EntityID              textureId) const {
+        // allocate descriptor sets
+        const VkDescriptorSetAllocateInfo allocInfo {
+            .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            .pNext              = nullptr,
+            .descriptorPool     = materialPool,
+            .descriptorSetCount = 1,
+            .pSetLayouts        = &descriptorSetLayout,
+        };
+        VkDescriptorSet descriptorSet;
+        if (vkAllocateDescriptorSets(command.context.device, &allocInfo, &descriptorSet) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate descriptor sets");
+        }
+
+        // write descriptor sets
+        const auto& texture = textures.at(textureId);
+        const auto  descriptorWrites =
+            createArray<VkWriteDescriptorSet, bindingCount>([&]<int binding>(auto& descriptorWrite) {
+                descriptorWrite = {
+                    .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .pNext            = nullptr,
+                    .dstSet           = descriptorSet,
+                    .dstBinding       = binding,
+                    .dstArrayElement  = 0,
+                    .descriptorCount  = 1,
+                    .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .pImageInfo       = texture.imageInfo(),
+                    .pBufferInfo      = texture.bufferInfo(),
+                    .pTexelBufferView = nullptr,
+                };
+            });
+        vkUpdateDescriptorSets(command.context.device, static_cast<uint32_t>(descriptorWrites.size()),
+                               descriptorWrites.data(), 0, nullptr);
+
+        return descriptorSet;
     }
 };
 
@@ -668,19 +842,6 @@ public:
             core::createGraphicPipeline(context, core::createVertexInputState<core::geometry::PositionAndColor>(),
                                         coordinatesPipelineLayout, core::shader::Type::coordinates);
 
-        // primitive pipeline
-        const auto primitivePipelineLayout =
-            core::createPipelineLayout(context, pushConstantRange, renderer.descriptor.setLayout);
-        const auto primitivePipeline =
-            core::createGraphicPipeline(context, core::createVertexInputState<core::geometry::Position>(),
-                                        primitivePipelineLayout, core::shader::Type::primitive);
-
-        // === primitive geometry data ===
-        asset::Model coordinatesModel { command, core::geometry::coordinates, asset::Model::scene };
-
-        asset::Model planeModel { command, core::geometry::plane, asset::Model::scene };
-        asset::Model planeTexturedModel { command, core::geometry::planeTextured, asset::Model::scene };
-
         // === primitive textured pipeline ===
         auto createTexture = [&](const std::string& name, const core::Colors<core::Type::rgba>::Format background,
                                  auto&& create) {
@@ -700,35 +861,26 @@ public:
                 asset::Texture::texture2d,
             };
         };
-        asset::Texture xBack  = createTexture("xBack", core::RGBA::darkRed, load::textureDataX);
-        asset::Texture xFront = createTexture("xFront", core::RGBA::red, load::textureDataX);
-        asset::Texture yBack  = createTexture("yBack", core::RGBA::darkGreen, load::textureDataY);
-        asset::Texture yFront = createTexture("yFront", core::RGBA::green, load::textureDataY);
-        asset::Texture zBack  = createTexture("zBack", core::RGBA::darkBlue, load::textureDataZ);
-        asset::Texture zFront = createTexture("zFront", core::RGBA::blue, load::textureDataZ);
-
-        const auto [primitiveTexturedDescriptorPool, primitiveTexturedDescriptorSetLayout,
-                    primitiveTexturedDescriptorSets] = createDescriptorSets(context, std::array {
-                                                                                         std::array { &xBack },
-                                                                                         std::array { &xFront },
-                                                                                         std::array { &yBack },
-                                                                                         std::array { &yFront },
-                                                                                         std::array { &zBack },
-                                                                                         std::array { &zFront },
-                                                                                     });
-
-        const auto primitiveTexturedPipelineLayout = core::createPipelineLayout(
-            context, pushConstantRange, renderer.descriptor.setLayout, primitiveTexturedDescriptorSetLayout);
-        const auto primitiveTexturedPipeline =
-            core::createGraphicPipeline(context, core::createVertexInputState<core::geometry::PositionTexture>(),
-                                        primitiveTexturedPipelineLayout, core::shader::Type::primitiveTextured);
 
         // === initialize ===
         const Descriptor mainCamera { renderer.descriptor.setLayout, renderer.descriptor.set };
         Storage          storage(command, mainCamera);
 
-        std::vector<Entity> primitiveCube;
-        {
+
+        const Entity coordinates {
+            .model    = storage.createModel(core::geometry::coordinates),
+            .pipeline = storage.createPipeline<core::geometry::PositionAndColor>(core::shader::Type::coordinates),
+            .matrix   = storage.createMatrix(PushConstants {
+                  .matrix    = core::math::fullMatrix(core::math::identity<4>),
+                  .baseColor = core::RGBA::white,
+                  .isLight   = {},
+            }),
+            .material = std::nullopt,
+        };
+
+        std::vector<Entity> cubes;
+
+        {  // untextured cube
             const auto model    = storage.createModel(core::geometry::plane);
             const auto pipeline = storage.createPipeline<core::geometry::Position>(core::shader::Type::primitive);
             constexpr uint32_t                  isLight {};
@@ -741,18 +893,36 @@ public:
                      PushConstants { T * translate<z>(-0.5) * flip<x>(),      core::RGBA::darkBlue,  isLight },
                      PushConstants { T * translate<z>(+0.5),                  core::RGBA::blue,      isLight },
             }) {
-                primitiveCube.emplace_back(model, pipeline, storage.createMatrix(matrix));
+                cubes.emplace_back(model, pipeline, storage.createMatrix(matrix), std::nullopt);
             }
         }
-        const Entity coordinates {
-            .model    = storage.createModel(core::geometry::coordinates),
-            .pipeline = storage.createPipeline<core::geometry::PositionAndColor>(core::shader::Type::coordinates),
-            .matrix   = storage.createMatrix(PushConstants {
-                  .matrix    = core::math::fullMatrix(core::math::identity<4>),
-                  .baseColor = core::RGBA::white,
-                  .isLight   = {},
-            }),
-        };
+
+        {  // textured cube
+            const auto xBack    = storage.createTexture("xBack", core::RGBA::darkRed, load::textureDataX);
+            const auto xFront   = storage.createTexture("xFront", core::RGBA::red, load::textureDataX);
+            const auto yBack    = storage.createTexture("yBack", core::RGBA::darkGreen, load::textureDataY);
+            const auto yFront   = storage.createTexture("yFront", core::RGBA::green, load::textureDataY);
+            const auto zBack    = storage.createTexture("zBack", core::RGBA::darkBlue, load::textureDataZ);
+            const auto zFront   = storage.createTexture("zFront", core::RGBA::blue, load::textureDataZ);
+            const auto model    = storage.createModel(core::geometry::planeTextured);
+            const auto pipeline = storage.createPipeline<core::geometry::PositionTexture>(
+                core::shader::Type::primitiveTextured, storage.simpleMaterialLayout);
+            constexpr auto                      color { core::RGBA::white };
+            constexpr uint32_t                  isLight {};
+            constexpr core::math::Translation<> T { 2, 0, 0 };
+            using PC = PushConstants;
+            for (const auto& [matrix, texture] : {
+                     std::pair { PC { T * translate<x>(-0.5) * rotate<y>(+90), color, isLight }, xBack  },
+                     std::pair { PC { T * translate<x>(+0.5) * rotate<y>(-90), color, isLight }, xFront },
+                     std::pair { PC { T * translate<y>(-0.5) * rotate<x>(-90), color, isLight }, yBack  },
+                     std::pair { PC { T * translate<y>(+0.5) * rotate<x>(+90), color, isLight }, yFront },
+                     std::pair { PC { T * translate<z>(-0.5) * flip<x>(), color, isLight },      zBack  },
+                     std::pair { PC { T * translate<z>(+0.5), color, isLight },                  zFront },
+            }) {
+                cubes.emplace_back(model, pipeline, storage.createMatrix(matrix),
+                                   storage.createSimpleMaterial(texture));
+            }
+        }
         // === initialize ===
 
         log::checkpoint("Main loop start");
@@ -816,11 +986,10 @@ public:
                 skybox.draw(commandBuffer, renderer.descriptor.set);
 
                 storage.reset();
-                for (const auto& face : primitiveCube) {
+                storage.draw(commandBuffer, coordinates);
+                for (const auto& face : cubes) {
                     storage.draw(commandBuffer, face);
                 }
-                storage.draw(commandBuffer, coordinates);
-
                 // === draw ===
 
                 // bind pipeline
@@ -1129,85 +1298,6 @@ public:
                     }
                 }
 
-
-                if constexpr (drawCoordinates && false) {  // bind coordinates
-                    core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
-                    vkCmdBindPipeline(commandBuffer, graphicsBindPoint, coordinatesPipeline);
-                    vkCmdSetLineWidth(commandBuffer, 2.0);
-                    vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, coordinatesPipelineLayout, sceneIndex, 1,
-                                            &renderer.descriptor.set, 0, nullptr);
-                    constexpr PushConstants coordinatesPushConstants {
-                        .matrix    = core::math::fullMatrix(core::math::identity<4>),
-                        .baseColor = core::RGBA::white,
-                        .isLight   = false,
-                    };
-                    vkCmdPushConstants(commandBuffer, coordinatesPipelineLayout, shaderStages, 0, sizeof(PushConstants),
-                                       &coordinatesPushConstants);
-                    constexpr VkDeviceSize offset { 0 };
-                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &coordinatesModel.vertexBuffer.buffer, &offset);
-                    vkCmdBindIndexBuffer(commandBuffer, coordinatesModel.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-                    vkCmdDrawIndexed(commandBuffer, core::geometry::coordinates.indices.size(), 1, 0, 0, 0);
-                }
-
-                if constexpr (drawPrimitive && false) {
-                    using namespace core::math;
-                    constexpr core::math::Translation<> T { 0, 0, 0 };
-
-                    // primitive simple color
-                    core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
-                    vkCmdBindPipeline(commandBuffer, graphicsBindPoint, primitivePipeline);
-                    // vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, primitivePipelineLayout, sceneIndex, 1,
-                    //                         &renderer.descriptor.set, 0, nullptr);
-                    for (const auto& [color, matrix] : {
-                             std::pair { core::RGBA::darkRed,   T * translate<x>(-0.5) * rotate<y>(+90) },
-                             std::pair { core::RGBA::red,       T * translate<x>(+0.5) * rotate<y>(-90) },
-                             std::pair { core::RGBA::darkGreen, T * translate<y>(-0.5) * rotate<x>(-90) },
-                             std::pair { core::RGBA::green,     T * translate<y>(+0.5) * rotate<x>(+90) },
-                             std::pair { core::RGBA::darkBlue,  T * translate<z>(-0.5) * flip<x>()      },
-                             std::pair { core::RGBA::blue,      T * translate<z>(+0.5)                  },
-                    }) {
-                        const PushConstants planePushConstants { .matrix = matrix, .baseColor = color };
-                        vkCmdPushConstants(commandBuffer, primitivePipelineLayout, shaderStages, 0,
-                                           sizeof(PushConstants), &planePushConstants);
-                        constexpr VkDeviceSize offset { 0 };
-                        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &planeModel.vertexBuffer.buffer, &offset);
-                        vkCmdBindIndexBuffer(commandBuffer, planeModel.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-                        vkCmdDrawIndexed(commandBuffer, core::geometry::plane.indices.size(), 1, 0, 0, 0);
-                    }
-                }
-
-                // primitive textured
-                if constexpr (drawPrimitiveTextured) {
-                    using namespace core::math;
-                    constexpr core::math::Translation<> T { 2, 0, 0 };
-
-                    vkCmdBindPipeline(commandBuffer, graphicsBindPoint, primitiveTexturedPipeline);
-                    vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, primitiveTexturedPipelineLayout,
-                                            sceneIndex, 1, &renderer.descriptor.set, 0, nullptr);
-
-                    const auto& sets = primitiveTexturedDescriptorSets;
-                    for (const auto& [descriptorSet, matrix] : {
-                             std::pair { &sets.at(0), T * translate<x>(-0.5) * rotate<y>(+90) },
-                             std::pair { &sets.at(1), T * translate<x>(+0.5) * rotate<y>(-90) },
-                             std::pair { &sets.at(2), T * translate<y>(-0.5) * rotate<x>(-90) },
-                             std::pair { &sets.at(3), T * translate<y>(+0.5) * rotate<x>(+90) },
-                             std::pair { &sets.at(4), T * translate<z>(-0.5) * flip<x>()      },
-                             std::pair { &sets.at(5), T * translate<z>(+0.5)                  },
-                    }) {
-                        constexpr uint32_t materialIndex { 1 };
-                        vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, primitiveTexturedPipelineLayout,
-                                                materialIndex, 1, descriptorSet, 0, nullptr);
-                        const PushConstants planePushConstants { .matrix = matrix };
-                        vkCmdPushConstants(commandBuffer, primitivePipelineLayout, shaderStages, 0,
-                                           sizeof(PushConstants), &planePushConstants);
-                        constexpr VkDeviceSize offset { 0 };
-                        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &planeTexturedModel.vertexBuffer.buffer, &offset);
-                        vkCmdBindIndexBuffer(commandBuffer, planeTexturedModel.indexBuffer.buffer, 0,
-                                             VK_INDEX_TYPE_UINT32);
-                        vkCmdDrawIndexed(commandBuffer, core::geometry::plane.indices.size(), 1, 0, 0, 0);
-                    }
-                }
-
                 // === draw ===
 
                 // for (const auto& entity : entities)
@@ -1231,13 +1321,13 @@ public:
         vkDeviceWaitIdle(context.device);
 
         // === finalize ===
-        context.destroy(primitiveTexturedPipeline);
-        context.destroy(primitiveTexturedPipelineLayout);
-        context.destroy(primitiveTexturedDescriptorSetLayout);
-        context.destroy(primitiveTexturedDescriptorPool);
+        // context.destroy(primitiveTexturedPipeline);
+        // context.destroy(primitiveTexturedPipelineLayout);
+        // context.destroy(primitiveTexturedDescriptorSetLayout);
+        // context.destroy(primitiveTexturedDescriptorPool);
 
-        context.destroy(primitivePipeline);
-        context.destroy(primitivePipelineLayout);
+        // context.destroy(primitivePipeline);
+        // context.destroy(primitivePipelineLayout);
         context.destroy(coordinatesPipeline);
         context.destroy(coordinatesPipelineLayout);
         context.destroy(normalPipeline);
