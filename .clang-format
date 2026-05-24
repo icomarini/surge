@@ -11,7 +11,7 @@ AlignOperands:   true
 AlignTrailingComments: true
 # ArrayInitializerAlignmentStyle:
 AlignArrayOfStructures: Left
-#AllowAllParametersOfDeclarationOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: false
 #AllowShortBlocksOnASingleLine: false
 #AllowShortCaseLabelsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: None
@@ -19,7 +19,7 @@ AllowShortFunctionsOnASingleLine: None
 #AllowShortLoopsOnASingleLine: false
 #AlwaysBreakAfterDefinitionReturnType: None
 #AlwaysBreakAfterReturnType: None
-#AlwaysBreakBeforeMultilineStrings: false
+AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: true
 #BinPackArguments: true
 #BinPackParameters: true

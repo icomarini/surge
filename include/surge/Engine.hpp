@@ -14,8 +14,8 @@
 
 #include <type_traits>
 
-#define sqrt2 1.41421356237
-#define sqrt2o2 0.70710678118
+#define sqrt2 1.41421356237f
+#define sqrt2o2 0.70710678118f
 
 namespace surge {
 
@@ -128,16 +128,15 @@ auto createDescriptorSets(const core::Context&                                  
     });
 
     // descriptor set layout
-    constexpr auto bindings =
-        createArray<VkDescriptorSetLayoutBinding, bindingCount>([&]<int index>(VkDescriptorSetLayoutBinding& binding) {
-            binding = VkDescriptorSetLayoutBinding {
-                .binding            = index,
-                .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .descriptorCount    = 1,
-                .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
-                .pImmutableSamplers = nullptr,
-            };
-        });
+    constexpr auto bindings = createArray<VkDescriptorSetLayoutBinding, bindingCount>([&]<int index>(auto& binding) {
+        binding = {
+            .binding            = index,
+            .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .descriptorCount    = 1,
+            .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
+            .pImmutableSamplers = nullptr,
+        };
+    });
 
     const auto descriptorSetLayout = context.create(VkDescriptorSetLayoutCreateInfo {
         .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -148,7 +147,7 @@ auto createDescriptorSets(const core::Context&                                  
     });
 
     const auto descriptorSetLayouts = createArray<VkDescriptorSetLayout, descriptorCount>(
-        [&]<int index>(VkDescriptorSetLayout& layout) { layout = descriptorSetLayout; });
+        [&]<int index>(auto& layout) { layout = descriptorSetLayout; });
 
     // const auto descriptorSetLayouts =
     //     createArray2([&]<int index>(std::array<VkDescriptorSetLayout, descriptorCount>& layout) {
@@ -172,9 +171,9 @@ auto createDescriptorSets(const core::Context&                                  
     // write descriptor sets
     core::forEach<0, descriptorCount>([&]<int index>() {
         const auto descriptorWrites =
-            createArray<VkWriteDescriptorSet, bindingCount>([&]<int binding>(VkWriteDescriptorSet& descriptorWrite) {
+            createArray<VkWriteDescriptorSet, bindingCount>([&]<int binding>(auto& descriptorWrite) {
                 const auto& texture = *textures.at(index).at(binding);
-                descriptorWrite     = VkWriteDescriptorSet {
+                descriptorWrite     = {
                         .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                         .pNext            = nullptr,
                         .dstSet           = descriptorSets[index],
@@ -251,6 +250,172 @@ constexpr auto flip() {
     return rotate<c>(90) * rotate<c>(90);
 }
 
+template<typename Key, typename Value>
+struct LazyAccessContainer {
+    std::map<Key, Value>       objects;
+    mutable std::optional<Key> lastAccess;
+
+    template<typename Operation>
+    void apply(const Key key, const Operation& operation) const {
+        if (!lastAccess || (lastAccess && *lastAccess != key)) {
+            operation(objects.at(key));
+            lastAccess = key;
+            // log::info("bound object " + std::to_string(key));
+        } else {
+            // log::info("object " + std::to_string(key) + " already bound");
+        }
+    }
+
+    template<typename Operation>
+    void apply(const Operation& operation) {
+        for (auto& object : objects) {
+            operation(object.second);
+        }
+    }
+
+    void reset() {
+        lastAccess.reset();
+    }
+
+    const Value& get(const Key key) const {
+        return objects.at(key);
+    }
+
+    Value& get(const Key key) {
+        return objects.at(key);
+    }
+
+    template<typename... Args>
+    Key create(Args&&... args) {
+        const auto insertion = objects.emplace(std::piecewise_construct, std::forward_as_tuple(objects.size()),
+                                               std::forward_as_tuple(args...));
+        if (!insertion.second) {
+            throw std::runtime_error("Object already present");
+        }
+        return insertion.first->first;
+    }
+};
+
+using EntityID = uint32_t;
+
+struct Entity {
+    EntityID model;
+    EntityID pipeline;
+    EntityID matrix;
+};
+
+struct Pipeline {
+    VkPipelineLayout pipelineLayout;
+    VkPipeline       pipeline;
+
+    const VkPipelineLayout& layout() const {
+        return pipelineLayout;
+    }
+    const VkPipeline& get() const {
+        return pipeline;
+    }
+    void destroy(const core::Context& context) {
+        context.destroy(pipelineLayout);
+        context.destroy(pipeline);
+    }
+};
+
+struct Descriptor {
+    VkDescriptorSetLayout descriptorSetLayout;
+    VkDescriptorSet       descriptorSet;
+
+    const VkDescriptorSetLayout& layout() const {
+        return descriptorSetLayout;
+    }
+    const VkDescriptorSet& get() const {
+        return descriptorSet;
+    }
+};
+
+struct PushConstants {
+    core::math::Matrix<4, 4> matrix;
+    core::math::Vector<4>    baseColor;
+    uint32_t                 isLight;
+};
+
+struct Storage {
+    static constexpr auto                graphicsBindPoint { VK_PIPELINE_BIND_POINT_GRAPHICS };
+    static constexpr VkShaderStageFlags  shaderStages { VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_VERTEX_BIT |
+                                                       VK_SHADER_STAGE_FRAGMENT_BIT };
+    static constexpr VkPushConstantRange pushConstantRange { core::createPushConstantRange<PushConstants>(
+        shaderStages) };
+
+    const core::Command&                        command;
+    const Descriptor&                           mainCamera;
+    LazyAccessContainer<EntityID, asset::Model> models;
+    LazyAccessContainer<EntityID, Pipeline>     pipelines;
+    std::map<EntityID, PushConstants>           matrices;
+
+    Storage(const core::Command& command, const Descriptor& mainCamera)
+        : command { command }
+        , mainCamera { mainCamera } {
+    }
+
+    ~Storage() {
+        pipelines.apply([&](Pipeline& pipeline) { pipeline.destroy(command.context); });
+    }
+
+    template<typename LoadedModel>
+    EntityID createModel(const LoadedModel& loadedModel) {
+        return models.create(command, loadedModel, asset::Model::scene);
+    }
+
+    template<typename VertexInputState, typename... DescriptorSetLayouts>
+    EntityID createPipeline(const core::shader::Type shaderType, const DescriptorSetLayouts... descriptorSetLayouts) {
+        const auto     pipelineLayout   = core::createPipelineLayout(command.context, pushConstantRange,
+                                                                     mainCamera.descriptorSetLayout, descriptorSetLayouts...);
+        constexpr auto vertexInputState = core::createVertexInputState<VertexInputState>();
+        const auto     pipeline =
+            core::createGraphicPipeline(command.context, vertexInputState, pipelineLayout, shaderType);
+        return pipelines.create(pipelineLayout, pipeline);
+    }
+
+    EntityID createMatrix(const PushConstants& matrix) {
+        const auto insertion = matrices.emplace(matrices.size(), matrix);
+        if (!insertion.second) {
+            throw std::runtime_error("Matrix already present");
+        }
+        return insertion.first->first;
+    }
+
+    void draw(const VkCommandBuffer commandBuffer, const Entity& entity) const {
+        vkCmdSetLineWidth(commandBuffer, 2.0);
+
+        // bind main camera
+        constexpr uint32_t sceneIndex { 0 };
+        vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelines.get(entity.pipeline).layout(), sceneIndex,
+                                1, &mainCamera.get(), 0, nullptr);
+
+        // bind model
+        models.apply(entity.model, [&](const asset::Model& model) {
+            constexpr VkDeviceSize offset { 0 };
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model.vertexBuffer.buffer, &offset);
+            vkCmdBindIndexBuffer(commandBuffer, model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+        });
+
+        // bind pipeline
+        pipelines.apply(entity.pipeline, [&](const Pipeline& pipeline) {
+            core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+            vkCmdBindPipeline(commandBuffer, graphicsBindPoint, pipeline.get());
+        });
+
+        // bind matrix
+        vkCmdPushConstants(commandBuffer, pipelines.get(entity.pipeline).layout(), shaderStages, 0,
+                           sizeof(PushConstants), &matrices.at(entity.matrix));
+
+        vkCmdDrawIndexed(commandBuffer, models.get(entity.model).indexCount, 1, 0, 0, 0);
+    }
+
+    void reset() {
+        models.reset();
+        pipelines.reset();
+    }
+};
 
 class Engine {
 public:
@@ -407,11 +572,7 @@ public:
         entities.back().nodes.get(1).state.translation = core::math::Vector<3> { 0, 0, 0 };
 
         // === initialize ===
-        struct PushConstants {
-            core::math::Matrix<4, 4> matrix;
-            core::math::Vector<4>    baseColor;
-            uint32_t                 isLight;
-        };
+
 
         // === container ===
         const asset::Model container { command, core::geometry::cube2, asset::Model::scene };
@@ -563,6 +724,36 @@ public:
                                         primitiveTexturedPipelineLayout, core::shader::Type::primitiveTextured);
 
         // === initialize ===
+        const Descriptor mainCamera { renderer.descriptor.setLayout, renderer.descriptor.set };
+        Storage          storage(command, mainCamera);
+
+        std::vector<Entity> primitiveCube;
+        {
+            const auto model    = storage.createModel(core::geometry::plane);
+            const auto pipeline = storage.createPipeline<core::geometry::Position>(core::shader::Type::primitive);
+            constexpr uint32_t                  isLight {};
+            constexpr core::math::Translation<> T { 0, 0, 0 };
+            for (const auto& matrix : {
+                     PushConstants { T * translate<x>(-0.5) * rotate<y>(+90), core::RGBA::darkRed,   isLight },
+                     PushConstants { T * translate<x>(+0.5) * rotate<y>(-90), core::RGBA::red,       isLight },
+                     PushConstants { T * translate<y>(-0.5) * rotate<x>(-90), core::RGBA::darkGreen, isLight },
+                     PushConstants { T * translate<y>(+0.5) * rotate<x>(+90), core::RGBA::green,     isLight },
+                     PushConstants { T * translate<z>(-0.5) * flip<x>(),      core::RGBA::darkBlue,  isLight },
+                     PushConstants { T * translate<z>(+0.5),                  core::RGBA::blue,      isLight },
+            }) {
+                primitiveCube.emplace_back(model, pipeline, storage.createMatrix(matrix));
+            }
+        }
+        const Entity coordinates {
+            .model    = storage.createModel(core::geometry::coordinates),
+            .pipeline = storage.createPipeline<core::geometry::PositionAndColor>(core::shader::Type::coordinates),
+            .matrix   = storage.createMatrix(PushConstants {
+                  .matrix    = core::math::fullMatrix(core::math::identity<4>),
+                  .baseColor = core::RGBA::white,
+                  .isLight   = {},
+            }),
+        };
+        // === initialize ===
 
         log::checkpoint("Main loop start");
 
@@ -623,6 +814,12 @@ public:
 
                 presenter.beginRendering();
                 skybox.draw(commandBuffer, renderer.descriptor.set);
+
+                storage.reset();
+                for (const auto& face : primitiveCube) {
+                    storage.draw(commandBuffer, face);
+                }
+                storage.draw(commandBuffer, coordinates);
 
                 // === draw ===
 
@@ -933,7 +1130,7 @@ public:
                 }
 
 
-                if constexpr (drawCoordinates) {  // bind coordinates
+                if constexpr (drawCoordinates && false) {  // bind coordinates
                     core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
                     vkCmdBindPipeline(commandBuffer, graphicsBindPoint, coordinatesPipeline);
                     vkCmdSetLineWidth(commandBuffer, 2.0);
@@ -952,15 +1149,15 @@ public:
                     vkCmdDrawIndexed(commandBuffer, core::geometry::coordinates.indices.size(), 1, 0, 0, 0);
                 }
 
-                if constexpr (drawPrimitive) {
+                if constexpr (drawPrimitive && false) {
                     using namespace core::math;
                     constexpr core::math::Translation<> T { 0, 0, 0 };
 
                     // primitive simple color
                     core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
                     vkCmdBindPipeline(commandBuffer, graphicsBindPoint, primitivePipeline);
-                    vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, primitivePipelineLayout, sceneIndex, 1,
-                                            &renderer.descriptor.set, 0, nullptr);
+                    // vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, primitivePipelineLayout, sceneIndex, 1,
+                    //                         &renderer.descriptor.set, 0, nullptr);
                     for (const auto& [color, matrix] : {
                              std::pair { core::RGBA::darkRed,   T * translate<x>(-0.5) * rotate<y>(+90) },
                              std::pair { core::RGBA::red,       T * translate<x>(+0.5) * rotate<y>(-90) },
