@@ -911,5 +911,69 @@ public:
 
         return materialIds;
     }
+
+    template<typename EntityID>
+    std::map<EntityID, const asset::Mesh*> createMeshes2(const std::map<EntityID, const asset::Material*> materials,
+                                                         std::map<EntityID, asset::Mesh>& meshes) const {
+        uint32_t partialIndexCount { 0 };
+
+        // std::vector<asset::Mesh> meshes;
+        // meshes.reserve(asset.meshes.size());
+        std::map<EntityID, const asset::Mesh*> meshIds;
+        uint32_t                               meshId = 0;
+        for (const fastgltf::Mesh& fastgltfMesh : asset.meshes) {
+            auto [mesh, inserted] = meshes.emplace(meshes.size(), baptize<This::mesh>(fastgltfMesh.name, meshId));
+            if (!inserted) {
+                throw std::runtime_error("Mesh already present");
+            }
+            meshIds.emplace(meshId, &mesh->second);
+            ++meshId;
+
+            mesh->second.primitives.reserve(fastgltfMesh.primitives.size());
+            for (const fastgltf::Primitive& primitive : fastgltfMesh.primitives) {
+                const fastgltf::Accessor& positionAccessor =
+                    asset.accessors.at(primitive.findAttribute("POSITION")->accessorIndex);
+
+                const auto indexCount  = asset.accessors.at(primitive.indicesAccessor.value()).count;
+                const auto vertexCount = positionAccessor.count;
+
+                // constexpr auto cast = [](auto t) { return static_cast<Float32>(t); };
+
+                constexpr auto        minValue = std::numeric_limits<core::math::Vector<3>::value_type>::min();
+                constexpr auto        maxValue = std::numeric_limits<core::math::Vector<3>::value_type>::min();
+                core::math::Vector<3> min { maxValue, maxValue, maxValue };
+                core::math::Vector<3> max { minValue, minValue, minValue };
+                using PositionAttribute =
+                    typename Vertex::Attribute<Vertex::attributeIndex<core::geometry::Attribute::position>()>::Value;
+                fastgltf::iterateAccessor<PositionAttribute>(asset, positionAccessor, [&](const auto& value) {
+                    core::forEach<0, 3>([&]<int i> {
+                        get<i>(min) = std::min(get<i>(min), value[i]);
+                        get<i>(max) = std::max(get<i>(max), value[i]);
+                    });
+                });
+                core::forEach<0, 3>([&]<int i> { assert(get<i>(min) <= get<i>(max)); });
+
+                const auto& material =
+                    primitive.materialIndex ? *materials.at(primitive.materialIndex.value()) : defaults.material;
+
+                const auto end = primitive.attributes.end();
+                mesh->second.primitives.emplace_back(
+                    partialIndexCount, indexCount, vertexCount, material,
+                    asset::Mesh::Primitive::Attributes {
+                        { core::geometry::Attribute::position,    primitive.findAttribute("POSITION") != end   },
+                        { core::geometry::Attribute::color,       primitive.findAttribute("COLOR_0") != end    },
+                        { core::geometry::Attribute::normal,      primitive.findAttribute("NORMAL") != end     },
+                        { core::geometry::Attribute::tangent,     primitive.findAttribute("TANGENT") != end    },
+                        { core::geometry::Attribute::texCoord,    primitive.findAttribute("TEXCOORD_0") != end },
+                        { core::geometry::Attribute::jointIndex,  primitive.findAttribute("JOINTS_0") != end   },
+                        { core::geometry::Attribute::jointWeight, primitive.findAttribute("WEIGHTS_0") != end  },
+                },
+                    core::geometry::BoundingBox { min, max }, asset::Mesh::Primitive::State { false });
+
+                partialIndexCount += indexCount;
+            }
+        }
+        return meshIds;
+    }
 };
 }  // namespace surge::load

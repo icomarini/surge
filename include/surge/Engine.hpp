@@ -210,6 +210,7 @@ struct Storage {
         shaderStages) };
 
     const core::Command&                                 command;
+    const load::Defaults&                                defaults;
     const Descriptor&                                    mainCamera;
     core::LazyAccessContainer<EntityID, asset::Model>    models;
     core::LazyAccessContainer<EntityID, Pipeline>        pipelines;
@@ -220,17 +221,22 @@ struct Storage {
     VkDescriptorSetLayout                                pbrMaterialLayout;
     core::LazyAccessContainer<EntityID, VkDescriptorSet> materials;
     core::LazyAccessContainer<EntityID, asset::Material> materials2;
+    std::map<EntityID, asset::Mesh>                      meshes;
     EntityID                                             defaultTextureId;
     EntityID                                             whiteTextureId;
     EntityID                                             blackTextureId;
 
-    Storage(const core::Command& command, const Descriptor& mainCamera)
+    Storage(const core::Command& command, const load::Defaults& defaults, const Descriptor& mainCamera)
         : command { command }
+        , defaults { defaults }
         , mainCamera { mainCamera }
         , matrices {}
         , materialPool { createDescriptorPool<1, 3>(32, 32) }
         , simpleMaterialLayout { createDescriptorSetLayout<1>() }
         , pbrMaterialLayout { createDescriptorSetLayout<3>() }
+        , materials {}
+        , materials2 {}
+        , meshes {}
         , defaultTextureId { createTexture("default", load::textureData) }
         , whiteTextureId { createTexture("white", core::RGBA::white, load::flatTextureData) }
         , blackTextureId { createTexture("black", core::RGBA::black, load::flatTextureData) } {
@@ -332,6 +338,18 @@ struct Storage {
 
     EntityID createPbrMaterial(const EntityID diffuseId, const EntityID specularId, const EntityID normalId) {
         return materials.create(createMaterialDescriptorSet(pbrMaterialLayout, diffuseId, specularId, normalId));
+    }
+
+    EntityID createAsset(const load::Gltf::Handle& handle) {
+        const load::Gltf asset { handle, defaults };
+        const auto       newTextures = asset.createTextures2(command, textures);
+        const auto       newMaterials =
+            asset.createMaterials2(command.context, materialPool, pbrMaterialLayout, newTextures, materials2);
+        const auto newMeshes = asset.createMeshes2(newMaterials, meshes);
+        // const auto [iter, inserted] = assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
+        //                                              std::forward_as_tuple(command, load::Gltf { handle, defaults
+        //                                              }));
+        return {};
     }
 
     void draw(const VkCommandBuffer commandBuffer, const Entity& entity) const {
@@ -458,45 +476,6 @@ private:
 
         return descriptorSet;
     }
-
-    // template<std::size_t bindingCount>
-    // VkDescriptorSet createMaterialDescriptorSet(const VkDescriptorSetLayout descriptorSetLayout,
-    //                                             const EntityID              textureId) const {
-    //     // allocate descriptor sets
-    //     const VkDescriptorSetAllocateInfo allocInfo {
-    //         .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-    //         .pNext              = nullptr,
-    //         .descriptorPool     = materialPool,
-    //         .descriptorSetCount = 1,
-    //         .pSetLayouts        = &descriptorSetLayout,
-    //     };
-    //     VkDescriptorSet descriptorSet;
-    //     if (vkAllocateDescriptorSets(command.context.device, &allocInfo, &descriptorSet) != VK_SUCCESS) {
-    //         throw std::runtime_error("Failed to allocate descriptor sets");
-    //     }
-
-    //     // write descriptor sets
-    //     const auto& texture = textures.at(textureId);
-    //     const auto  descriptorWrites =
-    //         createArray<VkWriteDescriptorSet, bindingCount>([&]<int binding>(auto& descriptorWrite) {
-    //             descriptorWrite = {
-    //                 .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-    //                 .pNext            = nullptr,
-    //                 .dstSet           = descriptorSet,
-    //                 .dstBinding       = binding,
-    //                 .dstArrayElement  = 0,
-    //                 .descriptorCount  = 1,
-    //                 .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-    //                 .pImageInfo       = texture.imageInfo(),
-    //                 .pBufferInfo      = texture.bufferInfo(),
-    //                 .pTexelBufferView = nullptr,
-    //             };
-    //         });
-    //     vkUpdateDescriptorSets(command.context.device, static_cast<uint32_t>(descriptorWrites.size()),
-    //                            descriptorWrites.data(), 0, nullptr);
-
-    //     return descriptorSet;
-    // }
 };
 
 class Engine {
@@ -726,10 +705,7 @@ public:
 
         // === initialize ===
         const Descriptor mainCamera { renderer.descriptor.setLayout, renderer.descriptor.set };
-        Storage          storage(command, mainCamera);
-        // const auto       defaultTexture = storage.createTexture("default", load::textureData);
-        // const auto whiteTexture = storage.createTexture("white", core::RGBA::white, load::flatTextureData);
-        const auto blackTexture = storage.createTexture("black", core::RGBA::black, load::flatTextureData);
+        Storage          storage(command, defaults, mainCamera);
 
         const Entity coordinates {
             // coordinate system
@@ -813,6 +789,13 @@ public:
                 };
                 brickwalls.emplace_back(model, pipeline, storage.createMatrix(matrix), material);
             });
+        }
+
+        {
+            storage.createAsset(
+                load::Gltf::Handle { "/home/ico/projects/extern/Vulkan/assets/models/chinesedragon.gltf" });
+            storage.createAsset(
+                load::Gltf::Handle { "/home/ico/projects/uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" });
         }
 
         // {  // cerberus

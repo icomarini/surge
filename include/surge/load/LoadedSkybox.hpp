@@ -54,26 +54,28 @@ public:
                                                  const std::vector<asset::Texture>& textures) const {
         assert(textures.size() == 1);
         using TextureData = asset::Material::TextureData;
-        return { asset::Material {
-            .name                     = baptize<This::material>(0),
-            .doubleSided              = false,
-            .unlit                    = false,
-            .alphaMode                = asset::Material::AlphaMode::opaque,
-            .alphaCutoff              = 1,
-            .baseColorTexture         = TextureData { &textures.front(), 0 },
-            .baseColorFactor          = { 1, 1, 1, 1 },
-            .metallicRoughnessTexture = TextureData { &defaults.texture, 0 },
-            .metallicFactor           = 1,
-            .roughnessFactor          = 1,
-            .emissiveTexture          = TextureData { &defaults.texture, 0 },
-            .emissiveFactor           = { 0, 0, 0, 0 },
-            .emissiveStrength         = 1,
-            .normalTexture            = TextureData { &defaults.texture, 0 },
-            .normalScale              = 1,
-            .occlusionTexture         = TextureData { &defaults.texture, 0 },
-            .occlusionStrength        = 1,
-            .descriptorSet = core::Descriptor::createDescriptorSet(context, materialDescriptorSetLayout, descriptorPool,
-                                                                   TextureDescr { textures.front() }) } };
+        return {
+            asset::Material {
+                             .name                     = baptize<This::material>(0),
+                             .doubleSided              = false,
+                             .unlit                    = false,
+                             .alphaMode                = asset::Material::AlphaMode::opaque,
+                             .alphaCutoff              = 1,
+                             .baseColorTexture         = TextureData { &textures.front(), 0 },
+                             .baseColorFactor          = { 1, 1, 1, 1 },
+                             .metallicRoughnessTexture = TextureData { &defaults.texture, 0 },
+                             .metallicFactor           = 1,
+                             .roughnessFactor          = 1,
+                             .emissiveTexture          = TextureData { &defaults.texture, 0 },
+                             .emissiveFactor           = { 0, 0, 0, 0 },
+                             .emissiveStrength         = 1,
+                             .normalTexture            = TextureData { &defaults.texture, 0 },
+                             .normalScale              = 1,
+                             .occlusionTexture         = TextureData { &defaults.texture, 0 },
+                             .occlusionStrength        = 1,
+                             .descriptorSet            = core::Descriptor::createDescriptorSet(
+                    context, materialDescriptorSetLayout, descriptorPool, TextureDescr { textures.front() }) }
+        };
     }
 
     std::vector<asset::Mesh> createMeshes(const std::vector<asset::Material>& materials) const {
@@ -87,13 +89,13 @@ public:
         auto&                    mesh = meshes.emplace_back(baptize<This::mesh>(0));
         mesh.primitives.emplace_back(0, defaults.cube.indexCount, defaults.cube.indexCount, material,
                                      asset::Mesh::Primitive::Attributes {
-                                         { core::geometry::Attribute::position, true },
-                                         { core::geometry::Attribute::color, false },
-                                         { core::geometry::Attribute::normal, false },
-                                         { core::geometry::Attribute::texCoord, materials.size() > 0 },
-                                         { core::geometry::Attribute::jointIndex, false },
-                                         { core::geometry::Attribute::jointWeight, false },
-                                     },
+                                         { core::geometry::Attribute::position,    true                 },
+                                         { core::geometry::Attribute::color,       false                },
+                                         { core::geometry::Attribute::normal,      false                },
+                                         { core::geometry::Attribute::texCoord,    materials.size() > 0 },
+                                         { core::geometry::Attribute::jointIndex,  false                },
+                                         { core::geometry::Attribute::jointWeight, false                },
+        },
                                      bbox, asset::Mesh::Primitive::State { false });
         return meshes;
     }
@@ -110,19 +112,18 @@ public:
                 asset::Node {
                     .meshIndex = std::optional<core::Index> { 0 },
                     .skinIndex = std::optional<core::Index> {},
+                    .color     = {},
                     .isLight   = false,
                     .state =
                         asset::Node::State {
-                            .active      = true,
-                            .polygonMode = core::PolygonMode::fill,
-                            // .vertexStageFlag   = 0,
-                            // .fragmentStageFlag = 0,
-                            .translation  = { 0, 0, 0 },
-                            .scale        = { 1, 1, 1 },
-                            .localMatrix  = core::math::Matrix<4, 4> {},
-                            .globalMatrix = core::math::Matrix<4, 4> {},
-                        },
-                },
+                                                             .active       = true,
+                                                             .polygonMode  = core::PolygonMode::fill,
+                                                             .translation  = { 0, 0, 0 },
+                                                             .scale        = { 1, 1, 1 },
+                                                             .localMatrix  = core::math::Matrix<4, 4> {},
+                                                             .globalMatrix = core::math::Matrix<4, 4> {},
+                                                             },
+            },
                 std::vector<core::Index> {});
             return nodes;
         };
