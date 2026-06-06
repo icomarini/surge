@@ -22,7 +22,7 @@ AllowShortFunctionsOnASingleLine: None
 AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: true
 #BinPackArguments: true
-#BinPackParameters: true
+BinPackParameters: true
 #BraceWrapping:   
 #  AfterClass:      false
 #  AfterControlStatement: false
