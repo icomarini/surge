@@ -168,6 +168,17 @@ constexpr Matrix<rows<A>, cols<B>, ValueType<A>> operator*(const A& a, const B& 
     return c;
 }
 
+template<StaticMatrix M, StaticVector V>
+    requires HasSizes<M> && HasLength<V> && (cols<M> == length<V>)
+constexpr Vector<rows<M>, ValueType<M>> operator*(const M& m, const V& v) {
+    Vector<rows<M>, ValueType<M>> c {};
+    forEach<0, rows<M>, 0, cols<M>>([&]<Size row, Size mid>() {
+        if constexpr (nonzero<row, mid, M>) {
+            get<row>(c) += get<row, mid>(m) * get<mid>(v);
+        }
+    });
+    return c;
+}
 
 template<StaticMatrix M>
 constexpr M operator*(const M& m, const ValueType<M>& a) {
@@ -189,6 +200,14 @@ constexpr M operator*(const ValueType<M>& alpha, const M& m) {
 template<StaticMatrix M>
 constexpr M operator/(const M& m, const ValueType<M>& a) {
     return (ValueType<M> { 1 } / a) * m;
+}
+
+// T& operator *=(T& a, const T2& b);
+
+template<StaticMatrix A, StaticMatrix B>
+    requires HasSizes<A> && HasSizes<B> && (cols<A> == rows<B>)
+constexpr Matrix<rows<A>, cols<B>, ValueType<A>> operator*=(const A& a, const B& b) {
+    return a * b;
 }
 
 template<SquareMatrix M>

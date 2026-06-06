@@ -19,6 +19,76 @@
 
 namespace surge {
 
+using vec3 = core::math::Vector<3>;
+struct triangle3 {
+    vec3 a;
+    vec3 b;
+    vec3 c;
+};
+std::optional<vec3> ray_intersects_triangle(const vec3& ray_origin, const vec3& ray_vector, const triangle3& triangle) {
+    constexpr float epsilon = std::numeric_limits<float>::epsilon();
+
+    vec3 edge1 = triangle.b - triangle.a;
+    vec3 edge2 = triangle.c - triangle.a;
+
+    // Backface culling, assuming CCW-wound triangles.
+    const vec3 normal = cross(edge1, edge2);  // No need to normalize
+    if (dot(normal, ray_vector) > 0) {
+        return std::nullopt;
+    }
+
+    vec3  ray_cross_e2 = cross(ray_vector, edge2);
+    float det          = dot(edge1, ray_cross_e2);
+
+    if (abs(det) < epsilon) {
+        return std::nullopt;  // Ray is parallel to triangle
+    }
+
+    float inv_det = 1.0 / det;
+    vec3  s       = ray_origin - triangle.a;
+    float u       = inv_det * dot(s, ray_cross_e2);
+
+    if (u < -epsilon || u - 1 > epsilon) {
+        return std::nullopt;  // Ray passes outside edge2's bounds
+    }
+
+    vec3  s_cross_e1 = cross(s, edge1);
+    float v          = inv_det * dot(ray_vector, s_cross_e1);
+
+    if (v < -epsilon || u + v - 1 > epsilon) {
+        return std::nullopt;  // Ray passes outside edge1's bounds
+    }
+
+    // The ray line intersects with the triangle.
+    // We compute t to find where on the ray the intersection is.
+    float t = inv_det * dot(edge2, s_cross_e1);
+
+    if (t > epsilon)  // Ray intersection
+    {
+        return vec3(ray_origin + ray_vector * t);
+    } else {
+        // This means that there is a line intersection but not a ray intersection.
+        return std::nullopt;
+    }
+}
+
+template<typename Transformation>
+core::math::Vector<3> transform(const core::math::Vector<3>& point, const Transformation& transformation) {
+    using namespace core::math;
+    const Vector<4> p0 {
+        get<0>(point),
+        get<1>(point),
+        get<2>(point),
+        one<ValueType<Vector<4>>>,
+    };
+    const auto p1 = transformation * p0;
+    return Vector<3> {
+        get<0>(p1),
+        get<1>(p1),
+        get<2>(p1),
+    };
+}
+
 double elapsed(auto start) {
     const auto stop = std::chrono::high_resolution_clock::now();
     return 1e-3 * std::chrono::duration<double, std::milli>(stop - start).count();
@@ -225,6 +295,7 @@ struct Storage {
     EntityID                                             defaultTextureId;
     EntityID                                             whiteTextureId;
     EntityID                                             blackTextureId;
+    EntityID                                             linePipelineId;
 
     Storage(const core::Command& command, const load::Defaults& defaults, const Descriptor& mainCamera)
         : command { command }
@@ -239,7 +310,8 @@ struct Storage {
         , meshes {}
         , defaultTextureId { createTexture("default", load::textureData) }
         , whiteTextureId { createTexture("white", core::RGBA::white, load::flatTextureData) }
-        , blackTextureId { createTexture("black", core::RGBA::black, load::flatTextureData) } {
+        , blackTextureId { createTexture("black", core::RGBA::black, load::flatTextureData) }
+        , linePipelineId { createLinePipeline() } {
     }
 
     ~Storage() {
@@ -261,6 +333,27 @@ struct Storage {
         constexpr auto vertexInputState = core::createVertexInputState<VertexInputState>();
         const auto     pipeline =
             core::createGraphicPipeline(command.context, vertexInputState, pipelineLayout, shaderType);
+        return pipelines.create(pipelineLayout, pipeline);
+    }
+
+    EntityID createLinePipeline() {
+        const auto pipelineLayout = core::createPipelineLayout(
+            command.context, core::createPushConstantRange<asset::Line>(VK_SHADER_STAGE_VERTEX_BIT),
+            mainCamera.descriptorSetLayout);
+        const auto pipeline = core::createGraphicPipeline(
+            command.context, core::createVertexInputState(), VK_NULL_HANDLE, pipelineLayout,
+            core::shader::Shader {
+                command.context,
+                core::shader::ShaderInfo<core::shader::Type::line, core::shader::Stage::vertex> { nullptr },
+                core::shader::ShaderInfo<core::shader::Type::line, core::shader::Stage::fragment> { nullptr },
+            },
+            VkPipelineInputAssemblyStateCreateInfo {
+                .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+                .pNext                  = nullptr,
+                .flags                  = {},
+                .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
+                .primitiveRestartEnable = VK_FALSE,
+            });
         return pipelines.create(pipelineLayout, pipeline);
     }
 
@@ -365,22 +458,20 @@ struct Storage {
         vkCmdSetLineWidth(commandBuffer, 2.0);
         const auto pipelineLayout = pipelines.get(entity.pipeline).layout();
 
-        // bind main camera
-        constexpr uint32_t sceneIndex { 0 };
-        vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, sceneIndex, 1, &mainCamera.get(), 0,
-                                nullptr);
+        // bind pipeline and main camera
+        pipelines.apply(entity.pipeline, [&](const Pipeline& pipeline) {
+            core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+            vkCmdBindPipeline(commandBuffer, graphicsBindPoint, pipeline.get());
+            constexpr uint32_t sceneIndex { 0 };
+            vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, sceneIndex, 1, &mainCamera.get(),
+                                    0, nullptr);
+        });
 
         // bind model
         models.apply(entity.model, [&](const asset::Model& model) {
             constexpr VkDeviceSize offset { 0 };
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model.vertexBuffer.buffer, &offset);
             vkCmdBindIndexBuffer(commandBuffer, model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-        });
-
-        // bind pipeline
-        pipelines.apply(entity.pipeline, [&](const Pipeline& pipeline) {
-            core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
-            vkCmdBindPipeline(commandBuffer, graphicsBindPoint, pipeline.get());
         });
 
         // bind matrix
@@ -397,6 +488,21 @@ struct Storage {
         }
 
         vkCmdDrawIndexed(commandBuffer, models.get(entity.model).indexCount, 1, 0, 0, 0);
+    }
+
+    void draw(const VkCommandBuffer commandBuffer, const asset::Line& line) const {
+        // bind main camera
+        const auto pipelineLayout = pipelines.get(linePipelineId).layout();
+
+        pipelines.apply(linePipelineId, [&](const Pipeline& pipeline) {
+            core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+            vkCmdBindPipeline(commandBuffer, graphicsBindPoint, pipeline.get());
+            constexpr uint32_t sceneIndex { 0 };
+            vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, sceneIndex, 1, &mainCamera.get(),
+                                    0, nullptr);
+        });
+        vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(asset::Line), &line);
+        vkCmdDraw(commandBuffer, 2, 1, 0, 0);
     }
 
     void reset() {
@@ -850,11 +956,11 @@ public:
                 context.pollEvents();
 
                 // === entity playground ===
-                entities.back().nodes.get(1).state.translation = lightCamera.vecs.position;
+                // entities.back().nodes.get(1).state.translation = lightCamera.vecs.position;
 
-                for (auto& entity : entities) {
-                    entity.update(0, elapsedTime);
-                }
+                // for (auto& entity : entities) {
+                //     entity.update(0, elapsedTime);
+                // }
                 // === entity playground ===
 
                 playerCamera.update(input, context.window.resolution);
@@ -868,9 +974,13 @@ public:
                 renderer.update(playerCamera);
                 // overlay.update(input, playerCamera);
 
-                // for (auto& matrix : storage.matrices) {
-                //     matrix.second.matrix = matrix.second.matrix * translate<z>(std::sin(elapsedTime));
-                // }
+                const core::math::Rotation rotationY { core::math::toQuaternion(0.0f, 1.0f * input.timer, 0.0f) };
+                const core::math::Rotation rotationX { core::math::toQuaternion(1.0f * input.timer, 0.0f, 0.0f) };
+                // const core::math::Translation<> translation { 4.0f, 0.5f * std::sin(5.0f * input.timer), 0.0f };
+                const core::math::Translation<> translation { 4.0f, 0.0f, 0.0f };
+                core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
+                    storage.matrices[face + 13].matrix = translation * rotationY * cubeFaceMatrices.at(face);
+                });
 
                 // === rendering ===
                 const auto commandBuffer = presenter.acquire();
@@ -886,14 +996,35 @@ public:
                     storage.draw(commandBuffer, tile);
                 }
 
-                const core::math::Rotation      rotationY { core::math::toQuaternion(0.0f, 1.0f * input.timer, 0.0f) };
-                const core::math::Rotation      rotationX { core::math::toQuaternion(1.0f * input.timer, 0.0f, 0.0f) };
-                const core::math::Translation<> translation { 4.0f, 0.5f * std::sin(5.0f * input.timer), 0.0f };
-                core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
-                    storage.matrices[face + 13].matrix =
-                        translation * rotationY * rotationX * cubeFaceMatrices.at(face);
+                core::forEach<0, cubeFaceMatrices.size(), 0, 2>([&]<int face, int triangle>() {
+                    const auto& matrix = storage.matrices[face + 13].matrix;
+
+                    using namespace core::geometry;
+                    constexpr auto& vertices = planeTexturedNormals.vertices;
+                    constexpr auto& indices  = planeTexturedNormals.indices;
+                    constexpr auto  offset   = triangle * 3;
+
+                    constexpr auto a = (vertices.at(indices.at(offset + 0)).get<Attribute::position>() +
+                                        vertices.at(indices.at(offset + 1)).get<Attribute::position>() +
+                                        vertices.at(indices.at(offset + 2)).get<Attribute::position>()) /
+                                       3.0f;
+                    constexpr auto b = a + (vertices.at(indices.at(offset + 0)).get<Attribute::normal>() +
+                                            vertices.at(indices.at(offset + 1)).get<Attribute::normal>() +
+                                            vertices.at(indices.at(offset + 2)).get<Attribute::normal>()) /
+                                               3.0f;
+                    storage.draw(commandBuffer, asset::Line {
+                                                    .a     = transform(a, matrix),
+                                                    .b     = transform(b, matrix),
+                                                    .color = core::Colors<core::Type::rgba>::white,
+                                                });
                 });
-                // const core::math::Rotation rotation { core::math::toQuaternion(0.0f, 0.0f, input.timer) };
+
+                // renderer.drawLine(commandBuffer, pipelineLayout,
+                //          asset::Line {
+                //              .a     = spring.first.position,
+                //              .b     = spring.second.position,
+                //              .color = core::Colors<core::Type::rgba>::white,
+                //          });
 
                 // === draw ===
                 if constexpr (false) {
@@ -1152,8 +1283,10 @@ public:
                 start = std::chrono::high_resolution_clock::now();
             }
 
-            const auto stop = std::chrono::high_resolution_clock::now();
-            elapsedTime     = 1e-3 * std::chrono::duration<double, std::milli>(stop - start).count();
+            const auto stop     = std::chrono::high_resolution_clock::now();
+            const auto duration = std::chrono::duration<double, std::milli>(stop - start).count();
+            elapsedTime         = 1e-3 * duration;
+            log::update("Frame took " + std::to_string(duration));
         }
         log::checkpoint("Main loop end");
 

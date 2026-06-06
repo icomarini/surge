@@ -6,6 +6,7 @@ namespace surge::log {
 enum class Type {
     checkpoint,
     info,
+    update,
     error,
 };
 
@@ -14,12 +15,14 @@ enum class Font {
     bold,
 };
 
-std::pair<std::string, core::Colors<core::Type::ansi>::Format> convert(const Type type) {
+constexpr std::pair<std::string, core::Colors<core::Type::ansi>::Format> convert(const Type type) {
     switch (type) {
     case Type::checkpoint:
         return { "URGE", core::Colors<core::Type::ansi>::white };
     case Type::info:
         return { "INFO", core::Colors<core::Type::ansi>::green };
+    case Type::update:
+        return { "UPDT", core::Colors<core::Type::ansi>::blue };
     case Type::error:
         return { "PURGE", core::Colors<core::Type::ansi>::red };
     default:
@@ -64,5 +67,15 @@ void info(const std::string& line) {
 
 void error(const std::string& line) {
     print<Type::error>(line);
+}
+
+void update(const std::string& line) {
+    const auto [tag, color] = convert(Type::update);
+    using Colors            = core::Colors<core::Type::ansi>;
+    std::stringstream stream;
+    stream << '\r' << format(Colors::white, Font::bold) << "[" << format(Colors::white, Font::regular) << "surge of "
+           << format(color, Font::bold) << tag << format(Colors::white, Font::bold) << "] " << format() << line;
+    const std::string string = stream.str();
+    std::cout << string;
 }
 }  // namespace surge::log

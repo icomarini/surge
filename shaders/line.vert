@@ -10,6 +10,8 @@ layout(push_constant) uniform PushConstants {
 layout(set = 0, binding = 0) uniform Scene {
     mat4 projection;
     mat4 view;
+    vec4 lightColor;
+    vec3 lightPosition;
 };
 
 // output =======================================

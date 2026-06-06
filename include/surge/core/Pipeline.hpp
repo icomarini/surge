@@ -82,7 +82,7 @@ static constexpr auto createAttributeDescriptions(geometry::Vertex<Attributes...
 }
 
 template<typename Vertex>
-constexpr VkPipelineVertexInputStateCreateInfo createVertexInputState() {
+consteval VkPipelineVertexInputStateCreateInfo createVertexInputState() {
     static constexpr VkVertexInputBindingDescription bindingDescription {
         .binding   = 0,
         .stride    = sizeof(Vertex),
@@ -103,7 +103,7 @@ constexpr VkPipelineVertexInputStateCreateInfo createVertexInputState() {
     return vertexInputState;
 }
 
-constexpr VkPipelineVertexInputStateCreateInfo createVertexInputState() {
+consteval VkPipelineVertexInputStateCreateInfo createVertexInputState() {
     return VkPipelineVertexInputStateCreateInfo {
         .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         .pNext                           = nullptr,
