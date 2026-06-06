@@ -160,6 +160,8 @@ set(SHADERS
     primitive.frag
     primitiveTextured.vert
     primitiveTextured.frag
+    primitiveTexturedNormal.vert
+    primitiveTexturedNormal.frag
 )
 
 list(TRANSFORM SHADERS PREPEND "${PROJECT_SOURCE_DIR}/shaders/")

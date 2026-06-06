@@ -346,6 +346,7 @@ struct Storage {
         const auto       newMaterials =
             asset.createMaterials2(command.context, materialPool, pbrMaterialLayout, newTextures, materials2);
         const auto newMeshes = asset.createMeshes2(newMaterials, meshes);
+        const auto model     = asset.createModel2(command, newMeshes);
         // const auto [iter, inserted] = assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
         //                                              std::forward_as_tuple(command, load::Gltf { handle, defaults
         //                                              }));
@@ -720,48 +721,70 @@ public:
         };
 
         std::vector<Entity> cubes;
+        enum { xBack = 0, xFront, yBack, yFront, zBack, zFront };
+
+        constexpr std::array cubeFaceMatrices {
+            translate<x>(-0.5) * rotate<y>(+90),         //
+            translate<x>(+0.5) * rotate<y>(-90),         //
+            translate<y>(-0.5) * rotate<x>(-90),         //
+            translate<y>(+0.5) * rotate<x>(+90),         //
+            translate<z>(-0.5) * flip<x>(),              //
+            core::math::fullMatrix(translate<z>(+0.5)),  //
+        };
+
         {  // untextured cube
             const auto model    = storage.createModel(core::geometry::plane);
             const auto pipeline = storage.createPipeline<core::geometry::Position>(core::shader::Type::primitive);
             constexpr uint32_t                  isLight {};
             constexpr core::math::Translation<> T { 0, 0, 0 };
-            for (const auto& matrix : {
-                     PushConstants { T * translate<x>(-0.5) * rotate<y>(+90), core::RGBA::darkRed,   isLight },
-                     PushConstants { T * translate<x>(+0.5) * rotate<y>(-90), core::RGBA::red,       isLight },
-                     PushConstants { T * translate<y>(-0.5) * rotate<x>(-90), core::RGBA::darkGreen, isLight },
-                     PushConstants { T * translate<y>(+0.5) * rotate<x>(+90), core::RGBA::green,     isLight },
-                     PushConstants { T * translate<z>(-0.5) * flip<x>(),      core::RGBA::darkBlue,  isLight },
-                     PushConstants { T * translate<z>(+0.5),                  core::RGBA::blue,      isLight },
-            }) {
+            constexpr std::array                cubeFaceColors {
+                core::RGBA::darkRed, core::RGBA::red,      core::RGBA::darkGreen,
+                core::RGBA::green,   core::RGBA::darkBlue, core::RGBA::blue,
+            };
+            core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
+                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), cubeFaceColors.at(face), isLight };
                 cubes.emplace_back(model, pipeline, storage.createMatrix(matrix), std::nullopt);
-            }
+            });
         }
 
+        const std::array cubeTextures {
+            storage.createTexture("xBack", core::RGBA::darkRed, load::textureDataX),
+            storage.createTexture("xFront", core::RGBA::red, load::textureDataX),
+            storage.createTexture("yBack", core::RGBA::darkGreen, load::textureDataY),
+            storage.createTexture("yFront", core::RGBA::green, load::textureDataY),
+            storage.createTexture("zBack", core::RGBA::darkBlue, load::textureDataZ),
+            storage.createTexture("zFront", core::RGBA::blue, load::textureDataZ),
+        };
+        const std::array cubeMaterials {
+            storage.createSimpleMaterial(cubeTextures.at(xBack)), storage.createSimpleMaterial(cubeTextures.at(xFront)),
+            storage.createSimpleMaterial(cubeTextures.at(yBack)), storage.createSimpleMaterial(cubeTextures.at(yFront)),
+            storage.createSimpleMaterial(cubeTextures.at(zBack)), storage.createSimpleMaterial(cubeTextures.at(zFront)),
+        };
+
         {  // textured cube
-            const auto xBack    = storage.createTexture("xBack", core::RGBA::darkRed, load::textureDataX);
-            const auto xFront   = storage.createTexture("xFront", core::RGBA::red, load::textureDataX);
-            const auto yBack    = storage.createTexture("yBack", core::RGBA::darkGreen, load::textureDataY);
-            const auto yFront   = storage.createTexture("yFront", core::RGBA::green, load::textureDataY);
-            const auto zBack    = storage.createTexture("zBack", core::RGBA::darkBlue, load::textureDataZ);
-            const auto zFront   = storage.createTexture("zFront", core::RGBA::blue, load::textureDataZ);
             const auto model    = storage.createModel(core::geometry::planeTextured);
             const auto pipeline = storage.createPipeline<core::geometry::PositionTexture>(
                 core::shader::Type::primitiveTextured, storage.simpleMaterialLayout);
             constexpr auto                      color { core::RGBA::white };
             constexpr uint32_t                  isLight {};
             constexpr core::math::Translation<> T { 2, 0, 0 };
-            using PC = PushConstants;
-            for (const auto& [matrix, texture] : {
-                     std::pair { PC { T * translate<x>(-0.5) * rotate<y>(+90), color, isLight }, xBack  },
-                     std::pair { PC { T * translate<x>(+0.5) * rotate<y>(-90), color, isLight }, xFront },
-                     std::pair { PC { T * translate<y>(-0.5) * rotate<x>(-90), color, isLight }, yBack  },
-                     std::pair { PC { T * translate<y>(+0.5) * rotate<x>(+90), color, isLight }, yFront },
-                     std::pair { PC { T * translate<z>(-0.5) * flip<x>(), color, isLight },      zBack  },
-                     std::pair { PC { T * translate<z>(+0.5), color, isLight },                  zFront },
-            }) {
-                cubes.emplace_back(model, pipeline, storage.createMatrix(matrix),
-                                   storage.createSimpleMaterial(texture));
-            }
+            core::forEach<0, 6>([&]<int face>() {
+                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), color, isLight };
+                cubes.emplace_back(model, pipeline, storage.createMatrix(matrix), cubeMaterials.at(face));
+            });
+        }
+
+        {  // textured normal cube
+            const auto model    = storage.createModel(core::geometry::planeTexturedNormals);
+            const auto pipeline = storage.createPipeline<core::geometry::PositionNormalTexture>(
+                core::shader::Type::primitiveTexturedNormal, storage.simpleMaterialLayout);
+            constexpr auto                      color { core::RGBA::white };
+            constexpr uint32_t                  isLight {};
+            constexpr core::math::Translation<> T { 4, 0, 0 };
+            core::forEach<0, 6>([&]<int face>() {
+                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), color, isLight };
+                cubes.emplace_back(model, pipeline, storage.createMatrix(matrix), cubeMaterials.at(face));
+            });
         }
 
         std::vector<Entity> brickwalls;
@@ -791,7 +814,7 @@ public:
             });
         }
 
-        {
+        if constexpr (false) {
             storage.createAsset(
                 load::Gltf::Handle { "/home/ico/projects/extern/Vulkan/assets/models/chinesedragon.gltf" });
             storage.createAsset(
@@ -837,24 +860,12 @@ public:
                 renderer.update(playerCamera);
                 // overlay.update(input, playerCamera);
 
-                constexpr core::math::Translation brickwallTranslation {
-                    core::math::Vector<3> { 0, -3, 0 }
-                };
-                constexpr core::math::Rotation brickwallRotation {
-                    core::math::Quaternion<> { sqrt2o2, sqrt2o2, 0, 0 }
-                };
-                // const core::math::Rotation    brickwallRotation { core::math::toQuaternion(0.0f, 0.0f,
-                // input.timer)
-                // };
-                constexpr core::math::Scaling brickwallScaling {
-                    core::math::Vector<3> { 4, 4, 4 }
-                };
-                const auto brickwallMatrix = brickwallTranslation * brickwallRotation * brickwallScaling;
-
+                // for (auto& matrix : storage.matrices) {
+                //     matrix.second.matrix = matrix.second.matrix * translate<z>(std::sin(elapsedTime));
+                // }
 
                 // === rendering ===
                 const auto commandBuffer = presenter.acquire();
-
                 presenter.beginRendering();
                 skybox.draw(commandBuffer, renderer.descriptor.set);
 
@@ -866,169 +877,65 @@ public:
                 for (const auto& tile : brickwalls) {
                     storage.draw(commandBuffer, tile);
                 }
+
+                const core::math::Rotation      rotationY { core::math::toQuaternion(0.0f, 1.0f * input.timer, 0.0f) };
+                const core::math::Rotation      rotationX { core::math::toQuaternion(1.0f * input.timer, 0.0f, 0.0f) };
+                const core::math::Translation<> translation { 4.0f, 0.5f * std::sin(5.0f * input.timer), 0.0f };
+                core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
+                    storage.matrices[face + 13].matrix =
+                        translation * rotationY * rotationX * cubeFaceMatrices.at(face);
+                });
+                // const core::math::Rotation rotation { core::math::toQuaternion(0.0f, 0.0f, input.timer) };
+
                 // === draw ===
-
-                // bind pipeline
-                constexpr auto graphicsBindPoint { VK_PIPELINE_BIND_POINT_GRAPHICS };
-                core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
-                vkCmdBindPipeline(commandBuffer, graphicsBindPoint, pipeline);
-                constexpr uint32_t sceneIndex { 0 };
-                vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, sceneIndex, 1,
-                                        &renderer.descriptor.set, 0, nullptr);
-
-                if constexpr (drawLight) {  // bind container
-                    constexpr VkDeviceSize containerOffset { 0 };
-                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &container.vertexBuffer.buffer, &containerOffset);
-                    vkCmdBindIndexBuffer(commandBuffer, container.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-                    constexpr uint32_t materialIndex { 1 };
-                    vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, materialIndex, 1,
-                                            &containerDescriptorSet, 0, nullptr);
-
-                    constexpr core::math::Vector<3> lightScaling { 0.1, 0.1, 0.1 };
-                    const PushConstants             lightPushConstants {
-                                    .matrix = core::math::Translation { lightCamera.vecs.position } *
-                                  core::math::Scaling { lightScaling },
-                                    .baseColor = renderer.lightColor,
-                                    .isLight   = true,
+                if constexpr (false) {
+                    constexpr core::math::Translation brickwallTranslation {
+                        core::math::Vector<3> { 0, -3, 0 }
                     };
-                    vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
-                                       &lightPushConstants);
-                    vkCmdDrawIndexed(commandBuffer, container.indexCount, 1, 0, 0, 0);
-                }
-
-                if constexpr (drawContainer) {  // bind container
-                    constexpr VkDeviceSize containerOffset { 0 };
-                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &container.vertexBuffer.buffer, &containerOffset);
-                    vkCmdBindIndexBuffer(commandBuffer, container.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-                    constexpr uint32_t materialIndex { 1 };
-                    vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, materialIndex, 1,
-                                            &containerDescriptorSet, 0, nullptr);
-
-                    const PushConstants containerPushConstants {
-                        .matrix    = core::math::fullMatrix(core::math::identity<4>),
-                        .baseColor = core::Colors<core::Type::rgba>::coral,
-                        .isLight   = false,
+                    constexpr core::math::Rotation brickwallRotation {
+                        core::math::Quaternion<> { sqrt2o2, sqrt2o2, 0, 0 }
                     };
-                    vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
-                                       &containerPushConstants);
-                    vkCmdDrawIndexed(commandBuffer, container.indexCount, 1, 0, 0, 0);
-                }
+                    constexpr core::math::Scaling brickwallScaling {
+                        core::math::Vector<3> { 4, 4, 4 }
+                    };
+                    constexpr auto brickwallMatrix = brickwallTranslation * brickwallRotation * brickwallScaling;
 
-                if constexpr (drawCerberus) {  // bind cerberus
-                    constexpr VkDeviceSize cerberusOffset { 0 };
-                    const auto&            cerberusAsset     = assets.at("cerberus");
-                    const auto&            cerberusModel     = cerberusAsset.model;
-                    const auto&            cerberusPrimitive = cerberusAsset.meshes.front().primitives.front();
-                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cerberusModel.vertexBuffer.buffer, &cerberusOffset);
-                    vkCmdBindIndexBuffer(commandBuffer, cerberusModel.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-                    constexpr uint32_t materialIndex { 1 };
-                    vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, materialIndex, 1,
-                                            &cerberusDescriptorSet, 0, nullptr);
-
-                    {  // draw cerberus
-                        const core::math::Vector<3> cerberusTranslation {
-                            1.0, 0.1 * cerberusPrimitive.boundingBox.min.at(1) + 0.8, 0.0
-                        };
-                        const core::math::Quaternion<> cerberusRotation1 { std::sqrt(2) / 2, 0, 0, std::sqrt(2) / 2 };
-                        const core::math::Quaternion<> cerberusRotation2 { std::sqrt(2) / 2, 0, std::sqrt(2) / 2, 0 };
-                        const PushConstants            cerberusPushConstants {
-                                       .matrix = core::math::Translation { cerberusTranslation } *
-                                      core::math::Rotation { cerberusRotation1 } *
-                                      core::math::Rotation { cerberusRotation2 },
-                                       .baseColor = core::Colors<core::Type::rgba>::red,
-                                       .isLight   = false,
-                        };
-
-                        // static_assert(core::math::get<3, 3>(core::math::Rotation { cerberusRotation1 } *
-                        //                                     core::math::Perspective<> {
-                        //                                     core::math::deg2rad(45.0f),
-                        //                                                                 16.0 / 9.0, 0.1f, 100.0f
-                        //                                                                 })
-                        //                                                                 ==
-                        //               1);
-                        vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
-                                           &cerberusPushConstants);
-                        vkCmdDrawIndexed(commandBuffer, cerberusPrimitive.indexCount, 1, cerberusPrimitive.firstIndex,
-                                         0, 0);
-                    }
-                }
-
-                if constexpr (drawDragon) {  // bind dragon mesh
-                    constexpr VkDeviceSize dragonOffset { 0 };
-                    const auto&            dragonAsset     = assets.at("dragon");
-                    const auto&            dragonModel     = dragonAsset.model;
-                    const auto&            dragonPrimitive = dragonAsset.meshes.front().primitives.front();
-                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &dragonModel.vertexBuffer.buffer, &dragonOffset);
-                    vkCmdBindIndexBuffer(commandBuffer, dragonModel.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-                    constexpr uint32_t materialIndex { 1 };
-                    vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, materialIndex, 1,
-                                            &dragonDescriptorSet, 0, nullptr);
-
-                    // draw dragon
-                    {
-                        const core::math::Vector<3> dragonTranslation {
-                            0.0, 0.1 * dragonPrimitive.boundingBox.min.at(1) + 0.8, 0.0
-                        };
-                        const core::math::Quaternion<> dragonRotation { std::sqrt(2) / 2, 0, 0, std::sqrt(2) / 2 };
-                        const core::math::Vector<3>    dragonScaling { 0.1, 0.1, 0.1 };
-
-                        const PushConstants dragonPushConstants {
-                            .matrix = core::math::Translation { dragonTranslation } *
-                                      core::math::Rotation { dragonRotation } * core::math::Scaling { dragonScaling },
-                            .baseColor = core::Colors<core::Type::rgba>::red,
-                            .isLight   = false,
-                        };
-                        vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
-                                           &dragonPushConstants);
-                        vkCmdDrawIndexed(commandBuffer, dragonPrimitive.indexCount, 1, dragonPrimitive.firstIndex, 0,
-                                         0);
-                    }
-                }
-
-                // draw normals
-                if constexpr (1 == 0) {
-                    const auto [linePipelineLayout, linePipeline] = renderer.pipelines.at("line");
+                    // bind pipeline
+                    constexpr auto graphicsBindPoint { VK_PIPELINE_BIND_POINT_GRAPHICS };
                     core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
-                    vkCmdSetLineWidth(commandBuffer, 1.0);
-                    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, linePipeline);
-                    vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, linePipelineLayout, 0, 1,
-                                            &renderer.descriptor.set, 0, nullptr);
-                    core::forEach<0, 3, 0, 8>([&]<int dimension, int vertex>() {
-                        constexpr std::array colors { core::Colors<core::Type::rgba>::red,
-                                                      core::Colors<core::Type::rgba>::green,
-                                                      core::Colors<core::Type::rgba>::blue };
-
-                        using namespace core::geometry;
-                        constexpr auto        index    = dimension * 8 + vertex;
-                        constexpr auto        position = cube2.vertices.at(index).get<Attribute::position>();
-                        constexpr auto        normal   = cube2.vertices.at(index).get<Attribute::normal>();
-                        constexpr asset::Line line {
-                            .a     = position,
-                            .b     = position + normal,
-                            .color = colors.at(dimension),
-                        };
-                        vkCmdPushConstants(commandBuffer, linePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                                           sizeof(asset::Line), &line);
-                        vkCmdDraw(commandBuffer, 2, 1, 0, 0);
-                    });
-                }
-
-                if constexpr (drawContainerNormal) {  // bind container
-                    core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
-                    vkCmdBindPipeline(commandBuffer, graphicsBindPoint, normalPipeline);
+                    vkCmdBindPipeline(commandBuffer, graphicsBindPoint, pipeline);
                     constexpr uint32_t sceneIndex { 0 };
-                    vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, normalPipelineLayout, sceneIndex, 1,
+                    vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, sceneIndex, 1,
                                             &renderer.descriptor.set, 0, nullptr);
-                    vkCmdSetLineWidth(commandBuffer, 3.0);
 
-                    constexpr VkDeviceSize containerOffset { 0 };
-                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &container.vertexBuffer.buffer, &containerOffset);
-                    vkCmdBindIndexBuffer(commandBuffer, container.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-                    constexpr uint32_t materialIndex { 1 };
-                    vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, materialIndex, 1,
-                                            &containerDescriptorSet, 0, nullptr);
+                    if constexpr (drawLight) {  // bind container
+                        constexpr VkDeviceSize containerOffset { 0 };
+                        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &container.vertexBuffer.buffer, &containerOffset);
+                        vkCmdBindIndexBuffer(commandBuffer, container.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                        constexpr uint32_t materialIndex { 1 };
+                        vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, materialIndex, 1,
+                                                &containerDescriptorSet, 0, nullptr);
 
-                    {  // draw container
+                        constexpr core::math::Vector<3> lightScaling { 0.1, 0.1, 0.1 };
+                        const PushConstants             lightPushConstants {
+                                        .matrix = core::math::Translation { lightCamera.vecs.position } *
+                                      core::math::Scaling { lightScaling },
+                                        .baseColor = renderer.lightColor,
+                                        .isLight   = true,
+                        };
+                        vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                                           &lightPushConstants);
+                        vkCmdDrawIndexed(commandBuffer, container.indexCount, 1, 0, 0, 0);
+                    }
+
+                    if constexpr (drawContainer) {  // bind container
+                        constexpr VkDeviceSize containerOffset { 0 };
+                        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &container.vertexBuffer.buffer, &containerOffset);
+                        vkCmdBindIndexBuffer(commandBuffer, container.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                        constexpr uint32_t materialIndex { 1 };
+                        vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, materialIndex, 1,
+                                                &containerDescriptorSet, 0, nullptr);
+
                         const PushConstants containerPushConstants {
                             .matrix    = core::math::fullMatrix(core::math::identity<4>),
                             .baseColor = core::Colors<core::Type::rgba>::coral,
@@ -1039,55 +946,186 @@ public:
                         vkCmdDrawIndexed(commandBuffer, container.indexCount, 1, 0, 0, 0);
                     }
 
-                    // {  // draw light
-                    //     constexpr core::math::Vector<3> lightScaling { 0.1, 0.1, 0.1 };
-                    //     const PushConstants             lightPushConstants {
-                    //                     .matrix = core::math::Translation { lightCamera.vecs.position } *
-                    //                   core::math::Scaling { lightScaling },
-                    //                     .baseColor = renderer.lightColor,
-                    //                     .isLight   = true,
-                    //     };
-                    //     vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
-                    //                        &lightPushConstants);
-                    //     vkCmdDrawIndexed(commandBuffer, container.indexCount, 1, 0, 0, 0);
-                    // }
-                }
+                    if constexpr (drawCerberus) {  // bind cerberus
+                        constexpr VkDeviceSize cerberusOffset { 0 };
+                        const auto&            cerberusAsset     = assets.at("cerberus");
+                        const auto&            cerberusModel     = cerberusAsset.model;
+                        const auto&            cerberusPrimitive = cerberusAsset.meshes.front().primitives.front();
+                        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cerberusModel.vertexBuffer.buffer,
+                                               &cerberusOffset);
+                        vkCmdBindIndexBuffer(commandBuffer, cerberusModel.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                        constexpr uint32_t materialIndex { 1 };
+                        vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, materialIndex, 1,
+                                                &cerberusDescriptorSet, 0, nullptr);
 
-                if constexpr (drawCerberusNormals) {  // bind cerberus
-                    core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
-                    vkCmdBindPipeline(commandBuffer, graphicsBindPoint, normalPipeline);
-                    constexpr uint32_t sceneIndex { 0 };
-                    vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, normalPipelineLayout, sceneIndex, 1,
-                                            &renderer.descriptor.set, 0, nullptr);
-                    vkCmdSetLineWidth(commandBuffer, 1.0);
-
-                    constexpr VkDeviceSize cerberusOffset { 0 };
-                    const auto&            cerberusAsset     = assets.at("cerberus");
-                    const auto&            cerberusModel     = cerberusAsset.model;
-                    const auto&            cerberusPrimitive = cerberusAsset.meshes.front().primitives.front();
-                    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cerberusModel.vertexBuffer.buffer, &cerberusOffset);
-                    vkCmdBindIndexBuffer(commandBuffer, cerberusModel.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-                    // constexpr uint32_t materialIndex { 1 };
-                    // vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, materialIndex, 1,
-                    //                         &cerberusDescriptorSet, 0, nullptr);
-
-                    {  // draw cerberus
-                        const core::math::Vector<3> cerberusTranslation {
-                            1.0, 0.1 * cerberusPrimitive.boundingBox.min.at(1) + 0.8, 0.0
-                        };
-                        constexpr core::math::Quaternion<> cerberusRotation1 { sqrt2o2, 0, 0, sqrt2o2 };
-                        constexpr core::math::Quaternion<> cerberusRotation2 { sqrt2o2, 0, sqrt2o2, 0 };
-                        const PushConstants                cerberusPushConstants {
+                        {  // draw cerberus
+                            const core::math::Vector<3> cerberusTranslation {
+                                1.0, 0.1 * cerberusPrimitive.boundingBox.min.at(1) + 0.8, 0.0
+                            };
+                            const core::math::Quaternion<> cerberusRotation1 { std::sqrt(2) / 2, 0, 0,
+                                                                               std::sqrt(2) / 2 };
+                            const core::math::Quaternion<> cerberusRotation2 { std::sqrt(2) / 2, 0, std::sqrt(2) / 2,
+                                                                               0 };
+                            const PushConstants            cerberusPushConstants {
                                            .matrix = core::math::Translation { cerberusTranslation } *
-                                      core::math::Rotation { cerberusRotation1 } *
-                                      core::math::Rotation { cerberusRotation2 },
+                                          core::math::Rotation { cerberusRotation1 } *
+                                          core::math::Rotation { cerberusRotation2 },
                                            .baseColor = core::Colors<core::Type::rgba>::red,
                                            .isLight   = false,
-                        };
-                        vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
-                                           &cerberusPushConstants);
-                        vkCmdDrawIndexed(commandBuffer, cerberusPrimitive.indexCount, 1, cerberusPrimitive.firstIndex,
-                                         0, 0);
+                            };
+
+                            // static_assert(core::math::get<3, 3>(core::math::Rotation { cerberusRotation1 } *
+                            //                                     core::math::Perspective<> {
+                            //                                     core::math::deg2rad(45.0f),
+                            //                                                                 16.0 / 9.0, 0.1f, 100.0f
+                            //                                                                 })
+                            //                                                                 ==
+                            //               1);
+                            vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                                               &cerberusPushConstants);
+                            vkCmdDrawIndexed(commandBuffer, cerberusPrimitive.indexCount, 1,
+                                             cerberusPrimitive.firstIndex, 0, 0);
+                        }
+                    }
+
+                    if constexpr (drawDragon) {  // bind dragon mesh
+                        constexpr VkDeviceSize dragonOffset { 0 };
+                        const auto&            dragonAsset     = assets.at("dragon");
+                        const auto&            dragonModel     = dragonAsset.model;
+                        const auto&            dragonPrimitive = dragonAsset.meshes.front().primitives.front();
+                        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &dragonModel.vertexBuffer.buffer, &dragonOffset);
+                        vkCmdBindIndexBuffer(commandBuffer, dragonModel.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                        constexpr uint32_t materialIndex { 1 };
+                        vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, materialIndex, 1,
+                                                &dragonDescriptorSet, 0, nullptr);
+
+                        // draw dragon
+                        {
+                            const core::math::Vector<3> dragonTranslation {
+                                0.0, 0.1 * dragonPrimitive.boundingBox.min.at(1) + 0.8, 0.0
+                            };
+                            const core::math::Quaternion<> dragonRotation { std::sqrt(2) / 2, 0, 0, std::sqrt(2) / 2 };
+                            const core::math::Vector<3>    dragonScaling { 0.1, 0.1, 0.1 };
+
+                            const PushConstants dragonPushConstants {
+                                .matrix = core::math::Translation { dragonTranslation } *
+                                          core::math::Rotation { dragonRotation } *
+                                          core::math::Scaling { dragonScaling },
+                                .baseColor = core::Colors<core::Type::rgba>::red,
+                                .isLight   = false,
+                            };
+                            vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                                               &dragonPushConstants);
+                            vkCmdDrawIndexed(commandBuffer, dragonPrimitive.indexCount, 1, dragonPrimitive.firstIndex,
+                                             0, 0);
+                        }
+                    }
+
+                    // draw normals
+                    if constexpr (1 == 0) {
+                        const auto [linePipelineLayout, linePipeline] = renderer.pipelines.at("line");
+                        core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+                        vkCmdSetLineWidth(commandBuffer, 1.0);
+                        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, linePipeline);
+                        vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, linePipelineLayout, 0, 1,
+                                                &renderer.descriptor.set, 0, nullptr);
+                        core::forEach<0, 3, 0, 8>([&]<int dimension, int vertex>() {
+                            constexpr std::array colors { core::Colors<core::Type::rgba>::red,
+                                                          core::Colors<core::Type::rgba>::green,
+                                                          core::Colors<core::Type::rgba>::blue };
+
+                            using namespace core::geometry;
+                            constexpr auto        index    = dimension * 8 + vertex;
+                            constexpr auto        position = cube2.vertices.at(index).get<Attribute::position>();
+                            constexpr auto        normal   = cube2.vertices.at(index).get<Attribute::normal>();
+                            constexpr asset::Line line {
+                                .a     = position,
+                                .b     = position + normal,
+                                .color = colors.at(dimension),
+                            };
+                            vkCmdPushConstants(commandBuffer, linePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+                                               sizeof(asset::Line), &line);
+                            vkCmdDraw(commandBuffer, 2, 1, 0, 0);
+                        });
+                    }
+
+                    if constexpr (drawContainerNormal) {  // bind container
+                        core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+                        vkCmdBindPipeline(commandBuffer, graphicsBindPoint, normalPipeline);
+                        constexpr uint32_t sceneIndex { 0 };
+                        vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, normalPipelineLayout, sceneIndex, 1,
+                                                &renderer.descriptor.set, 0, nullptr);
+                        vkCmdSetLineWidth(commandBuffer, 3.0);
+
+                        constexpr VkDeviceSize containerOffset { 0 };
+                        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &container.vertexBuffer.buffer, &containerOffset);
+                        vkCmdBindIndexBuffer(commandBuffer, container.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                        constexpr uint32_t materialIndex { 1 };
+                        vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, materialIndex, 1,
+                                                &containerDescriptorSet, 0, nullptr);
+
+                        {  // draw container
+                            const PushConstants containerPushConstants {
+                                .matrix    = core::math::fullMatrix(core::math::identity<4>),
+                                .baseColor = core::Colors<core::Type::rgba>::coral,
+                                .isLight   = false,
+                            };
+                            vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                                               &containerPushConstants);
+                            vkCmdDrawIndexed(commandBuffer, container.indexCount, 1, 0, 0, 0);
+                        }
+
+                        // {  // draw light
+                        //     constexpr core::math::Vector<3> lightScaling { 0.1, 0.1, 0.1 };
+                        //     const PushConstants             lightPushConstants {
+                        //                     .matrix = core::math::Translation { lightCamera.vecs.position } *
+                        //                   core::math::Scaling { lightScaling },
+                        //                     .baseColor = renderer.lightColor,
+                        //                     .isLight   = true,
+                        //     };
+                        //     vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                        //                        &lightPushConstants);
+                        //     vkCmdDrawIndexed(commandBuffer, container.indexCount, 1, 0, 0, 0);
+                        // }
+                    }
+
+                    if constexpr (drawCerberusNormals) {  // bind cerberus
+                        core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+                        vkCmdBindPipeline(commandBuffer, graphicsBindPoint, normalPipeline);
+                        constexpr uint32_t sceneIndex { 0 };
+                        vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, normalPipelineLayout, sceneIndex, 1,
+                                                &renderer.descriptor.set, 0, nullptr);
+                        vkCmdSetLineWidth(commandBuffer, 1.0);
+
+                        constexpr VkDeviceSize cerberusOffset { 0 };
+                        const auto&            cerberusAsset     = assets.at("cerberus");
+                        const auto&            cerberusModel     = cerberusAsset.model;
+                        const auto&            cerberusPrimitive = cerberusAsset.meshes.front().primitives.front();
+                        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &cerberusModel.vertexBuffer.buffer,
+                                               &cerberusOffset);
+                        vkCmdBindIndexBuffer(commandBuffer, cerberusModel.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                        // constexpr uint32_t materialIndex { 1 };
+                        // vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, materialIndex, 1,
+                        //                         &cerberusDescriptorSet, 0, nullptr);
+
+                        {  // draw cerberus
+                            const core::math::Vector<3> cerberusTranslation {
+                                1.0, 0.1 * cerberusPrimitive.boundingBox.min.at(1) + 0.8, 0.0
+                            };
+                            constexpr core::math::Quaternion<> cerberusRotation1 { sqrt2o2, 0, 0, sqrt2o2 };
+                            constexpr core::math::Quaternion<> cerberusRotation2 { sqrt2o2, 0, sqrt2o2, 0 };
+                            const PushConstants                cerberusPushConstants {
+                                               .matrix = core::math::Translation { cerberusTranslation } *
+                                          core::math::Rotation { cerberusRotation1 } *
+                                          core::math::Rotation { cerberusRotation2 },
+                                               .baseColor = core::Colors<core::Type::rgba>::red,
+                                               .isLight   = false,
+                            };
+                            vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
+                                               &cerberusPushConstants);
+                            vkCmdDrawIndexed(commandBuffer, cerberusPrimitive.indexCount, 1,
+                                             cerberusPrimitive.firstIndex, 0, 0);
+                        }
                     }
                 }
 

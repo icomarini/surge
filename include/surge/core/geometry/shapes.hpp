@@ -53,25 +53,27 @@ using PositionAndColor = geometry::Vertex<
 //            |/         |/
 // [-1,-1,-1] O----------2 [ 1,-1,-1]
 
-static constexpr Shape cube { "cube",
-                              std::array {
-                                  Position { { -1, -1, -1 } },
-                                  Position { { -1, 1, -1 } },
-                                  Position { { 1, -1, -1 } },
-                                  Position { { 1, 1, -1 } },
-                                  Position { { -1, -1, 1 } },
-                                  Position { { -1, 1, 1 } },
-                                  Position { { 1, -1, 1 } },
-                                  Position { { 1, 1, 1 } },
-                              },
-                              std::array {
-                                  1, 4, 0, 5, 4, 1,  // x = -1
-                                  6, 3, 2, 6, 7, 3,  // x = +1
-                                  4, 2, 0, 4, 6, 2,  // y = -1
-                                  3, 5, 1, 7, 5, 3,  // y = +1
-                                  2, 1, 0, 2, 3, 1,  // z = -1
-                                  5, 6, 4, 7, 6, 5,  // z = +1
-                              } };
+static constexpr Shape cube {
+    "cube",
+    std::array {
+                Position { { -1, -1, -1 } },
+                Position { { -1, 1, -1 } },
+                Position { { 1, -1, -1 } },
+                Position { { 1, 1, -1 } },
+                Position { { -1, -1, 1 } },
+                Position { { -1, 1, 1 } },
+                Position { { 1, -1, 1 } },
+                Position { { 1, 1, 1 } },
+                },
+    std::array {
+                1, 4, 0, 5, 4, 1,  // x = -1
+        6, 3, 2, 6, 7, 3,  // x = +1
+        4, 2, 0, 4, 6, 2,  // y = -1
+        3, 5, 1, 7, 5, 3,  // y = +1
+        2, 1, 0, 2, 3, 1,  // z = -1
+        5, 6, 4, 7, 6, 5,  // z = +1
+    }
+};
 
 static constexpr math::Vector<3> origin { 0, 0, 0 };
 
@@ -104,7 +106,7 @@ static constexpr math::Vector<2> texture11 { 1, 1 };
 static constexpr Shape cube2 {
     "cube2",
     std::array {
-        //               3----------7
+                //               3----------7
         //              /|         /|
         //             / |        / |
         //            1----------5  |
@@ -160,7 +162,7 @@ static constexpr Shape cube2 {
                                                                                      /**/
     },
     std::array {
-        0,  1,  2,  1,  3,  2,   // x = -0.5
+                0,  1,  2,  1,  3,  2,   // x = -0.5
         4,  6,  5,  5,  6,  7,   // x = +0.5
         8,  10, 9,  9,  10, 11,  // y = -0.5
         12, 13, 14, 13, 15, 14,  // y = +0.5
@@ -172,7 +174,7 @@ static constexpr Shape cube2 {
 static constexpr Shape square {
     "square",
     std::array {
-        //               3
+                //               3
         //              /|
         //             / |
         //            1  |
@@ -187,58 +189,73 @@ static constexpr Shape square {
         PositionNormalTextureTangent { vertex011, -normalI, texture11, -tangentJ },  //  3: x = -0.5
     },
     std::array {
-        0, 1, 2, 1, 3, 2,  // x = -0.5
+                0, 1, 2, 1, 3, 2,  // x = -0.5
     }
 };
 
-static constexpr Shape coordinateSystem { "coord",
-                                          std::array { PositionAndColor { { -0.9, -0.9, -0.9 }, { 1, 0, 0, 1 } },
-                                                       PositionAndColor { { 0.1, -0.9, -0.9 }, { 1, 0, 0, 1 } },
-                                                       PositionAndColor { { -0.9, -0.9, -0.9 }, { 0, 1, 0, 1 } },
-                                                       PositionAndColor { { -0.9, 0.1, -0.9 }, { 0, 1, 0, 1 } },
-                                                       PositionAndColor { { -0.9, -0.9, -0.9 }, { 0, 0, 1, 1 } },
-                                                       PositionAndColor { { -0.9, -0.9, 0.1 }, { 0, 0, 1, 1 } } },
-                                          std::array { 0, 1, 2, 3, 4, 5 } };
+static constexpr Shape coordinateSystem {
+    "coord",
+    std::array { PositionAndColor { { -0.9, -0.9, -0.9 }, { 1, 0, 0, 1 } },
+                PositionAndColor { { 0.1, -0.9, -0.9 }, { 1, 0, 0, 1 } },
+                PositionAndColor { { -0.9, -0.9, -0.9 }, { 0, 1, 0, 1 } },
+                PositionAndColor { { -0.9, 0.1, -0.9 }, { 0, 1, 0, 1 } },
+                PositionAndColor { { -0.9, -0.9, -0.9 }, { 0, 0, 1, 1 } },
+                PositionAndColor { { -0.9, -0.9, 0.1 }, { 0, 0, 1, 1 } }                  },
+    std::array { 0,                                                         1, 2, 3, 4, 5 }
+};
 
 static constexpr Shape coordinates {
     "coordinates",
     std::array { PositionAndColor { -normalI, RGBA::darkRed }, PositionAndColor { normalI, RGBA::red },
-                 PositionAndColor { -normalJ, RGBA::darkGreen }, PositionAndColor { normalJ, RGBA::green },
-                 PositionAndColor { -normalK, RGBA::darkBlue }, PositionAndColor { normalK, RGBA::blue } },
-    std::array { 0, 1, 2, 3, 4, 5 }
+                PositionAndColor { -normalJ, RGBA::darkGreen },                                            PositionAndColor { normalJ, RGBA::green },
+                PositionAndColor { -normalK, RGBA::darkBlue },                                                                                           PositionAndColor { normalK, RGBA::blue } },
+    std::array { 0,                                            1,                                       2, 3,                                         4, 5                                        }
 };
 
+constexpr math::Vector<3> sw { -0.5, -0.5, 0 };
+constexpr math::Vector<3> se { 0.5, -0.5, 0 };
+constexpr math::Vector<3> nw { -0.5, 0.5, 0 };
+constexpr math::Vector<3> ne { 0.5, 0.5, 0 };
 
-static constexpr Shape plane { "plane",
-                               std::array {
-                                   //
-                                   //  z
-                                   //  | y          2----------3
-                                   //  |/          /          /
-                                   //  O---x      /          /
-                                   //            0----------1
-                                   //
-                                   Position { math::Vector<3> { -0.5, -0.5, 0 } },
-                                   Position { math::Vector<3> { 0.5, -0.5, 0 } },
-                                   Position { math::Vector<3> { -0.5, 0.5, 0 } },
-                                   Position { math::Vector<3> { 0.5, 0.5, 0 } },
-                               },
-                               std::array { 0, 1, 2, 1, 3, 2 } };
 
-static constexpr Shape planeTextured { "planeTextured",
-                                       std::array {
-                                           //
-                                           //  z
-                                           //  | y          2----------3
-                                           //  |/          /          /
-                                           //  O---x      /          /
-                                           //            0----------1
-                                           //
-                                           PositionTexture { math::Vector<3> { -0.5, -0.5, 0 }, texture00 },
-                                           PositionTexture { math::Vector<3> { 0.5, -0.5, 0 }, texture01 },
-                                           PositionTexture { math::Vector<3> { -0.5, 0.5, 0 }, texture10 },
-                                           PositionTexture { math::Vector<3> { 0.5, 0.5, 0 }, texture11 },
-                                       },
-                                       std::array { 0, 1, 2, 1, 3, 2 } };
+//
+//  z
+//  | y          2----------3
+//  |/          /          /
+//  O---x      /          /
+//            0----------1
+//
+static constexpr Shape plane {
+    "plane",
+    std::array {
+                Position { sw },
+                Position { se },
+                Position { nw },
+                Position { ne },
+                },
+    std::array { 0, 1, 2, 1, 3, 2 }
+};
+
+static constexpr Shape planeTextured {
+    "planeTextured",
+    std::array {
+                PositionTexture { sw, texture00 },
+                PositionTexture { se, texture01 },
+                PositionTexture { nw, texture10 },
+                PositionTexture { ne, texture11 },
+                },
+    std::array { 0, 1, 2, 1, 3, 2 }
+};
+
+static constexpr Shape planeTexturedNormals {
+    "planeTextNor",
+    std::array {
+                PositionNormalTexture { sw, normalK, texture00 },
+                PositionNormalTexture { se, normalK, texture01 },
+                PositionNormalTexture { nw, normalK, texture10 },
+                PositionNormalTexture { ne, normalK, texture11 },
+                },
+    std::array { 0, 1, 2, 1, 3, 2 }
+};
 
 }  // namespace surge::core::geometry

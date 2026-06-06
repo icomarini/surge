@@ -43,16 +43,16 @@ private:
 };
 
 template<Size size, geometry::Format format>
-constexpr VkFormat extractFormat() {
+consteval VkFormat extractFormat() {
     constexpr std::array lut {
-        std::pair { std::pair { 1, geometry::Format::sfloat }, VK_FORMAT_R32_SFLOAT },
-        std::pair { std::pair { 2, geometry::Format::sfloat }, VK_FORMAT_R32G32_SFLOAT },
-        std::pair { std::pair { 3, geometry::Format::sfloat }, VK_FORMAT_R32G32B32_SFLOAT },
+        std::pair { std::pair { 1, geometry::Format::sfloat }, VK_FORMAT_R32_SFLOAT          },
+        std::pair { std::pair { 2, geometry::Format::sfloat }, VK_FORMAT_R32G32_SFLOAT       },
+        std::pair { std::pair { 3, geometry::Format::sfloat }, VK_FORMAT_R32G32B32_SFLOAT    },
         std::pair { std::pair { 4, geometry::Format::sfloat }, VK_FORMAT_R32G32B32A32_SFLOAT },
-        std::pair { std::pair { 1, geometry::Format::unorm }, VK_FORMAT_R8_UNORM },
-        std::pair { std::pair { 2, geometry::Format::unorm }, VK_FORMAT_R8G8_UNORM },
-        std::pair { std::pair { 3, geometry::Format::unorm }, VK_FORMAT_R8G8B8_UNORM },
-        std::pair { std::pair { 4, geometry::Format::unorm }, VK_FORMAT_R8G8B8A8_UNORM },
+        std::pair { std::pair { 1, geometry::Format::unorm },  VK_FORMAT_R8_UNORM            },
+        std::pair { std::pair { 2, geometry::Format::unorm },  VK_FORMAT_R8G8_UNORM          },
+        std::pair { std::pair { 3, geometry::Format::unorm },  VK_FORMAT_R8G8B8_UNORM        },
+        std::pair { std::pair { 4, geometry::Format::unorm },  VK_FORMAT_R8G8B8A8_UNORM      },
     };
 
     VkFormat result;
@@ -490,6 +490,14 @@ VkPipeline createGraphicPipeline(const Context& context, const VkPipelineVertexI
                 context,
                 shader::ShaderInfo<shader::Type::primitiveTextured, shader::Stage::vertex> { nullptr },
                 shader::ShaderInfo<shader::Type::primitiveTextured, shader::Stage::fragment> { nullptr },
+            });
+    case shader::Type::primitiveTexturedNormal:
+        return createGraphicPipeline(
+            context, vertexInputState, VK_NULL_HANDLE, pipelineLayout,
+            shader::Shader {
+                context,
+                shader::ShaderInfo<shader::Type::primitiveTexturedNormal, shader::Stage::vertex> { nullptr },
+                shader::ShaderInfo<shader::Type::primitiveTexturedNormal, shader::Stage::fragment> { nullptr },
             });
     default:
         throw std::runtime_error("Unknown shader type");

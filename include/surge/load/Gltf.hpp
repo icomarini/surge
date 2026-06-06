@@ -975,5 +975,62 @@ public:
         }
         return meshIds;
     }
+
+    template<typename EntityID>
+    asset::Model createModel2(const core::Command&                          command,
+                              const std::map<EntityID, const asset::Mesh*>& meshes) const {
+        const auto [vertexCount, indexCount] = [&] {
+            uint32_t vertexCount { 0 };
+            uint32_t indexCount { 0 };
+            for (const auto& [_, mesh] : meshes) {
+                for (const auto& primitive : mesh->primitives) {
+                    vertexCount += primitive.vertexCount;
+                    indexCount += primitive.indexCount;
+                }
+            }
+            return std::pair { vertexCount, indexCount };
+        }();
+
+        std::vector<Vertex> vertices(vertexCount);
+        std::vector<Index>  indices;
+        indices.reserve(indexCount);
+
+        uint32_t vertexOffset { 0 };
+        for (const fastgltf::Mesh& mesh : asset.meshes) {
+            for (const auto& primitive : mesh.primitives) {
+                fastgltf::iterateAccessor<std::uint32_t>(
+                    asset, asset.accessors.at(primitive.indicesAccessor.value()),
+                    [&](std::uint32_t index) { indices.emplace_back(vertexOffset + index); });
+
+                constexpr std::array attributes {
+                    std::pair { "POSITION",   core::geometry::Attribute::position },
+                    std::pair { "NORMAL",     core::geometry::Attribute::normal   },
+                    std::pair { "TANGENT",    core::geometry::Attribute::tangent  },
+                    std::pair { "TEXCOORD_0", core::geometry::Attribute::texCoord },
+                    // std::pair { "COLOR_0", core::geometry::Attribute::color },
+                    // std::pair { "JOINTS_0", core::geometry::Attribute::jointIndex },
+                    // std::pair { "WEIGHTS_0", core::geometry::Attribute::jointWeight },
+                };
+                core::forEach<0, attributes.size()>([&]<int i>() {
+                    constexpr auto name      = attributes.at(i).first;
+                    constexpr auto attribute = attributes.at(i).second;
+                    using Attribute          = typename Vertex::Attribute<Vertex::attributeIndex<attribute>()>;
+
+                    if (const auto values = primitive.findAttribute(name); values != primitive.attributes.end()) {
+                        fastgltf::iterateAccessorWithIndex<typename Attribute::Value>(
+                            asset, asset.accessors.at(values->accessorIndex), [&](const auto& value, const auto index) {
+                                vertices.at(vertexOffset + index).template get<attribute>() = value;
+                            });
+                    }
+                });
+
+                vertexOffset += asset.accessors.at(primitive.findAttribute("POSITION")->accessorIndex).count;
+            }
+        }
+        return asset::Model {
+            command, core::geometry::Shape { "asset", std::move(vertices), std::move(indices) },
+              asset::Model::scene
+        };
+    }
 };
 }  // namespace surge::load
