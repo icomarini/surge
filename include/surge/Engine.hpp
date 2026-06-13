@@ -6,7 +6,7 @@
 #include "surge/Renderer.hpp"
 
 #include "surge/load/AssetHandle.hpp"
-#include "surge/physics/Physics.hpp"
+// #include "surge/physics/Physics.hpp"
 #include "surge/entity/Entity.hpp"
 #include "surge/entity/Skybox.hpp"
 
@@ -710,30 +710,30 @@ public:
             "dragon",
         };
 
-        std::vector<entity::Entity> entities;
-        constexpr float             stepX = 2;
-        constexpr float             stepY = 2;
-        constexpr core::Size        sizeY = 1;
-        entities.reserve(assets.size() * sizeY + 1);
-        float offsetX = 0;
-        for (const auto& name : assetNames) {
-            float offsetY = 0;
-            for (float y = 0; y < sizeY; ++y) {
-                auto& entity =
-                    entities.emplace_back(createEntity(name, core::math::Translation {
-                                                                 core::math::Vector<3> { offsetX, 0, offsetY }
-                }));
+        // std::vector<entity::Entity> entities;
+        // constexpr float             stepX = 2;
+        // constexpr float             stepY = 2;
+        // constexpr core::Size        sizeY = 1;
+        // entities.reserve(assets.size() * sizeY + 1);
+        // float offsetX = 0;
+        // for (const auto& name : assetNames) {
+        //     float offsetY = 0;
+        //     for (float y = 0; y < sizeY; ++y) {
+        //         auto& entity =
+        //             entities.emplace_back(createEntity(name, core::math::Translation {
+        //                                                          core::math::Vector<3> { offsetX, 0, offsetY }
+        //         }));
 
-                if (entity.animation) {
-                    entity.animation->state.progress += 0.5 * y;
-                }
-                offsetY += stepY;
-            }
-            offsetX += stepX;
-        }
-        entities.back().nodes.get(0).color   = core::Colors<core::Type::rgba>::coral;
-        entities.back().nodes.get(1).color   = core::Colors<core::Type::rgba>::white;
-        entities.back().nodes.get(1).isLight = 1;
+        //         if (entity.animation) {
+        //             entity.animation->state.progress += 0.5 * y;
+        //         }
+        //         offsetY += stepY;
+        //     }
+        //     offsetX += stepX;
+        // }
+        // entities.back().nodes.get(0).color   = core::Colors<core::Type::rgba>::coral;
+        // entities.back().nodes.get(1).color   = core::Colors<core::Type::rgba>::white;
+        // entities.back().nodes.get(1).isLight = 1;
 
         // renderer.lightColor = core::Colors<core::Type::rgba>::green;
         renderer.lightColor    = { 0.5, 0.9, 0.8, 1.0 };
@@ -745,7 +745,7 @@ public:
         // shadow map playground
         // core::Image shadowMapImage { context, VkExtent2D { .width = 1024, .height = 1024 },
         // core::Image::shadowMap };
-        entities.back().nodes.get(1).state.translation = core::math::Vector<3> { 0, 0, 0 };
+        // entities.back().nodes.get(1).state.translation = core::math::Vector<3> { 0, 0, 0 };
 
         // === initialize ===
 
@@ -846,9 +846,20 @@ public:
             core::math::fullMatrix(translate<z>(+0.5)),  //
         };
 
+        const auto planeModel        = storage.createModel(core::geometry::plane);
+        const auto primitivePipeline = storage.createPipeline<core::geometry::Position>(core::shader::Type::primitive);
+
+        {  // light cube
+            constexpr uint32_t                  isLight {};
+            constexpr core::math::Translation<> T { -2, 2, 1 };
+            constexpr core::math::Scaling<>     S { 0.1f, 0.1f, 0.1f };
+            core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
+                constexpr PushConstants matrix { T * S * cubeFaceMatrices.at(face), core::RGBA::white, isLight };
+                cubes.emplace_back(planeModel, primitivePipeline, storage.createMatrix(matrix), std::nullopt);
+            });
+        }
+
         {  // untextured cube
-            const auto model    = storage.createModel(core::geometry::plane);
-            const auto pipeline = storage.createPipeline<core::geometry::Position>(core::shader::Type::primitive);
             constexpr uint32_t                  isLight {};
             constexpr core::math::Translation<> T { 0, 0, 0 };
             constexpr std::array                cubeFaceColors {
@@ -857,7 +868,7 @@ public:
             };
             core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
                 constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), cubeFaceColors.at(face), isLight };
-                cubes.emplace_back(model, pipeline, storage.createMatrix(matrix), std::nullopt);
+                cubes.emplace_back(planeModel, primitivePipeline, storage.createMatrix(matrix), std::nullopt);
             });
         }
 
@@ -941,6 +952,19 @@ public:
         // }
         // === initialize ===
 
+        // Phong light model
+        //  1) ambient = ambientStrength * ambientColor
+        //      - global base illumination
+        //      - passed with MV matrices' UBO?
+        //  2) diffuse = sum(lights)
+        //      - global directional light (Sun's light)
+        //      - variable number of point lights
+        //      - dedicated preallocated UBO?
+        //
+        // ...
+        //  end) outColor = (ambient + diffuse) * objectColor;
+
+
         log::checkpoint("Main loop start");
 
         constexpr bool drawLight           = false;
@@ -979,7 +1003,7 @@ public:
                 // const core::math::Translation<> translation { 4.0f, 0.5f * std::sin(5.0f * input.timer), 0.0f };
                 const core::math::Translation<> translation { 4.0f, 0.0f, 0.0f };
                 core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
-                    storage.matrices[face + 13].matrix = translation * rotationY * cubeFaceMatrices.at(face);
+                    storage.matrices[face + 19].matrix = translation * rotationY * cubeFaceMatrices.at(face);
                 });
 
                 // === rendering ===
@@ -997,7 +1021,7 @@ public:
                 }
 
                 core::forEach<0, cubeFaceMatrices.size(), 0, 2>([&]<int face, int triangle>() {
-                    const auto& matrix = storage.matrices[face + 13].matrix;
+                    const auto& matrix = storage.matrices[face + 19].matrix;
 
                     using namespace core::geometry;
                     constexpr auto& vertices = planeTexturedNormals.vertices;
@@ -1286,7 +1310,7 @@ public:
             const auto stop     = std::chrono::high_resolution_clock::now();
             const auto duration = std::chrono::duration<double, std::milli>(stop - start).count();
             elapsedTime         = 1e-3 * duration;
-            log::update("Frame took " + std::to_string(duration));
+            // log::update("Frame took " + std::to_string(duration));
         }
         log::checkpoint("Main loop end");
 
