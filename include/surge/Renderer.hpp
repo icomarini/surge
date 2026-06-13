@@ -27,8 +27,9 @@ public:
                                              VK_SHADER_STAGE_FRAGMENT_BIT,
                                          core::Buffer> { scene } }
         , pipelines { createPipelines(context, descriptor.setLayout) }
-        , lightColor { core::Colors<core::Type::rgba>::white }
-        , lightPosition {} {
+    // , lightColor { core::Colors<core::Type::rgba>::white }
+    // , lightPosition {}
+    {
     }
 
     ~Renderer() {
@@ -141,11 +142,12 @@ public:
     core::Buffer                                                   scene;
     core::Descriptor                                               descriptor;
     std::map<std::string, std::pair<VkPipelineLayout, VkPipeline>> pipelines;
-    core::math::Vector<4>                                          lightColor;
-    core::math::Vector<3>                                          lightPosition;
+    // core::math::Vector<4>                                          lightColor;
+    // core::math::Vector<3>                                          lightPosition;
 
 
-    void update(const Camera<false>& camera) {
+    void update(const Camera<false>& camera, const core::math::Vector<4>& lightColor,
+                const core::math::Vector<3> lightPosition) {
         const SceneBuffer sceneMatrices { core::math::fullMatrix(camera.mats.perspective),
                                           core::math::fullMatrix(camera.mats.view), lightColor, lightPosition };
         memcpy(scene.mapped, &sceneMatrices, sizeof(SceneBuffer));

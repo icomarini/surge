@@ -736,8 +736,8 @@ public:
         // entities.back().nodes.get(1).isLight = 1;
 
         // renderer.lightColor = core::Colors<core::Type::rgba>::green;
-        renderer.lightColor    = { 0.5, 0.9, 0.8, 1.0 };
-        renderer.lightPosition = { 0, 0, 0 };
+        // renderer.lightColor    = { 0.5, 0.9, 0.8, 1.0 };
+        // renderer.lightPosition = { 0, 0, 0 };
         // entities.back().nodes.get(1).isLight = 1;
 
         auto skybox = createSkybox("skybox");
@@ -849,9 +849,11 @@ public:
         const auto planeModel        = storage.createModel(core::geometry::plane);
         const auto primitivePipeline = storage.createPipeline<core::geometry::Position>(core::shader::Type::primitive);
 
+        constexpr core::math::Vector<3> lightPosition { -2, 2, 1 };
+        constexpr auto                  lightColor = core::RGBA::white;
         {  // light cube
             constexpr uint32_t                  isLight {};
-            constexpr core::math::Translation<> T { -2, 2, 1 };
+            constexpr core::math::Translation<> T { lightPosition };
             constexpr core::math::Scaling<>     S { 0.1f, 0.1f, 0.1f };
             core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
                 constexpr PushConstants matrix { T * S * cubeFaceMatrices.at(face), core::RGBA::white, isLight };
@@ -993,9 +995,9 @@ public:
                 skyboxCamera.update(input, context.window.resolution);
                 // lightCamera.update(input.timer, context.window.resolution);
                 // playerCamera           = lightCamera;
-                renderer.lightPosition = lightCamera.vecs.position;
+                // renderer.lightPosition = lightPosition;
                 skybox.update(skyboxCamera);
-                renderer.update(playerCamera);
+                renderer.update(playerCamera, lightColor, lightPosition);
                 // overlay.update(input, playerCamera);
 
                 const core::math::Rotation rotationY { core::math::toQuaternion(0.0f, 1.0f * input.timer, 0.0f) };
@@ -1021,8 +1023,6 @@ public:
                 }
 
                 core::forEach<0, cubeFaceMatrices.size(), 0, 2>([&]<int face, int triangle>() {
-                    const auto& matrix = storage.matrices[face + 19].matrix;
-
                     using namespace core::geometry;
                     constexpr auto& vertices = planeTexturedNormals.vertices;
                     constexpr auto& indices  = planeTexturedNormals.indices;
@@ -1036,6 +1036,7 @@ public:
                                             vertices.at(indices.at(offset + 1)).get<Attribute::normal>() +
                                             vertices.at(indices.at(offset + 2)).get<Attribute::normal>()) /
                                                3.0f;
+                    const auto& matrix = storage.matrices[face + 19].matrix;
                     storage.draw(commandBuffer, asset::Line {
                                                     .a     = transform(a, matrix),
                                                     .b     = transform(b, matrix),
@@ -1083,7 +1084,7 @@ public:
                         const PushConstants             lightPushConstants {
                                         .matrix = core::math::Translation { lightCamera.vecs.position } *
                                       core::math::Scaling { lightScaling },
-                                        .baseColor = renderer.lightColor,
+                                        .baseColor = lightColor,
                                         .isLight   = true,
                         };
                         vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
