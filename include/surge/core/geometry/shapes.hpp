@@ -11,6 +11,9 @@ using Position = Vertex<AttributeSlot<Attribute::position, math::Vector<3>, 3, F
 using PositionTexture = Vertex<AttributeSlot<Attribute::position, math::Vector<3>, 3, Format::sfloat>,
                                AttributeSlot<Attribute::texCoord, core::math::Vector<2>, 2, Format::sfloat>>;
 
+using PositionNormal = Vertex<AttributeSlot<Attribute::position, math::Vector<3>, 3, Format::sfloat>,
+                              AttributeSlot<Attribute::normal, core::math::Vector<3>, 3, Format::sfloat>>;
+
 using PositionNormalTexture = Vertex<AttributeSlot<Attribute::position, math::Vector<3>, 3, Format::sfloat>,
                                      AttributeSlot<Attribute::normal, core::math::Vector<3>, 3, Format::sfloat>,
                                      AttributeSlot<Attribute::texCoord, core::math::Vector<2>, 2, Format::sfloat>>;
@@ -24,6 +27,7 @@ using PositionNormalTextureTangent =
 using PositionAndColor = geometry::Vertex<
     geometry::AttributeSlot<geometry::Attribute::position, math::Vector<3>, 3, geometry::Format::sfloat>,
     geometry::AttributeSlot<geometry::Attribute::color, math::Vector<4>, 4, geometry::Format::sfloat>>;
+
 
 // static constexpr Shape cubeLine { "cubeline",
 //                                   std::array {

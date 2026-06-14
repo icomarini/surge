@@ -24,6 +24,7 @@ enum class Type {
     base,
     coordinates,
     primitive,
+    primitiveNormal,
     primitiveTextured,
     primitiveTexturedNormal,
 };
@@ -134,6 +135,14 @@ constexpr unsigned char primitiveFrag[] {
 #embed "/home/ico/projects/surge/build/debug/shaders/primitive.frag.spv"
 };
 
+constexpr unsigned char primitiveNormalVert[] {
+#embed "/home/ico/projects/surge/build/debug/shaders/primitiveNormal.vert.spv"
+};
+
+constexpr unsigned char primitiveNormalFrag[] {
+#embed "/home/ico/projects/surge/build/debug/shaders/primitiveNormal.frag.spv"
+};
+
 constexpr unsigned char primitiveTexturedVert[] {
 #embed "/home/ico/projects/surge/build/debug/shaders/primitiveTextured.vert.spv"
 };
@@ -176,6 +185,8 @@ constexpr std::array library {
     entry(Type::coordinates, Stage::fragment, coordinatesFrag),
     entry(Type::primitive, Stage::vertex, primitiveVert),
     entry(Type::primitive, Stage::fragment, primitiveFrag),
+    entry(Type::primitiveNormal, Stage::vertex, primitiveNormalVert),
+    entry(Type::primitiveNormal, Stage::fragment, primitiveNormalFrag),
     entry(Type::primitiveTextured, Stage::vertex, primitiveTexturedVert),
     entry(Type::primitiveTextured, Stage::fragment, primitiveTexturedFrag),
     entry(Type::primitiveTexturedNormal, Stage::vertex, primitiveTexturedNormalVert),

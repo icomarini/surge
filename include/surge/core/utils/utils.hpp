@@ -134,3 +134,46 @@ struct overload : Ts... {
     using Ts::operator()...;
 };
 }  // namespace surge::core
+
+
+namespace surge {
+template<typename Underyling = int, typename Unique = decltype([] { })>
+class ID {
+public:
+    constexpr ID()
+        : id { -1 } {
+    }
+
+    constexpr ID(const Underyling id)
+        : id { id } {
+    }
+
+    constexpr Underyling get() const {
+        return id;
+    }
+
+    constexpr bool operator==(const ID& other) const {
+        return id == other.id;
+    }
+
+    constexpr bool operator<(const ID& other) const {
+        return id < other.id;
+    }
+
+    operator bool() const {
+        return id >= 0;
+    }
+
+
+private:
+    Underyling id;
+};
+
+using ModelID    = ID<>;
+using PipelineID = ID<>;
+using MatrixID   = ID<>;
+using MaterialID = ID<>;
+using TextureID  = ID<>;
+using MeshID     = ID<>;
+using AssetID    = ID<>;
+}  // namespace surge

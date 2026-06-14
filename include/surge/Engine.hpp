@@ -229,33 +229,23 @@ constexpr auto flip() {
 }
 
 
-using EntityID = uint32_t;
+void test() {
+    constexpr ModelID modelId { 0 };
+    constexpr ModelID modelId_0 { 0 };
+    constexpr ModelID modelId_1 { 1 };
+    static_assert(modelId == modelId_0, "ops");
+    static_assert(modelId_0 < modelId_1, "ops");
+    static_assert(modelId_0 != modelId_1, "ops");
 
-template<typename Underyling = int, typename Unique = decltype([] { }())>
-class ID {
-    ID(const Underyling id)
-        : id { id } {
-    }
-
-    Underyling get() const {
-        return id;
-    }
-
-    bool operator==(const ID other) {
-        return id == other.id;
-    }
-
-private:
-    Underyling id;
-};
-
-using ModelID = ID<>;
+    constexpr PipelineID pipelineId { 0 };
+    static_assert(!std::is_same_v<ModelID, PipelineID>, "ops");
+}
 
 struct Entity {
-    EntityID                model;
-    EntityID                pipeline;
-    EntityID                matrix;
-    std::optional<EntityID> material;
+    ModelID    model;
+    PipelineID pipeline;
+    MatrixID   matrix;
+    MaterialID material;
 };
 
 struct Pipeline {
@@ -299,23 +289,23 @@ struct Storage {
     static constexpr VkPushConstantRange pushConstantRange { core::createPushConstantRange<PushConstants>(
         shaderStages) };
 
-    const core::Command&                                 command;
-    const load::Defaults&                                defaults;
-    const Descriptor&                                    mainCamera;
-    core::LazyAccessContainer<EntityID, asset::Model>    models;
-    core::LazyAccessContainer<EntityID, Pipeline>        pipelines;
-    std::map<EntityID, PushConstants>                    matrices;
-    std::map<EntityID, asset::Texture>                   textures;
-    VkDescriptorPool                                     materialPool;
-    VkDescriptorSetLayout                                simpleMaterialLayout;
-    VkDescriptorSetLayout                                pbrMaterialLayout;
-    core::LazyAccessContainer<EntityID, VkDescriptorSet> materials;
-    core::LazyAccessContainer<EntityID, asset::Material> materials2;
-    std::map<EntityID, asset::Mesh>                      meshes;
-    EntityID                                             defaultTextureId;
-    EntityID                                             whiteTextureId;
-    EntityID                                             blackTextureId;
-    EntityID                                             linePipelineId;
+    const core::Command&                                   command;
+    const load::Defaults&                                  defaults;
+    const Descriptor&                                      mainCamera;
+    core::LazyAccessContainer<ModelID, asset::Model>       models;
+    core::LazyAccessContainer<PipelineID, Pipeline>        pipelines;
+    std::map<MatrixID, PushConstants>                      matrices;
+    std::map<TextureID, asset::Texture>                    textures;
+    VkDescriptorPool                                       materialPool;
+    VkDescriptorSetLayout                                  simpleMaterialLayout;
+    VkDescriptorSetLayout                                  pbrMaterialLayout;
+    core::LazyAccessContainer<MaterialID, VkDescriptorSet> materials;
+    core::LazyAccessContainer<MaterialID, asset::Material> materials2;
+    std::map<MeshID, asset::Mesh>                          meshes;
+    TextureID                                              defaultTextureId;
+    TextureID                                              whiteTextureId;
+    TextureID                                              blackTextureId;
+    PipelineID                                             linePipelineId;
 
     Storage(const core::Command& command, const load::Defaults& defaults, const Descriptor& mainCamera)
         : command { command }
@@ -342,12 +332,12 @@ struct Storage {
     }
 
     template<typename LoadedModel>
-    EntityID createModel(const LoadedModel& loadedModel) {
+    ModelID createModel(const LoadedModel& loadedModel) {
         return models.create(command, loadedModel, asset::Model::scene);
     }
 
     template<typename VertexInputState, typename... DescriptorSetLayouts>
-    EntityID createPipeline(const core::shader::Type shaderType, const DescriptorSetLayouts... descriptorSetLayouts) {
+    PipelineID createPipeline(const core::shader::Type shaderType, const DescriptorSetLayouts... descriptorSetLayouts) {
         const auto     pipelineLayout   = core::createPipelineLayout(command.context, pushConstantRange,
                                                                      mainCamera.descriptorSetLayout, descriptorSetLayouts...);
         constexpr auto vertexInputState = core::createVertexInputState<VertexInputState>();
@@ -356,7 +346,7 @@ struct Storage {
         return pipelines.create(pipelineLayout, pipeline);
     }
 
-    EntityID createLinePipeline() {
+    PipelineID createLinePipeline() {
         const auto pipelineLayout = core::createPipelineLayout(
             command.context, core::createPushConstantRange<asset::Line>(VK_SHADER_STAGE_VERTEX_BIT),
             mainCamera.descriptorSetLayout);
@@ -377,7 +367,7 @@ struct Storage {
         return pipelines.create(pipelineLayout, pipeline);
     }
 
-    EntityID createMatrix(const PushConstants& matrix) {
+    MatrixID createMatrix(const PushConstants& matrix) {
         const auto insertion = matrices.emplace(matrices.size(), matrix);
         if (!insertion.second) {
             throw std::runtime_error("Matrix already present");
@@ -385,7 +375,7 @@ struct Storage {
         return insertion.first->first;
     }
 
-    EntityID createTexture(const std::string& name, auto&& create) {
+    TextureID createTexture(const std::string& name, auto&& create) {
         const auto                        texture = std::invoke(create);
         constexpr asset::Texture::Sampler sampler {
             .magFilter    = VK_FILTER_NEAREST,
@@ -405,8 +395,8 @@ struct Storage {
         return insertion.first->first;
     }
 
-    EntityID createTexture(const std::string& name, const core::Colors<core::Type::rgba>::Format background,
-                           auto&& create) {
+    TextureID createTexture(const std::string& name, const core::Colors<core::Type::rgba>::Format background,
+                            auto&& create) {
         const auto                        texture = create(background, core::RGBA::white);
         constexpr asset::Texture::Sampler sampler {
             .magFilter    = VK_FILTER_NEAREST,
@@ -434,7 +424,7 @@ struct Storage {
         return insertion.first->first;
     }
 
-    EntityID createTexture(const std::filesystem::path& path) {
+    TextureID createTexture(const std::filesystem::path& path) {
         constexpr asset::Texture::Sampler sampler {
             .magFilter    = VK_FILTER_LINEAR,
             .minFilter    = VK_FILTER_LINEAR,
@@ -453,25 +443,26 @@ struct Storage {
         return insertion.first->first;
     }
 
-    EntityID createSimpleMaterial(const EntityID textureId) {
+    MaterialID createSimpleMaterial(const TextureID textureId) {
         return materials.create(createMaterialDescriptorSet(simpleMaterialLayout, textureId));
     }
 
-    EntityID createPbrMaterial(const EntityID diffuseId, const EntityID specularId, const EntityID normalId) {
+    MaterialID createPbrMaterial(const TextureID diffuseId, const TextureID specularId, const TextureID normalId) {
         return materials.create(createMaterialDescriptorSet(pbrMaterialLayout, diffuseId, specularId, normalId));
     }
 
-    EntityID createAsset(const load::Gltf::Handle& handle) {
+    template<typename Vertex>
+    ModelID createAsset(const load::Gltf::Handle& handle) {
         const load::Gltf asset { handle, defaults };
         const auto       newTextures = asset.createTextures2(command, textures);
         const auto       newMaterials =
             asset.createMaterials2(command.context, materialPool, pbrMaterialLayout, newTextures, materials2);
         const auto newMeshes = asset.createMeshes2(newMaterials, meshes);
-        const auto model     = asset.createModel2(command, newMeshes);
+        // const auto model     = asset.createModel2(command, newMeshes, models);
         // const auto [iter, inserted] = assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
         //                                              std::forward_as_tuple(command, load::Gltf { handle, defaults
         //                                              }));
-        return {};
+        return asset.createModel2<Vertex>(command, newMeshes, models);
     }
 
     void draw(const VkCommandBuffer commandBuffer, const Entity& entity) const {
@@ -500,7 +491,7 @@ struct Storage {
 
         // bind material
         if (entity.material) {
-            materials.apply(*entity.material, [&](const VkDescriptorSet& material) {
+            materials.apply(entity.material, [&](const VkDescriptorSet& material) {
                 constexpr uint32_t materialIndex { 1 };
                 vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, materialIndex, 1, &material,
                                         0, nullptr);
@@ -769,7 +760,6 @@ public:
 
         // === initialize ===
 
-
         // === container ===
         const asset::Model container { command, core::geometry::cube2, asset::Model::scene };
 
@@ -851,7 +841,7 @@ public:
                   .baseColor = core::RGBA::white,
                   .isLight   = {},
             }),
-            .material = std::nullopt,
+            .material = {},
         };
 
         std::vector<Entity> cubes;
@@ -877,7 +867,7 @@ public:
             constexpr core::math::Scaling<>     S { 0.1f, 0.1f, 0.1f };
             core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
                 constexpr PushConstants matrix { T * S * cubeFaceMatrices.at(face), core::RGBA::white, isLight };
-                cubes.emplace_back(planeModel, primitivePipeline, storage.createMatrix(matrix), std::nullopt);
+                cubes.emplace_back(planeModel, primitivePipeline, storage.createMatrix(matrix), MaterialID {});
             });
         }
 
@@ -890,7 +880,7 @@ public:
             };
             core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
                 constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), cubeFaceColors.at(face), isLight };
-                cubes.emplace_back(planeModel, primitivePipeline, storage.createMatrix(matrix), std::nullopt);
+                cubes.emplace_back(planeModel, primitivePipeline, storage.createMatrix(matrix), MaterialID {});
             });
         }
 
@@ -961,8 +951,21 @@ public:
             });
         }
 
-        const auto dragon = storage.createAsset(
-            load::Gltf::Handle { "/home/ico/projects/extern/Vulkan/assets/models/chinesedragon.gltf" });
+        constexpr auto dragonMatrix = rotate<x>(-90) * core::math::Scaling<> { 0.1, 0.1, 0.1 };
+        const Entity   dragon {
+            // coordinate system
+              .model = storage.createAsset<core::geometry::PositionNormal>(
+                load::Gltf::Handle { "/home/ico/projects/extern/Vulkan/assets/models/chinesedragon.gltf" }),
+              .pipeline = storage.createPipeline<core::geometry::PositionNormal>(core::shader::Type::primitiveNormal),
+              .matrix   = storage.createMatrix(PushConstants {
+                    .matrix    = dragonMatrix,
+                    .baseColor = core::RGBA::white,
+                    .isLight   = {},
+            }),
+              .material = {},
+        };
+        // const auto dragon = storage.createAsset(
+        //     load::Gltf::Handle { "/home/ico/projects/extern/Vulkan/assets/models/chinesedragon.gltf" });
         if constexpr (false) {
             // storage.createAsset(
             //     load::Gltf::Handle { "/home/ico/projects/uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" });
@@ -1020,6 +1023,7 @@ public:
                 renderer.update(playerCamera, lightColor, lightPosition);
                 // overlay.update(input, playerCamera);
 
+                // rotate cube
                 const core::math::Rotation rotationY { core::math::toQuaternion(0.0f, 1.0f * input.timer, 0.0f) };
                 const core::math::Rotation rotationX { core::math::toQuaternion(1.0f * input.timer, 0.0f, 0.0f) };
                 // const core::math::Translation<> translation { 4.0f, 0.5f * std::sin(5.0f * input.timer), 0.0f };
@@ -1027,6 +1031,9 @@ public:
                 core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
                     storage.matrices[face + 19].matrix = translation * rotationY * cubeFaceMatrices.at(face);
                 });
+
+                // rotate dragon
+                storage.matrices.at(dragon.matrix).matrix = translate<x>(6.0) * rotationY * dragonMatrix;
 
                 // === rendering ===
                 const auto commandBuffer = presenter.acquire();
@@ -1041,6 +1048,7 @@ public:
                 for (const auto& tile : brickwalls) {
                     storage.draw(commandBuffer, tile);
                 }
+                storage.draw(commandBuffer, dragon);
 
                 core::forEach<0, cubeFaceMatrices.size(), 0, 2>([&]<int face, int triangle>() {
                     using namespace core::geometry;

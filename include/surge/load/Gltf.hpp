@@ -814,12 +814,12 @@ public:
         return descriptorSet;
     }
 
-    template<typename EntityID>
-    std::map<EntityID, const asset::Material*>
+    // template<typename EntityID>
+    std::map<MaterialID, const asset::Material*>
     createMaterials2(const core::Context& context, const VkDescriptorPool descriptorPool,
-                     const VkDescriptorSetLayout                           descriptorSetLayout,
-                     const std::map<EntityID, const asset::Texture*>&      textures,
-                     core::LazyAccessContainer<EntityID, asset::Material>& materials) const {
+                     const VkDescriptorSetLayout                             descriptorSetLayout,
+                     const std::map<TextureID, const asset::Texture*>&       textures,
+                     core::LazyAccessContainer<MaterialID, asset::Material>& materials) const {
         constexpr auto extractAlphaMode = [](const fastgltf::AlphaMode alphaMode) {
             switch (alphaMode) {
             case fastgltf::AlphaMode::Blend:
@@ -857,9 +857,9 @@ public:
             };
         };
 
-        std::map<EntityID, const asset::Material*> materialIds;
+        std::map<MaterialID, const asset::Material*> materialIds;
         // materialIds.reserve(asset.materials.size());
-        uint32_t materialId = 0;
+        int materialId = 0;
         for (const fastgltf::Material& material : asset.materials) {
             using Type = TextureType;
 
@@ -912,15 +912,15 @@ public:
         return materialIds;
     }
 
-    template<typename EntityID>
-    std::map<EntityID, const asset::Mesh*> createMeshes2(const std::map<EntityID, const asset::Material*> materials,
-                                                         std::map<EntityID, asset::Mesh>& meshes) const {
+    // template<typename EntityID>
+    std::map<MeshID, const asset::Mesh*> createMeshes2(const std::map<MaterialID, const asset::Material*> materials,
+                                                       std::map<MeshID, asset::Mesh>& meshes) const {
         uint32_t partialIndexCount { 0 };
 
         // std::vector<asset::Mesh> meshes;
         // meshes.reserve(asset.meshes.size());
-        std::map<EntityID, const asset::Mesh*> meshIds;
-        uint32_t                               meshId = 0;
+        std::map<MeshID, const asset::Mesh*> meshIds;
+        uint32_t                             meshId = 0;
         for (const fastgltf::Mesh& fastgltfMesh : asset.meshes) {
             auto [mesh, inserted] = meshes.emplace(meshes.size(), baptize<This::mesh>(fastgltfMesh.name, meshId));
             if (!inserted) {
@@ -976,9 +976,9 @@ public:
         return meshIds;
     }
 
-    template<typename EntityID>
-    asset::Model createModel2(const core::Command&                          command,
-                              const std::map<EntityID, const asset::Mesh*>& meshes) const {
+    template<typename V>
+    ModelID createModel2(const core::Command& command, const std::map<MeshID, const asset::Mesh*>& meshes,
+                         core::LazyAccessContainer<ModelID, asset::Model>& models) const {
         const auto [vertexCount, indexCount] = [&] {
             uint32_t vertexCount { 0 };
             uint32_t indexCount { 0 };
@@ -991,8 +991,8 @@ public:
             return std::pair { vertexCount, indexCount };
         }();
 
-        std::vector<Vertex> vertices(vertexCount);
-        std::vector<Index>  indices;
+        std::vector<V>     vertices(vertexCount);
+        std::vector<Index> indices;
         indices.reserve(indexCount);
 
         uint32_t vertexOffset { 0 };
@@ -1003,18 +1003,18 @@ public:
                     [&](std::uint32_t index) { indices.emplace_back(vertexOffset + index); });
 
                 constexpr std::array attributes {
-                    std::pair { "POSITION",   core::geometry::Attribute::position },
-                    std::pair { "NORMAL",     core::geometry::Attribute::normal   },
-                    std::pair { "TANGENT",    core::geometry::Attribute::tangent  },
-                    std::pair { "TEXCOORD_0", core::geometry::Attribute::texCoord },
-                    // std::pair { "COLOR_0", core::geometry::Attribute::color },
+                    std::pair { "POSITION", core::geometry::Attribute::position },
+                    std::pair { "NORMAL",   core::geometry::Attribute::normal   },
+                    // std::pair { "TANGENT",    core::geometry::Attribute::tangent  },
+                    // std::pair { "TEXCOORD_0", core::geometry::Attribute::texCoord },
+                    // std::pair { "COLOR_0",    core::geometry::Attribute::color    },
                     // std::pair { "JOINTS_0", core::geometry::Attribute::jointIndex },
                     // std::pair { "WEIGHTS_0", core::geometry::Attribute::jointWeight },
                 };
                 core::forEach<0, attributes.size()>([&]<int i>() {
                     constexpr auto name      = attributes.at(i).first;
                     constexpr auto attribute = attributes.at(i).second;
-                    using Attribute          = typename Vertex::Attribute<Vertex::attributeIndex<attribute>()>;
+                    using Attribute          = typename V::Attribute<Vertex::attributeIndex<attribute>()>;
 
                     if (const auto values = primitive.findAttribute(name); values != primitive.attributes.end()) {
                         fastgltf::iterateAccessorWithIndex<typename Attribute::Value>(
@@ -1027,10 +1027,12 @@ public:
                 vertexOffset += asset.accessors.at(primitive.findAttribute("POSITION")->accessorIndex).count;
             }
         }
-        return asset::Model {
-            command, core::geometry::Shape { "asset", std::move(vertices), std::move(indices) },
-              asset::Model::scene
-        };
+        // return asset::Model {
+        //     command, core::geometry::Shape { "asset", std::move(vertices), std::move(indices) },
+        //       asset::Model::scene
+        // };
+        return models.create(command, core::geometry::Shape { "asset", std::move(vertices), std::move(indices) },
+                             asset::Model::scene);
     }
 };
 }  // namespace surge::load

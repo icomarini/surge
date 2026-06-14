@@ -158,6 +158,8 @@ set(SHADERS
     coordinates.frag
     primitive.vert
     primitive.frag
+    primitiveNormal.vert
+    primitiveNormal.frag
     primitiveTextured.vert
     primitiveTextured.frag
     primitiveTexturedNormal.vert
