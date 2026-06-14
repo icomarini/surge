@@ -231,6 +231,26 @@ constexpr auto flip() {
 
 using EntityID = uint32_t;
 
+template<typename Underyling = int, typename Unique = decltype([] { }())>
+class ID {
+    ID(const Underyling id)
+        : id { id } {
+    }
+
+    Underyling get() const {
+        return id;
+    }
+
+    bool operator==(const ID other) {
+        return id == other.id;
+    }
+
+private:
+    Underyling id;
+};
+
+using ModelID = ID<>;
+
 struct Entity {
     EntityID                model;
     EntityID                pipeline;
@@ -941,11 +961,11 @@ public:
             });
         }
 
+        const auto dragon = storage.createAsset(
+            load::Gltf::Handle { "/home/ico/projects/extern/Vulkan/assets/models/chinesedragon.gltf" });
         if constexpr (false) {
-            storage.createAsset(
-                load::Gltf::Handle { "/home/ico/projects/extern/Vulkan/assets/models/chinesedragon.gltf" });
-            storage.createAsset(
-                load::Gltf::Handle { "/home/ico/projects/uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" });
+            // storage.createAsset(
+            //     load::Gltf::Handle { "/home/ico/projects/uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" });
         }
 
         // {  // cerberus

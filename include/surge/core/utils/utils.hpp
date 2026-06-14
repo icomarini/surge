@@ -78,7 +78,7 @@ struct LazyAccessContainer {
 
     template<typename Operation>
     void apply(const Key key, const Operation& operation) const {
-        if (!lastAccess || (lastAccess && *lastAccess != key)) {
+        if (!lastAccess || *lastAccess != key) {
             operation(objects.at(key));
             lastAccess = key;
             // log::info("bound object " + std::to_string(key));
