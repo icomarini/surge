@@ -961,7 +961,7 @@ public:
                                                       asset::Texture::texture2d);
             const auto model    = storage.createModel(core::geometry::square);
             const auto pipeline =
-                storage.createPipeline<Vertex>(core::shader::Type::phongModel, storage.phongMaterialLayout);
+                storage.createPipeline<Vertex>(core::shader::Type::shader, storage.phongMaterialLayout);
             const auto     material = storage.createPhongMaterial(diffuse, specular, normal);
             constexpr auto radius { 10 };
             constexpr auto translations { generateTranslations<radius>() };

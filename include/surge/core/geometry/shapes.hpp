@@ -18,6 +18,12 @@ using PositionNormalTexture = Vertex<AttributeSlot<Attribute::position, math::Ve
                                      AttributeSlot<Attribute::normal, core::math::Vector<3>, 3, Format::sfloat>,
                                      AttributeSlot<Attribute::texCoord, core::math::Vector<2>, 2, Format::sfloat>>;
 
+using PositionNormalTangentTexture =
+    Vertex<AttributeSlot<Attribute::position, math::Vector<3>, 3, Format::sfloat>,
+           AttributeSlot<Attribute::normal, core::math::Vector<3>, 3, Format::sfloat>,
+           AttributeSlot<Attribute::tangent, core::math::Vector<3>, 3, Format::sfloat>,
+           AttributeSlot<Attribute::texCoord, core::math::Vector<2>, 2, Format::sfloat>>;
+
 using PositionNormalTextureTangent =
     Vertex<AttributeSlot<Attribute::position, math::Vector<3>, 3, Format::sfloat>,
            AttributeSlot<Attribute::normal, core::math::Vector<3>, 3, Format::sfloat>,
@@ -258,6 +264,17 @@ static constexpr Shape planeTexturedNormals {
                 PositionNormalTexture { se, normalK, texture01 },
                 PositionNormalTexture { nw, normalK, texture10 },
                 PositionNormalTexture { ne, normalK, texture11 },
+                },
+    std::array { 0, 1, 2, 1, 3, 2 }
+};
+
+static constexpr Shape planeNormalTangentTexture {
+    "planeTextNorTan",
+    std::array {
+                PositionNormalTangentTexture { sw, normalK, normalI, texture00 },
+                PositionNormalTangentTexture { se, normalK, normalI, texture01 },
+                PositionNormalTangentTexture { nw, normalK, normalI, texture10 },
+                PositionNormalTangentTexture { ne, normalK, normalI, texture11 },
                 },
     std::array { 0, 1, 2, 1, 3, 2 }
 };

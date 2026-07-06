@@ -5,8 +5,8 @@ layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 inTextureCoordinate;
 layout(location = 3) in vec3 inLightPosition;
-layout(location = 4) in vec3 inTangent;
-layout(location = 5) in mat3 inTBN;
+// layout(location = 4) in vec3 inTangent;
+layout(location = 4) in mat3 inTBN;
 // layout(location = 2) in vec3 inColor;
 
 layout(push_constant) uniform PushConstants {
