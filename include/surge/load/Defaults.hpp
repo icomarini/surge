@@ -62,52 +62,42 @@ constexpr auto toUint8(const core::Colors<core::Type::rgba>::Format& color) {
     };
 };
 
-static constexpr auto textureData() {
+template<uint32_t w, uint32_t h>
+struct TextureData {
+    static constexpr auto                                    width  = w;
+    static constexpr auto                                    height = h;
+    std::array<std::array<unsigned char, 4>, width * height> texture;
+
+    const unsigned char* data() const {
+        return texture.front().data();
+    }
+};
+
+static constexpr auto createDefaultTextureData() {
     const auto g = toUint8(core::Colors<core::Type::rgba>::grey);
     const auto w = toUint8(core::Colors<core::Type::rgba>::white);
-    return std::array {
-        g, g, g, g, g, g, g, g, g, g, g, g, g, g, g, g,  //
-        g, w, w, w, w, w, w, w, w, w, w, w, w, w, w, g,  //
-        g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-        g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-        g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-        g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-        g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-        g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-        g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-        g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-        g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-        g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-        g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-        g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
-        g, w, w, w, w, w, w, w, w, w, w, w, w, w, w, g,  //
-        g, g, g, g, g, g, g, g, g, g, g, g, g, g, g, g,  //
+    return TextureData<16, 16> {
+        std::array {
+                    //
+            g, g, g, g, g, g, g, g, g, g, g, g, g, g, g, g,  //
+            g, w, w, w, w, w, w, w, w, w, w, w, w, w, w, g,  //
+            g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
+            g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
+            g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
+            g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
+            g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
+            g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
+            g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
+            g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
+            g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
+            g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
+            g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
+            g, w, g, g, g, g, g, g, g, g, g, g, g, g, w, g,  //
+            g, w, w, w, w, w, w, w, w, w, w, w, w, w, w, g,  //
+            g, g, g, g, g, g, g, g, g, g, g, g, g, g, g, g,  //
+        }
     };
 }
-
-// static constexpr auto textureDataNorth(const core::Colors<core::Type::rgba>::Format& background,
-//                                        const core::Colors<core::Type::rgba>::Format& text) {
-//     const auto b = toUint8(background);
-//     const auto t = toUint8(text);
-//     return std::array {
-//         b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
-//         b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
-//         b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
-//         b, b, b, t, t, b, b, b, b, b, b, t, t, b, b, b,  //
-//         b, b, b, t, t, t, b, b, b, b, b, t, t, b, b, b,  //
-//         b, b, b, t, t, t, t, b, b, b, b, t, t, b, b, b,  //
-//         b, b, b, t, t, t, t, t, b, b, b, t, t, b, b, b,  //
-//         b, b, b, t, t, b, t, t, t, b, b, t, t, b, b, b,  //
-//         b, b, b, t, t, b, b, t, t, t, b, t, t, b, b, b,  //
-//         b, b, b, t, t, b, b, b, t, t, t, t, t, b, b, b,  //
-//         b, b, b, t, t, b, b, b, b, t, t, t, t, b, b, b,  //
-//         b, b, b, t, t, b, b, b, b, b, t, t, t, b, b, b,  //
-//         b, b, b, t, t, b, b, b, b, b, b, t, t, b, b, b,  //
-//         b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
-//         b, b, b, t, t, t, t, t, t, t, t, t, t, b, b, b,  //
-//         b, b, b, b, b, b, b, b, b, b, b, b, b, b, b, b,  //
-//     };
-// }
 
 static constexpr auto textureDataX(const core::Colors<core::Type::rgba>::Format& background,
                                    const core::Colors<core::Type::rgba>::Format& text) {
@@ -186,10 +176,9 @@ static constexpr auto textureDataZ(const core::Colors<core::Type::rgba>::Format&
 //     return std::array<decltype(w), 1> { w };
 // }
 
-static constexpr auto flatTextureData(const core::Colors<core::Type::rgba>::Format& color,
-                                      const core::Colors<core::Type::rgba>::Format&) {
-    const auto c = toUint8(color);
-    return std::array<decltype(c), 1> { toUint8(color) };
+static constexpr auto createFlatTextureData(const core::Colors<core::Type::rgba>::Format& color) {
+    // const auto c = toUint8(color);
+    return TextureData<1, 1> { std::array { toUint8(color) } };
 }
 
 class Defaults : public core::Contextualized {
@@ -204,11 +193,9 @@ public:
     };
 
 
-    static constexpr auto defaultTextureData = textureData();
-    static constexpr auto whiteTextureData =
-        flatTextureData(core::Colors<core::Type::rgba>::white, core::Colors<core::Type::rgba>::white);
-    static constexpr auto blackTextureData =
-        flatTextureData(core::Colors<core::Type::rgba>::black, core::Colors<core::Type::rgba>::white);
+    static constexpr auto defaultTextureData = createDefaultTextureData();
+    static constexpr auto whiteTextureData   = createFlatTextureData(core::Colors<core::Type::rgba>::white);
+    static constexpr auto blackTextureData   = createFlatTextureData(core::Colors<core::Type::rgba>::black);
 
     asset::Texture        texture;
     asset::Texture        whiteTexture;
@@ -233,11 +220,11 @@ public:
 
     Defaults(const core::Command& command)
         : Contextualized { command.context }
-        , texture { command, load::LoadedTexture { "default", defaultTextureData.front().data(), 1, 1 }, sampler,
+        , texture { command, load::LoadedTexture { "default", defaultTextureData.data(), defaultTextureData.width, defaultTextureData.height }, sampler,
                     asset::Texture::texture2d }
-        , whiteTexture { command, load::LoadedTexture { "white", whiteTextureData.front().data(), 1, 1 }, sampler,
+        , whiteTexture { command, load::LoadedTexture { "white", whiteTextureData.data(), whiteTextureData.width, whiteTextureData.height }, sampler,
                          asset::Texture::texture2d }
-        , blackTexture { command, load::LoadedTexture { "black", blackTextureData.front().data(), 1, 1 }, sampler,
+        , blackTexture { command, load::LoadedTexture { "black", blackTextureData.data(), blackTextureData.width, blackTextureData.height }, sampler,
                          asset::Texture::texture2d }
         , descriptorPool { core::Descriptor::createDescriptorPool(
               context, 5U, std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U }) }

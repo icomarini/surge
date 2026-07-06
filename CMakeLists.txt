@@ -164,6 +164,8 @@ set(SHADERS
     primitiveTextured.frag
     primitiveTexturedNormal.vert
     primitiveTexturedNormal.frag
+    phongModel.vert
+    phongModel.frag
 )
 
 list(TRANSFORM SHADERS PREPEND "${PROJECT_SOURCE_DIR}/shaders/")

@@ -27,6 +27,7 @@ enum class Type {
     primitiveNormal,
     primitiveTextured,
     primitiveTexturedNormal,
+    phongModel,
 };
 
 
@@ -158,6 +159,14 @@ constexpr unsigned char primitiveTexturedNormalVert[] {
 constexpr unsigned char primitiveTexturedNormalFrag[] {
 #embed "/home/ico/projects/surge/build/debug/shaders/primitiveTexturedNormal.frag.spv"
 };
+
+constexpr unsigned char phongModelVert[] {
+#embed "/home/ico/projects/surge/build/debug/shaders/phongModel.vert.spv"
+};
+
+constexpr unsigned char phongModelFrag[] {
+#embed "/home/ico/projects/surge/build/debug/shaders/phongModel.frag.spv"
+};
 // clang-format on
 
 
@@ -191,6 +200,9 @@ constexpr std::array library {
     entry(Type::primitiveTextured, Stage::fragment, primitiveTexturedFrag),
     entry(Type::primitiveTexturedNormal, Stage::vertex, primitiveTexturedNormalVert),
     entry(Type::primitiveTexturedNormal, Stage::fragment, primitiveTexturedNormalFrag),
+    entry(Type::phongModel, Stage::vertex, phongModelVert),
+    entry(Type::phongModel, Stage::fragment, phongModelFrag),
+
 };
 
 constexpr Entry get(const Type type, const Stage stage) {

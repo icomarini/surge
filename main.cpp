@@ -88,25 +88,25 @@ int main() {
         engine.loadAsset("skybox", Skybox { home / "surge/textures/skybox.ktx" });
         // engine.loadAsset("oaktree", Gltf { home / "surge/models/oaktree.gltf" });
         // engine.loadAsset("man", Gltf { home / "extern/Vulkan/assets/models/CesiumMan/glTF/CesiumMan.gltf" });
-        engine.loadAsset("dragon", Gltf { home / "extern/Vulkan/assets/models/chinesedragon.gltf" });
-        // engine.loadAsset("viking",
-        //  Obj { home / "surge/models/viking_room.obj", home / "surge/textures/viking_room.png" });
-        // engine.loadAsset("robot", Gltf { home / "uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" });
-        engine.loadAsset("cerberus", Gltf {
-                                         home / "extern/Vulkan/assets/models/cerberus/cerberus.gltf",
-                                         // {
-                                         //     { surge::load::Gltf::TextureType::baseColorTexture,
-                                         //       home / "extern/Vulkan/assets/models/cerberus/albedo.ktx" },
-                                         //     { surge::load::Gltf::TextureType::metallicRoughnessTexture,
-                                         //       home / "extern/Vulkan/assets/models/cerberus/roughness.ktx" },
-                                         //     { surge::load::Gltf::TextureType::emissiveTexture,
-                                         //       home / "extern/Vulkan/assets/models/cerberus/metallic.ktx" },
-                                         //     { surge::load::Gltf::TextureType::normalTexture,
-                                         //       home / "extern/Vulkan/assets/models/cerberus/normal.ktx" },
-                                         //     { surge::load::Gltf::TextureType::occlusionTexture,
-                                         //       home / "extern/Vulkan/assets/models/cerberus/ao.ktx" },
-                                         // }
-                                     });
+        // engine.loadAsset("dragon", Gltf { home / "extern/Vulkan/assets/models/chinesedragon.gltf" });
+        // // engine.loadAsset("viking",
+        // //  Obj { home / "surge/models/viking_room.obj", home / "surge/textures/viking_room.png" });
+        // // engine.loadAsset("robot", Gltf { home / "uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" });
+        // engine.loadAsset("cerberus", Gltf {
+        //                                  home / "extern/Vulkan/assets/models/cerberus/cerberus.gltf",
+        //                                  // {
+        //                                  //     { surge::load::Gltf::TextureType::baseColorTexture,
+        //                                  //       home / "extern/Vulkan/assets/models/cerberus/albedo.ktx" },
+        //                                  //     { surge::load::Gltf::TextureType::metallicRoughnessTexture,
+        //                                  //       home / "extern/Vulkan/assets/models/cerberus/roughness.ktx" },
+        //                                  //     { surge::load::Gltf::TextureType::emissiveTexture,
+        //                                  //       home / "extern/Vulkan/assets/models/cerberus/metallic.ktx" },
+        //                                  //     { surge::load::Gltf::TextureType::normalTexture,
+        //                                  //       home / "extern/Vulkan/assets/models/cerberus/normal.ktx" },
+        //                                  //     { surge::load::Gltf::TextureType::occlusionTexture,
+        //                                  //       home / "extern/Vulkan/assets/models/cerberus/ao.ktx" },
+        //                                  // }
+        //                              });
 
         engine.run();
     } catch (const std::exception& e) {
