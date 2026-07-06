@@ -30,20 +30,20 @@ void main(void) {
     // ambient
     float ambientStrength = 0.01;
     vec3  ambientColor    = vec3(1.0, 1.0, 1.0);
-    vec3  ambient         = ambientStrength * lightColor.rgb;
+    vec3  ambient         = ambientStrength * lightColor.rgb * texture(diffuseSampler, inTexCoord).rgb;
 
     // diffuse
     vec3  normal         = normalize(inNormal);
     vec3  lightDirection = normalize(inLightPosition - inPosition);
     float diffuseCoef    = max(dot(normal, lightDirection), 0.0);
-    vec3  diffuse        = diffuseCoef * lightColor.rgb;
+    vec3  diffuse        = diffuseCoef * lightColor.rgb * texture(diffuseSampler, inTexCoord).rgb;
 
     // specular
     float specularStrength = 0.5;
     vec3  viewDirection    = normalize(-inPosition);
     vec3  reflectDirection = reflect(-lightDirection, normal);
-    float specularCoef     = specularStrength * pow(max(dot(viewDirection, reflectDirection), 0.0), 256);
+    float specularCoef     = specularStrength * pow(max(dot(viewDirection, reflectDirection), 0.0), 32);
     vec3  specular         = specularCoef * lightColor.rgb * texture(specularSampler, inTexCoord).rgb;
 
-    outFragColor = vec4(ambient + diffuse + specular, 1.0) * texture(diffuseSampler, inTexCoord);
+    outFragColor = vec4(ambient + diffuse + specular, 1.0);
 }

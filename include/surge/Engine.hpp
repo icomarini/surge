@@ -875,39 +875,53 @@ public:
             });
         }
 
-        static constexpr auto xBackTextureData  = load::textureDataX(core::RGBA::darkRed, core::RGBA::white);
-        static constexpr auto xFrontTextureData = load::textureDataX(core::RGBA::red, core::RGBA::white);
-        static constexpr auto yBackTextureData  = load::textureDataX(core::RGBA::darkGreen, core::RGBA::white);
-        static constexpr auto yFrontTextureData = load::textureDataX(core::RGBA::green, core::RGBA::white);
-        static constexpr auto zBackTextureData  = load::textureDataX(core::RGBA::darkBlue, core::RGBA::white);
-        static constexpr auto zFrontTextureData = load::textureDataX(core::RGBA::blue, core::RGBA::white);
+        static constexpr auto xBackDiffuseTextureData  = load::textureDataX(core::RGBA::darkRed, core::RGBA::black);
+        static constexpr auto xFrontDiffuseTextureData = load::textureDataX(core::RGBA::red, core::RGBA::black);
+        static constexpr auto yBackDiffuseTextureData  = load::textureDataY(core::RGBA::darkGreen, core::RGBA::black);
+        static constexpr auto yFrontDiffuseTextureData = load::textureDataY(core::RGBA::green, core::RGBA::black);
+        static constexpr auto zBackDiffuseTextureData  = load::textureDataZ(core::RGBA::darkBlue, core::RGBA::black);
+        static constexpr auto zFrontDiffuseTextureData = load::textureDataZ(core::RGBA::blue, core::RGBA::black);
 
-        const std::array cubeTextures {
-            storage.createTexture("xBack", xBackTextureData),    //
-            storage.createTexture("xFront", xFrontTextureData),  //
-            storage.createTexture("yBack", yBackTextureData),    //
-            storage.createTexture("yFront", yFrontTextureData),  //
-            storage.createTexture("zBack", zBackTextureData),    //
-            storage.createTexture("zFront", zFrontTextureData),  //
+        static constexpr auto xSpecularTextureData = load::textureDataX(core::RGBA::black, core::RGBA::white);
+        static constexpr auto ySpecularTextureData = load::textureDataY(core::RGBA::black, core::RGBA::white);
+        static constexpr auto zSpecularTextureData = load::textureDataZ(core::RGBA::black, core::RGBA::white);
+
+        const std::array cubeDiffuseTextures {
+            storage.createTexture("xBack", xBackDiffuseTextureData),    //
+            storage.createTexture("xFront", xFrontDiffuseTextureData),  //
+            storage.createTexture("yBack", yBackDiffuseTextureData),    //
+            storage.createTexture("yFront", yFrontDiffuseTextureData),  //
+            storage.createTexture("zBack", zBackDiffuseTextureData),    //
+            storage.createTexture("zFront", zFrontDiffuseTextureData),  //
         };
-        const auto       crateTexture { storage.loadTexture("/home/ico/projects/surge/textures/container_diffuse.png",
-                                                            asset::Texture::texture2d) };
+
+        const std::array cubeSpecularTextures {
+            storage.createTexture("xBack", xSpecularTextureData),   //
+            storage.createTexture("xFront", ySpecularTextureData),  //
+            storage.createTexture("yBack", zSpecularTextureData),   //
+        };
+
         const std::array cubeMaterials {
-            storage.createSimpleMaterial(cubeTextures.at(xBack)), storage.createSimpleMaterial(cubeTextures.at(xFront)),
-            storage.createSimpleMaterial(cubeTextures.at(yBack)), storage.createSimpleMaterial(cubeTextures.at(yFront)),
-            storage.createSimpleMaterial(cubeTextures.at(zBack)), storage.createSimpleMaterial(cubeTextures.at(zFront)),
+            storage.createSimpleMaterial(cubeDiffuseTextures.at(xBack)),
+            storage.createSimpleMaterial(cubeDiffuseTextures.at(xFront)),
+            storage.createSimpleMaterial(cubeDiffuseTextures.at(yBack)),
+            storage.createSimpleMaterial(cubeDiffuseTextures.at(yFront)),
+            storage.createSimpleMaterial(cubeDiffuseTextures.at(zBack)),
+            storage.createSimpleMaterial(cubeDiffuseTextures.at(zFront)),
         };
 
         const std::array cubePhongMaterials {
-            storage.createPhongMaterial(cubeTextures.at(xBack), storage.defaultTextureId,
+            storage.createPhongMaterial(cubeDiffuseTextures.at(xBack), cubeSpecularTextures.at(x),
                                         storage.defaultTextureId),  //
-            storage.createPhongMaterial(cubeTextures.at(xFront), storage.defaultTextureId,
-                                        storage.defaultTextureId),                                                    //
-            storage.createPhongMaterial(cubeTextures.at(yBack), storage.defaultTextureId, storage.defaultTextureId),  //
-            storage.createPhongMaterial(cubeTextures.at(yFront), storage.defaultTextureId,
-                                        storage.defaultTextureId),                                                    //
-            storage.createPhongMaterial(cubeTextures.at(zBack), storage.defaultTextureId, storage.defaultTextureId),  //
-            storage.createPhongMaterial(cubeTextures.at(zFront), storage.defaultTextureId,
+            storage.createPhongMaterial(cubeDiffuseTextures.at(xFront), cubeSpecularTextures.at(x),
+                                        storage.defaultTextureId),  //
+            storage.createPhongMaterial(cubeDiffuseTextures.at(yBack), cubeSpecularTextures.at(y),
+                                        storage.defaultTextureId),  //
+            storage.createPhongMaterial(cubeDiffuseTextures.at(yFront), cubeSpecularTextures.at(y),
+                                        storage.defaultTextureId),  //
+            storage.createPhongMaterial(cubeDiffuseTextures.at(zBack), cubeSpecularTextures.at(z),
+                                        storage.defaultTextureId),  //
+            storage.createPhongMaterial(cubeDiffuseTextures.at(zFront), cubeSpecularTextures.at(z),
                                         storage.defaultTextureId),  //
         };
 
@@ -924,8 +938,9 @@ public:
             });
         }
 
+        const auto planeTexturedNormalsModel = storage.createModel(core::geometry::planeTexturedNormals);
         {  // textured normal cube
-            const auto model    = storage.createModel(core::geometry::planeTexturedNormals);
+            const auto model    = planeTexturedNormalsModel;
             const auto pipeline = storage.createPipeline<core::geometry::PositionNormalTexture>(
                 core::shader::Type::primitiveTexturedNormal, storage.simpleMaterialLayout);
             constexpr auto                      color { core::RGBA::white };
@@ -946,7 +961,7 @@ public:
                                                       asset::Texture::texture2d);
             const auto model    = storage.createModel(core::geometry::square);
             const auto pipeline =
-                storage.createPipeline<Vertex>(core::shader::Type::shader, storage.phongMaterialLayout);
+                storage.createPipeline<Vertex>(core::shader::Type::phongModel, storage.phongMaterialLayout);
             const auto     material = storage.createPhongMaterial(diffuse, specular, normal);
             constexpr auto radius { 10 };
             constexpr auto translations { generateTranslations<radius>() };
@@ -995,17 +1010,40 @@ public:
               .material = {},
         };
 
+        const auto phongPipeline = storage.createPipeline<core::geometry::PositionNormalTexture>(
+            core::shader::Type::phongModel, storage.phongMaterialLayout);
         std::vector<Entity> phongCube;
-        {  // textured normal cube
-            const auto model    = storage.createModel(core::geometry::planeTexturedNormals);
-            const auto pipeline = storage.createPipeline<core::geometry::PositionNormalTexture>(
-                core::shader::Type::phongModel, storage.phongMaterialLayout);
+        {  // phong cube
+            const auto                          model    = planeTexturedNormalsModel;
+            const auto                          pipeline = phongPipeline;
             constexpr auto                      color { core::RGBA::white };
             constexpr uint32_t                  isLight {};
             constexpr core::math::Translation<> T { 0, 0, 0 };
             core::forEach<0, 6>([&]<int face>() {
                 constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), color, isLight };
                 phongCube.emplace_back(model, pipeline, storage.createMatrix(matrix), cubePhongMaterials.at(face));
+            });
+        }
+
+        const auto crateDiffuseTexture { storage.loadTexture("/home/ico/projects/surge/textures/container_diffuse.png",
+                                                             asset::Texture::texture2d) };
+        const auto crateSpecularTexture { storage.loadTexture(
+            "/home/ico/projects/surge/textures/container_specular.png", asset::Texture::texture2d) };
+
+        const auto crateMaterial = storage.createPhongMaterial(
+            storage.loadTexture("/home/ico/projects/surge/textures/container_diffuse.png", asset::Texture::texture2d),
+            storage.loadTexture("/home/ico/projects/surge/textures/container_specular.png", asset::Texture::texture2d),
+            storage.defaultTextureId);
+
+        std::vector<Entity> crate;
+        {  // crate
+            const auto         model    = planeTexturedNormalsModel;
+            const auto         pipeline = phongPipeline;
+            constexpr auto     color { core::RGBA::white };
+            constexpr uint32_t isLight {};
+            core::forEach<0, 6>([&]<int face>() {
+                constexpr PushConstants matrix { translate<x>(12.0) * cubeFaceMatrices.at(face), color, isLight };
+                crate.emplace_back(model, pipeline, storage.createMatrix(matrix), crateMaterial);
             });
         }
         // {  // cerberus
@@ -1080,6 +1118,13 @@ public:
                         translate<x>(10.0) * rotationY * cubeFaceMatrices.at(face);
                 });
 
+                // rotate cube
+                core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
+                    const auto matrixId = crate.at(face).matrix;
+                    storage.matrices[matrixId.get()].matrix =
+                        translate<x>(12.0) * rotationY * cubeFaceMatrices.at(face);
+                });
+
                 // === rendering ===
                 const auto commandBuffer = presenter.acquire();
                 presenter.beginRendering();
@@ -1096,6 +1141,9 @@ public:
                 storage.draw(commandBuffer, dragon);
                 storage.draw(commandBuffer, cerberus);
                 for (const auto& face : phongCube) {
+                    storage.draw(commandBuffer, face);
+                }
+                for (const auto& face : crate) {
                     storage.draw(commandBuffer, face);
                 }
 
