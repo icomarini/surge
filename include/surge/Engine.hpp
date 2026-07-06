@@ -303,13 +303,13 @@ struct Storage {
     core::LazyAccessContainer<MaterialID, asset::Material> materials2;
     std::map<MeshID, asset::Mesh>                          meshes;
 
-    static constexpr auto defaultTextureData = load::createDefaultTextureData();
+    static constexpr auto defaultTextureData = load::createDefaultTextureData(core::RGBA::white, core::RGBA::black);
     TextureID             defaultTextureId;
 
-    static constexpr auto whiteTextureData = load::createFlatTextureData(core::Colors<core::Type::rgba>::white);
+    static constexpr auto whiteTextureData = load::createFlatTextureData(core::RGBA::white);
     TextureID             whiteTextureId;
 
-    static constexpr auto blackTextureData = load::createFlatTextureData(core::Colors<core::Type::rgba>::black);
+    static constexpr auto blackTextureData = load::createFlatTextureData(core::RGBA::black);
     TextureID             blackTextureId;
 
 
@@ -899,7 +899,7 @@ public:
         };
 
         const std::array cubePhongMaterials {
-            storage.createPhongMaterial(storage.defaultTextureId, storage.defaultTextureId,
+            storage.createPhongMaterial(cubeTextures.at(xBack), storage.defaultTextureId,
                                         storage.defaultTextureId),  //
             storage.createPhongMaterial(cubeTextures.at(xFront), storage.defaultTextureId,
                                         storage.defaultTextureId),                                                    //

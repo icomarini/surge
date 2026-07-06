@@ -19,18 +19,17 @@ layout(set = 0, binding = 0) uniform Scene {
 };
 
 // output =======================================
-layout(location = 0) out vec3 outNormal;
-layout(location = 1) out vec3 outPosition;
-
-layout(location = 2) out vec2 outTexCoord;
-// layout(location = 3) out vec3 outViewVec;
-// layout(location = 4) out vec3 outLightVec;
+layout(location = 0) out vec3 outPosition;
+layout(location = 1) out vec3 outNormal;
+layout(location = 2) out vec3 outLightPosition;
+layout(location = 3) out vec2 outTexCoord;
 
 void main(void) {
-    gl_Position = vec4(inPosition, 1.0) * model * view * projection;
-    outPosition = vec3(vec4(inPosition, 1.0) * model);
-    outNormal   = mat3(inverse(model)) * inNormal;
-    outTexCoord = inTexCoord;
+    gl_Position      = vec4(inPosition, 1.0) * model * view * projection;
+    outPosition      = vec3(vec4(inPosition, 1.0) * model * view);
+    outNormal        = mat3(inverse(model * view)) * inNormal;
+    outLightPosition = vec3(vec4(lightPosition, 1.0) * view);
+    outTexCoord      = inTexCoord;
 
     // outNormal   = (vec4(mat3(transpose(inverse(model))) * inNormal, 1.0) * view * projection).xyz;
     // outTexCoord = inTexCoord;

@@ -73,9 +73,10 @@ struct TextureData {
     }
 };
 
-static constexpr auto createDefaultTextureData() {
-    const auto g = toUint8(core::Colors<core::Type::rgba>::grey);
-    const auto w = toUint8(core::Colors<core::Type::rgba>::white);
+static constexpr auto createDefaultTextureData(const core::Colors<core::Type::rgba>::Format& background,
+                                               const core::Colors<core::Type::rgba>::Format& square) {
+    const auto g = toUint8(background);
+    const auto w = toUint8(square);
     return TextureData<16, 16> {
         {
          //
@@ -202,9 +203,10 @@ public:
     };
 
 
-    static constexpr auto defaultTextureData = createDefaultTextureData();
-    static constexpr auto whiteTextureData   = createFlatTextureData(core::Colors<core::Type::rgba>::white);
-    static constexpr auto blackTextureData   = createFlatTextureData(core::Colors<core::Type::rgba>::black);
+    static constexpr auto defaultTextureData =
+        createDefaultTextureData(core::Colors<core::Type::rgba>::black, core::Colors<core::Type::rgba>::white);
+    static constexpr auto whiteTextureData = createFlatTextureData(core::Colors<core::Type::rgba>::white);
+    static constexpr auto blackTextureData = createFlatTextureData(core::Colors<core::Type::rgba>::black);
 
     asset::Texture        texture;
     asset::Texture        whiteTexture;
