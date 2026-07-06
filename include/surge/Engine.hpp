@@ -385,7 +385,6 @@ struct Storage {
 
     template<typename TextureData>
     TextureID createTexture(const std::string& name, const TextureData& textureData) {
-        // const auto                        texture = std::invoke(create);
         constexpr asset::Texture::Sampler sampler {
             .magFilter    = VK_FILTER_NEAREST,
             .minFilter    = VK_FILTER_NEAREST,
@@ -394,29 +393,7 @@ struct Storage {
             .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
             .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
         };
-        const auto insertion = textures.emplace(
-            std::piecewise_construct,  //
-            std::forward_as_tuple(textures.size()),
-            std::forward_as_tuple(
-                command, load::LoadedTexture { name, textureData.data(), textureData.width, textureData.height },
-                sampler, asset::Texture::texture2d));
-        if (!insertion.second) {
-            throw std::runtime_error("Texture already present");
-        }
-        return insertion.first->first;
-    }
 
-    TextureID createTexture(const std::string& name, const core::Colors<core::Type::rgba>::Format background,
-                            auto&& create) {
-        const auto                        texture = create(background, core::RGBA::white);
-        constexpr asset::Texture::Sampler sampler {
-            .magFilter    = VK_FILTER_NEAREST,
-            .minFilter    = VK_FILTER_NEAREST,
-            .mipmapMode   = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-            .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-        };
         using ImageInfo   = core::Image::Info<VkImageCreateFlags {},                                         //
                                               VK_FORMAT_R8G8B8A8_UNORM,                                      //
                                               VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,  //
@@ -426,9 +403,11 @@ struct Storage {
         using TextureInfo = asset::Texture::Info<ImageInfo, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL>;
 
         const auto insertion = textures.emplace(
-            std::piecewise_construct, std::forward_as_tuple(textures.size()),
-            std::forward_as_tuple(command, load::LoadedTexture { name, texture.front().data(), 16, 16 }, sampler,
-                                  TextureInfo {}));
+            std::piecewise_construct,  //
+            std::forward_as_tuple(textures.size()),
+            std::forward_as_tuple(
+                command, load::LoadedTexture { name, textureData.data(), textureData.width, textureData.height },
+                sampler, TextureInfo {}));
         if (!insertion.second) {
             throw std::runtime_error("Texture already present");
         }
@@ -896,13 +875,20 @@ public:
             });
         }
 
+        static constexpr auto xBackTextureData  = load::textureDataX(core::RGBA::darkRed, core::RGBA::white);
+        static constexpr auto xFrontTextureData = load::textureDataX(core::RGBA::red, core::RGBA::white);
+        static constexpr auto yBackTextureData  = load::textureDataX(core::RGBA::darkGreen, core::RGBA::white);
+        static constexpr auto yFrontTextureData = load::textureDataX(core::RGBA::green, core::RGBA::white);
+        static constexpr auto zBackTextureData  = load::textureDataX(core::RGBA::darkBlue, core::RGBA::white);
+        static constexpr auto zFrontTextureData = load::textureDataX(core::RGBA::blue, core::RGBA::white);
+
         const std::array cubeTextures {
-            storage.createTexture("xBack", core::RGBA::darkRed, load::textureDataX),
-            storage.createTexture("xFront", core::RGBA::red, load::textureDataX),
-            storage.createTexture("yBack", core::RGBA::darkGreen, load::textureDataY),
-            storage.createTexture("yFront", core::RGBA::green, load::textureDataY),
-            storage.createTexture("zBack", core::RGBA::darkBlue, load::textureDataZ),
-            storage.createTexture("zFront", core::RGBA::blue, load::textureDataZ),
+            storage.createTexture("xBack", xBackTextureData),    //
+            storage.createTexture("xFront", xFrontTextureData),  //
+            storage.createTexture("yBack", yBackTextureData),    //
+            storage.createTexture("yFront", yFrontTextureData),  //
+            storage.createTexture("zBack", zBackTextureData),    //
+            storage.createTexture("zFront", zFrontTextureData),  //
         };
         const auto       crateTexture { storage.loadTexture("/home/ico/projects/surge/textures/container_diffuse.png",
                                                             asset::Texture::texture2d) };
@@ -913,12 +899,16 @@ public:
         };
 
         const std::array cubePhongMaterials {
-            storage.createPhongMaterial(storage.defaultTextureId, storage.whiteTextureId, storage.whiteTextureId),  //
-            storage.createPhongMaterial(cubeTextures.at(xFront), storage.whiteTextureId, storage.whiteTextureId),   //
-            storage.createPhongMaterial(cubeTextures.at(yBack), storage.whiteTextureId, storage.whiteTextureId),    //
-            storage.createPhongMaterial(cubeTextures.at(yFront), storage.whiteTextureId, storage.whiteTextureId),   //
-            storage.createPhongMaterial(cubeTextures.at(zBack), storage.whiteTextureId, storage.whiteTextureId),    //
-            storage.createPhongMaterial(cubeTextures.at(zFront), storage.whiteTextureId, storage.whiteTextureId),   //
+            storage.createPhongMaterial(storage.defaultTextureId, storage.defaultTextureId,
+                                        storage.defaultTextureId),  //
+            storage.createPhongMaterial(cubeTextures.at(xFront), storage.defaultTextureId,
+                                        storage.defaultTextureId),                                                    //
+            storage.createPhongMaterial(cubeTextures.at(yBack), storage.defaultTextureId, storage.defaultTextureId),  //
+            storage.createPhongMaterial(cubeTextures.at(yFront), storage.defaultTextureId,
+                                        storage.defaultTextureId),                                                    //
+            storage.createPhongMaterial(cubeTextures.at(zBack), storage.defaultTextureId, storage.defaultTextureId),  //
+            storage.createPhongMaterial(cubeTextures.at(zFront), storage.defaultTextureId,
+                                        storage.defaultTextureId),  //
         };
 
         {  // textured cube
