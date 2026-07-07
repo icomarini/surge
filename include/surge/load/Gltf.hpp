@@ -1003,10 +1003,10 @@ public:
                     [&](std::uint32_t index) { indices.emplace_back(vertexOffset + index); });
 
                 constexpr std::array attributes {
-                    std::pair { "POSITION", core::geometry::Attribute::position },
-                    std::pair { "NORMAL",   core::geometry::Attribute::normal   },
+                    std::pair { "POSITION",   core::geometry::Attribute::position },
+                    std::pair { "NORMAL",     core::geometry::Attribute::normal   },
                     // std::pair { "TANGENT",    core::geometry::Attribute::tangent  },
-                    // std::pair { "TEXCOORD_0", core::geometry::Attribute::texCoord },
+                    std::pair { "TEXCOORD_0", core::geometry::Attribute::texCoord },
                     // std::pair { "COLOR_0",    core::geometry::Attribute::color    },
                     // std::pair { "JOINTS_0", core::geometry::Attribute::jointIndex },
                     // std::pair { "WEIGHTS_0", core::geometry::Attribute::jointWeight },

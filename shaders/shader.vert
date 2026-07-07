@@ -4,7 +4,7 @@
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 inTextureCoordinate;
-layout(location = 3) in vec3 inTangent;
+layout(location = 3) in vec4 inTangent;
 
 layout(push_constant) uniform PushConstants {
     mat4 model;
@@ -24,9 +24,7 @@ layout(location = 0) out vec3 outPosition;
 layout(location = 1) out vec3 outNormal;
 layout(location = 2) out vec2 outTextureCoordinate;
 layout(location = 3) out vec3 outLightPosition;
-// layout(location = 4) out vec3 outTangent;
 layout(location = 4) out mat3 outTBN;
-// layout(location = 2) out vec3 outColor;
 
 void main() {
     gl_Position          = vec4(inPosition, 1.0) * model * view * projection;
@@ -34,15 +32,11 @@ void main() {
     outNormal            = mat3(inverse(model * view)) * inNormal;
     outTextureCoordinate = inTextureCoordinate;
     outLightPosition     = vec3(vec4(lightPosition, 1.0) * view);
-    // outTangent           = vec3(inverse(model * view) * inTangent);
-    // outTangent           = vec4(mat3(inverse(model * view)) * inTangent.xyz, inTangent.w);
 
     // Calculate Bitangent
     vec3 N = normalize(mat3(inverse(model * view)) * inNormal);
-    vec3 T = normalize(mat3(inverse(model * view)) * inTangent);
+    vec3 T = normalize(mat3(inverse(model * view)) * inTangent.xyz);
     T      = normalize(T - dot(T, N) * N);  // Re-orthogonalize T
-    vec3 B = cross(N, T);
+    vec3 B = cross(N, T) * inTangent.w;
     outTBN = mat3(T, B, N);
-
-    // outColor    = baseColor;
 }

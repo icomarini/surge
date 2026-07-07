@@ -95,10 +95,6 @@ static constexpr math::Vector<4> tangentI { 1, 0, 0, 1 };
 static constexpr math::Vector<4> tangentJ { 0, 1, 0, 1 };
 static constexpr math::Vector<4> tangentK { 0, 0, 1, 1 };
 
-// static constexpr math::Vector<3> tangentI { 1, 0, 0 };
-// static constexpr math::Vector<3> tangentJ { 0, 1, 0 };
-// static constexpr math::Vector<3> tangentK { 0, 0, 1 };
-
 static constexpr math::Vector<3> vertex000 { -0.5, -0.5, -0.5 };
 static constexpr math::Vector<3> vertex001 { -0.5, -0.5, +0.5 };
 static constexpr math::Vector<3> vertex010 { -0.5, +0.5, -0.5 };

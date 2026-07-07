@@ -426,7 +426,8 @@ struct Storage {
         };
         const load::LoadedTexture::Handle handle { .type = load::LoadedTexture::Type::texture2d, .path = path };
         const auto                        insertion =
-            textures.emplace(std::piecewise_construct, std::forward_as_tuple(textures.size()),
+            textures.emplace(std::piecewise_construct,  //
+                             std::forward_as_tuple(textures.size()),
                              std::forward_as_tuple(command, load::LoadedTexture { handle }, sampler, Info {}));
         if (!insertion.second) {
             throw std::runtime_error("Texture already present");
@@ -956,9 +957,9 @@ public:
         {  // brickwall
             const auto diffuse  = storage.loadTexture("/home/ico/projects/surge/textures/brickwall_diffuse.jpg",
                                                       asset::Texture::texture2d);
-            const auto specular = storage.whiteTextureId;
+            const auto specular = storage.blackTextureId;
             const auto normal   = storage.loadTexture("/home/ico/projects/surge/textures/brickwall_normal.jpg",
-                                                      asset::Texture::texture2d);
+                                                      asset::Texture::texture2dNorm);
             const auto model    = storage.createModel(core::geometry::square);
             const auto pipeline =
                 storage.createPipeline<Vertex>(core::shader::Type::shader, storage.phongMaterialLayout);
@@ -982,32 +983,38 @@ public:
             });
         }
 
-        constexpr auto dragonMatrix = rotate<x>(-90) * core::math::Scaling<> { 0.1, 0.1, 0.1 };
-        const Entity   dragon {
-            // coordinate system
-              .model = storage.createAsset<core::geometry::PositionNormal>(
-                load::Gltf::Handle { "/home/ico/projects/extern/Vulkan/assets/models/chinesedragon.gltf" }),
-              .pipeline = storage.createPipeline<core::geometry::PositionNormal>(core::shader::Type::primitiveNormal),
-              .matrix   = storage.createMatrix(PushConstants {
-                    .matrix    = dragonMatrix,
-                    .baseColor = core::RGBA::white,
-                    .isLight   = {},
-            }),
-              .material = {},
-        };
+        // constexpr auto dragonMatrix = rotate<x>(-90) * core::math::Scaling<> { 0.1, 0.1, 0.1 };
+        // const Entity   dragon {
+        //     // coordinate system
+        //       .model = storage.createAsset<core::geometry::PositionNormal>(
+        //         load::Gltf::Handle { "/home/ico/projects/extern/Vulkan/assets/models/chinesedragon.gltf" }),
+        //       .pipeline =
+        //       storage.createPipeline<core::geometry::PositionNormal>(core::shader::Type::primitiveNormal), .matrix =
+        //       storage.createMatrix(PushConstants {
+        //             .matrix    = dragonMatrix,
+        //             .baseColor = core::RGBA::white,
+        //             .isLight   = {},
+        //     }),
+        //       .material = {},
+        // };
 
-        constexpr auto cerberusMatrix = rotate<x>(90);
-        const Entity   cerberus {
+        constexpr auto              cerberusMatrix = rotate<x>(90);
+        const std::filesystem::path cerberusFolder { "/home/ico/projects/extern/Vulkan/assets/models/cerberus" };
+        const Entity                cerberus {
             // coordinate system
-              .model = storage.createAsset<core::geometry::PositionNormal>(
-                load::Gltf::Handle { "/home/ico/projects/extern/Vulkan/assets/models/cerberus/cerberus.gltf" }),
-              .pipeline = storage.createPipeline<core::geometry::PositionNormal>(core::shader::Type::primitiveNormal),
-              .matrix   = storage.createMatrix(PushConstants {
-                    .matrix    = core::math::fullMatrix(cerberusMatrix),
-                    .baseColor = core::RGBA::white,
-                    .isLight   = {},
+                           .model = storage.createAsset<core::geometry::PositionNormalTexture>(
+                load::Gltf::Handle { cerberusFolder / "cerberus.gltf" }),
+                           .pipeline = storage.createPipeline<core::geometry::PositionNormalTexture>(core::shader::Type::phongModel,
+                                                                                                     storage.phongMaterialLayout),
+                           .matrix   = storage.createMatrix(PushConstants {
+                                 .matrix    = core::math::fullMatrix(cerberusMatrix),
+                                 .baseColor = core::RGBA::white,
+                                 .isLight   = {},
             }),
-              .material = {},
+                           .material = storage.createPhongMaterial(
+                storage.loadTexture(cerberusFolder / "albedo.ktx", asset::Texture::texture2d),
+                storage.loadTexture(cerberusFolder / "metallic.ktx", asset::Texture::metallic),
+                storage.loadTexture(cerberusFolder / "normal.ktx", asset::Texture::texture2d)),
         };
 
         const auto phongPipeline = storage.createPipeline<core::geometry::PositionNormalTexture>(
@@ -1106,7 +1113,7 @@ public:
                 });
 
                 // rotate dragon
-                storage.matrices.at(dragon.matrix).matrix = translate<x>(6.0) * rotationY * dragonMatrix;
+                // storage.matrices.at(dragon.matrix).matrix = translate<x>(6.0) * rotationY * dragonMatrix;
 
                 // rotate cerberus
                 storage.matrices.at(cerberus.matrix).matrix = translate<x>(8.0) * rotationY * cerberusMatrix;
@@ -1138,7 +1145,7 @@ public:
                 for (const auto& tile : brickwalls) {
                     storage.draw(commandBuffer, tile);
                 }
-                storage.draw(commandBuffer, dragon);
+                // storage.draw(commandBuffer, dragon);
                 storage.draw(commandBuffer, cerberus);
                 for (const auto& face : phongCube) {
                     storage.draw(commandBuffer, face);
