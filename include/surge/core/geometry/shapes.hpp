@@ -21,7 +21,7 @@ using PositionNormalTexture = Vertex<AttributeSlot<Attribute::position, math::Ve
 using PositionNormalTangentTexture =
     Vertex<AttributeSlot<Attribute::position, math::Vector<3>, 3, Format::sfloat>,
            AttributeSlot<Attribute::normal, core::math::Vector<3>, 3, Format::sfloat>,
-           AttributeSlot<Attribute::tangent, core::math::Vector<3>, 3, Format::sfloat>,
+           AttributeSlot<Attribute::tangent, core::math::Vector<4>, 4, Format::sfloat>,
            AttributeSlot<Attribute::texCoord, core::math::Vector<2>, 2, Format::sfloat>>;
 
 using PositionNormalTextureTangent =
@@ -189,10 +189,14 @@ static constexpr Shape square {
         //  |/        | /
         //  O---x     |/
         //            O
-        PositionNormalTextureTangent { vertex000, -normalI, texture00, -tangentJ },  //  0: x = -0.5
-        PositionNormalTextureTangent { vertex001, -normalI, texture01, -tangentJ },  //  1: x = -0.5
-        PositionNormalTextureTangent { vertex010, -normalI, texture10, -tangentJ },  //  2: x = -0.5
-        PositionNormalTextureTangent { vertex011, -normalI, texture11, -tangentJ },  //  3: x = -0.5
+        PositionNormalTextureTangent { vertex000, -normalI, texture00,
+                                       math::Vector<4> { 0, 1, 0, -1 } },  //  0: x = -0.5
+        PositionNormalTextureTangent { vertex001, -normalI, texture01,
+                                       math::Vector<4> { 0, 1, 0, -1 } },  //  1: x = -0.5
+        PositionNormalTextureTangent { vertex010, -normalI, texture10,
+                                       math::Vector<4> { 0, 1, 0, -1 } },  //  2: x = -0.5
+        PositionNormalTextureTangent { vertex011, -normalI, texture11,
+                                       math::Vector<4> { 0, 1, 0, -1 } },  //  3: x = -0.5
     },
     std::array {
                 0, 1, 2, 1, 3, 2,  // x = -0.5
@@ -267,10 +271,10 @@ static constexpr Shape planeTexturedNormals {
 static constexpr Shape planeNormalTangentTexture {
     "planeTextNorTan",
     std::array {
-                PositionNormalTangentTexture { sw, normalK, normalI, texture00 },
-                PositionNormalTangentTexture { se, normalK, normalI, texture01 },
-                PositionNormalTangentTexture { nw, normalK, normalI, texture10 },
-                PositionNormalTangentTexture { ne, normalK, normalI, texture11 },
+                PositionNormalTangentTexture { sw, normalK, math::Vector<4> { 1, 0, 0, 1 }, texture00 },
+                PositionNormalTangentTexture { se, normalK, math::Vector<4> { 1, 0, 0, 1 }, texture01 },
+                PositionNormalTangentTexture { nw, normalK, math::Vector<4> { 1, 0, 0, 1 }, texture10 },
+                PositionNormalTangentTexture { ne, normalK, math::Vector<4> { 1, 0, 0, 1 }, texture11 },
                 },
     std::array { 0, 1, 2, 1, 3, 2 }
 };

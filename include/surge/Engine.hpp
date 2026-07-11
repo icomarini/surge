@@ -953,17 +953,16 @@ public:
             });
         }
 
-        std::vector<Entity> brickwalls;
+        std::vector<Entity>         brickwalls;
+        const std::filesystem::path brickwallFolder { "/home/ico/projects/surge/textures" };
+        const auto                  brickwallMaterial = storage.createPhongMaterial(
+            storage.loadTexture(brickwallFolder / "brickwall_diffuse.jpg", asset::Texture::texture2d),
+            storage.blackTextureId,
+            storage.loadTexture(brickwallFolder / "brickwall_normal.jpg", asset::Texture::texture2dNorm));
         {  // brickwall
-            const auto diffuse  = storage.loadTexture("/home/ico/projects/surge/textures/brickwall_diffuse.jpg",
-                                                      asset::Texture::texture2d);
-            const auto specular = storage.blackTextureId;
-            const auto normal   = storage.loadTexture("/home/ico/projects/surge/textures/brickwall_normal.jpg",
-                                                      asset::Texture::texture2dNorm);
-            const auto model    = storage.createModel(core::geometry::square);
+            const auto model = storage.createModel(core::geometry::square);
             const auto pipeline =
                 storage.createPipeline<Vertex>(core::shader::Type::shader, storage.phongMaterialLayout);
-            const auto     material = storage.createPhongMaterial(diffuse, specular, normal);
             constexpr auto radius { 10 };
             constexpr auto translations { generateTranslations<radius>() };
             core::forEach<0, translations.size()>([&]<int i>() {
@@ -979,7 +978,7 @@ public:
                     .baseColor = core::Colors<core::Type::rgba>::coral,
                     .isLight   = false,
                 };
-                brickwalls.emplace_back(model, pipeline, storage.createMatrix(matrix), material);
+                brickwalls.emplace_back(model, pipeline, storage.createMatrix(matrix), brickwallMaterial);
             });
         }
 
@@ -1032,6 +1031,7 @@ public:
             });
         }
 
+
         const auto crateDiffuseTexture { storage.loadTexture("/home/ico/projects/surge/textures/container_diffuse.png",
                                                              asset::Texture::texture2d) };
         const auto crateSpecularTexture { storage.loadTexture(
@@ -1053,6 +1053,20 @@ public:
                 crate.emplace_back(model, pipeline, storage.createMatrix(matrix), crateMaterial);
             });
         }
+
+        constexpr auto floorMatrix = translate<x>(-2.0);
+        const Entity   floor {
+            // coordinate system
+              .model    = storage.createModel(core::geometry::planeNormalTangentTexture),
+              .pipeline = storage.createPipeline<core::geometry::PositionNormalTangentTexture>(
+                core::shader::Type::phongModelNormal, storage.phongMaterialLayout),
+              .matrix   = storage.createMatrix(PushConstants {
+                    .matrix    = core::math::fullMatrix(floorMatrix),
+                    .baseColor = core::RGBA::white,
+                    .isLight   = {},
+            }),
+              .material = brickwallMaterial,
+        };
         // {  // cerberus
         //     const auto diffuse = storage.createTexture("/home/ico/projects/surge/textures/brickwall_diffuse.jpg");
         //     const auto normal  = storage.createTexture("/home/ico/projects/surge/textures/brickwall_normal.jpg");
@@ -1132,6 +1146,9 @@ public:
                         translate<x>(12.0) * rotationY * cubeFaceMatrices.at(face);
                 });
 
+                // rotate floor
+                storage.matrices.at(floor.matrix).matrix = translate<x>(-2.0) * rotationY;
+
                 // === rendering ===
                 const auto commandBuffer = presenter.acquire();
                 presenter.beginRendering();
@@ -1153,6 +1170,7 @@ public:
                 for (const auto& face : crate) {
                     storage.draw(commandBuffer, face);
                 }
+                storage.draw(commandBuffer, floor);
 
                 core::forEach<0, cubeFaceMatrices.size(), 0, 2>([&]<int face, int triangle>() {
                     using namespace core::geometry;
