@@ -30,12 +30,7 @@ struct Pipeline {
 };
 
 struct Descriptor {
-    // VkDescriptorSetLayout descriptorSetLayout;
-    VkDescriptorSet descriptorSet;
-
-    // const VkDescriptorSetLayout& layout() const {
-    //     return descriptorSetLayout;
-    // }
+    VkDescriptorSet        descriptorSet;
     const VkDescriptorSet& get() const {
         return descriptorSet;
     }
@@ -108,18 +103,18 @@ struct Storage {
 
     std::map<TextureID, asset::Texture> textures;
 
-    VkDescriptorPool materialPool;
-
     using SceneLayout = DescriptorLayout<VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER>;
     SceneLayout sceneLayout;
 
     using SimpleMaterialLayout = DescriptorLayout<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER>;
-    VkDescriptorSetLayout simpleMaterialLayout;
+    SimpleMaterialLayout simpleMaterialLayout;
 
     using PhongMaterialLayout = DescriptorLayout<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,  //
                                                  VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,  //
                                                  VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER>;
-    VkDescriptorSetLayout phongMaterialLayout;
+    PhongMaterialLayout phongMaterialLayout;
+
+    VkDescriptorPool materialPool;
 
     core::LazyAccessContainer<MaterialID, VkDescriptorSet> materials;
     core::LazyAccessContainer<MaterialID, asset::Material> materials2;
@@ -136,10 +131,10 @@ struct Storage {
         , defaults { command }
         , mainCamera { mainCamera }
         , matrices {}
-        , materialPool { createDescriptorPool<1, 3>(32, 32) }
         , sceneLayout { command.context }
-        , simpleMaterialLayout { createDescriptorSetLayout<1>() }
-        , phongMaterialLayout { createDescriptorSetLayout<3>() }
+        , simpleMaterialLayout { command.context }
+        , phongMaterialLayout { command.context }
+        , materialPool { createDescriptorPool<1, 3>(32, 32) }
         , materials {}
         , materials2 {}
         , meshes {}
@@ -151,8 +146,6 @@ struct Storage {
 
     ~Storage() {
         pipelines.apply([&](Pipeline& pipeline) { pipeline.destroy(command.context); });
-        command.context.destroy(phongMaterialLayout);
-        command.context.destroy(simpleMaterialLayout);
         command.context.destroy(materialPool);
     }
 
@@ -161,14 +154,25 @@ struct Storage {
         return models.create(command, loadedModel, asset::Model::scene);
     }
 
-    template<typename VertexInputState, typename PushConstants, typename... DescriptorSetLayouts>
-    PipelineID createPipeline(const core::shader::Type shaderType, const DescriptorSetLayouts... descriptorSetLayouts) {
+    template<typename VertexInputState, typename PushConstants>
+    PipelineID createPipeline(const core::shader::Type shaderType) {
         static constexpr VkShaderStageFlags shaderStages { VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_VERTEX_BIT |
                                                            VK_SHADER_STAGE_FRAGMENT_BIT };
         static constexpr auto               push { core::createPushConstantRange<PushConstants>(shaderStages) };
 
+        const std::map<core::shader::Type, VkDescriptorSetLayout> layouts {
+            { core::shader::Type::skybox,                  simpleMaterialLayout.get() },
+            { core::shader::Type::primitiveTextured,       simpleMaterialLayout.get() },
+            { core::shader::Type::primitiveTexturedNormal, simpleMaterialLayout.get() },
+            { core::shader::Type::phongModel,              phongMaterialLayout.get()  },
+            { core::shader::Type::phongModelNormal,        phongMaterialLayout.get()  },
+            { core::shader::Type::shader,                  phongMaterialLayout.get()  },
+        };
+
         const auto pipelineLayout =
-            core::createPipelineLayout(command.context, push, sceneLayout.get(), descriptorSetLayouts...);
+            layouts.contains(shaderType) ?
+                core::createPipelineLayout(command.context, push, sceneLayout.get(), layouts.at(shaderType)) :
+                core::createPipelineLayout(command.context, push, sceneLayout.get());
 
         constexpr auto vertexInputState = core::createVertexInputState<VertexInputState>();
         const auto     pipeline =
@@ -258,11 +262,11 @@ struct Storage {
     }
 
     MaterialID createSimpleMaterial(const TextureID textureId) {
-        return materials.create(createMaterialDescriptorSet(simpleMaterialLayout, textureId));
+        return materials.create(createMaterialDescriptorSet(simpleMaterialLayout.get(), textureId));
     }
 
     MaterialID createPhongMaterial(const TextureID diffuse, const TextureID specular, const TextureID normal) {
-        return materials.create(createMaterialDescriptorSet(phongMaterialLayout, diffuse, specular, normal));
+        return materials.create(createMaterialDescriptorSet(phongMaterialLayout.get(), diffuse, specular, normal));
     }
 
     template<typename Vertex>
@@ -270,7 +274,7 @@ struct Storage {
         const load::Gltf asset { handle, defaults };
         const auto       newTextures = asset.createTextures2(command, textures);
         const auto       newMaterials =
-            asset.createMaterials2(command.context, materialPool, phongMaterialLayout, newTextures, materials2);
+            asset.createMaterials2(command.context, materialPool, phongMaterialLayout.get(), newTextures, materials2);
         const auto newMeshes = asset.createMeshes2(newMaterials, meshes);
         // const auto model     = asset.createModel2(command, newMeshes, models);
         // const auto [iter, inserted] = assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
@@ -369,6 +373,35 @@ private:
         });
     }
 
+    // template<typename Layout>
+    // struct DescriptorAllocation {
+    //     DescriptorAllocation(std::size_t quantity) : count {quantity * T} {
+    //     }
+    //     std::size_t count;
+    // };
+
+    // template<typename... Layouts>
+    // VkDescriptorPool createDescriptorPool(const Allocate<Layouts>&... allocations) const {
+    //     uint32_t descriptorCount {};
+    //     core::forEach<0, sizeof...(Layouts)>([&]<int index>() {
+    //         const auto allocation = std::get<index>(std::forward_as_tuple(allocations...));
+    //         descriptorCount += allocation::Layout::descriptorCount() * allocation.quantity;
+    //     });
+
+    //     const VkDescriptorPoolSize descriptorPoolSize {
+    //         .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+    //         .descriptorCount = maxCount,
+    //     };
+    //     return command.context.create(VkDescriptorPoolCreateInfo {
+    //         .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+    //         .pNext         = nullptr,
+    //         .flags         = {},
+    //         .maxSets       = maxCount,
+    //         .poolSizeCount = 1,
+    //         .pPoolSizes    = &descriptorPoolSize,
+    //     });
+    // }
+
     template<std::size_t bindingCount>
     VkDescriptorSetLayout createDescriptorSetLayout() const {
         constexpr auto bindings =
@@ -411,7 +444,7 @@ private:
         constexpr auto bindingCount = sizeof...(TextureIDs);
         const auto     descriptorWrites =
             core::createArray<VkWriteDescriptorSet, bindingCount>([&]<int binding>(auto& descriptorWrite) {
-                const auto& texture = textures.at(std::get<binding>(std::tuple { textureIds... }));
+                const auto& texture = textures.at(std::get<binding>(std::forward_as_tuple(textureIds...)));
                 descriptorWrite     = {
                         .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                         .pNext            = nullptr,

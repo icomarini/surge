@@ -84,6 +84,23 @@ constexpr auto generateTranslations() {
     return translations;
 }
 
+namespace experimental {
+
+template<typename Attribute, typename PushConstant, typename... Descriptors>
+struct Pipeline { };
+
+using UntexturedPipeline = Pipeline<surge::geom::Position, surge::ModelMatrixAndColor>;
+
+using TexturedPipeline =
+    Pipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix, surge::Storage::SimpleMaterialLayout>;
+
+using PhongPipeline =
+    Pipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix, surge::Storage::PhongMaterialLayout>;
+
+using PhongNormalPipeline =
+    Pipeline<surge::geom::PositionNormalTangentTexture, surge::ModelMatrix, surge::Storage::PhongMaterialLayout>;
+}  // namespace experimental
+
 int main() {
     try {
         const std::filesystem::path home { "/home/ico/projects/" };
@@ -117,9 +134,9 @@ int main() {
 
         // create skybox
         const surge::Entity skybox2 {
-            .model    = engine.storage.createModel(surge::geom::cube),
-            .pipeline = engine.storage.createPipeline<surge::geom::Position, surge::ModelMatrix>(
-                surge::ShaderType::skybox, engine.storage.simpleMaterialLayout),
+            .model = engine.storage.createModel(surge::geom::cube),
+            .pipeline =
+                engine.storage.createPipeline<surge::geom::Position, surge::ModelMatrix>(surge::ShaderType::skybox),
             .matrix   = engine.storage.createMatrix(surge::fullMatrix(surge::identity<4>)),
             .material = engine.storage.createSimpleMaterial(
                 engine.storage.createTexture(home / "surge/textures/skybox.ktx", surge::Texture::cube)),
@@ -222,7 +239,7 @@ int main() {
         const auto planeTexturedNodel = engine.storage.createModel(surge::geom::planeTextured);
         const auto primitiveTexturedPipeline =
             engine.storage.createPipeline<surge::geom::PositionTexture, surge::ModelMatrix>(
-                surge::ShaderType::primitiveTextured, engine.storage.simpleMaterialLayout);
+                surge::ShaderType::primitiveTextured);
         const auto texturedCube =
             surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
                 constexpr surge::Translation<> T { 2, 0, 0 };
@@ -234,7 +251,7 @@ int main() {
         const auto planeTexturedNormalsModel = engine.storage.createModel(surge::geom::planeTexturedNormals);
         const auto primitiveTexturedNormalPipeline =
             engine.storage.createPipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix>(
-                surge::ShaderType::primitiveTexturedNormal, engine.storage.simpleMaterialLayout);
+                surge::ShaderType::primitiveTexturedNormal);
 
         const auto texturedNormalCube =
             surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
@@ -246,7 +263,7 @@ int main() {
 
         const auto phongPipeline =
             engine.storage.createPipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix>(
-                surge::ShaderType::phongModel, engine.storage.phongMaterialLayout);
+                surge::ShaderType::phongModel);
 
         const auto phongCube = surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
             constexpr surge::Translation<> T { 0, 0, 0 };
@@ -258,7 +275,7 @@ int main() {
         const auto planeTexturedNormalTangentModel = engine.storage.createModel(surge::geom::planeNormalTangentTexture);
         const auto phongModelNormalPipeline =
             engine.storage.createPipeline<surge::geom::PositionNormalTangentTexture, surge::ModelMatrix>(
-                surge::ShaderType::phongModelNormal, engine.storage.phongMaterialLayout);
+                surge::ShaderType::phongModelNormal);
 
         const auto phongNormalCube =
             surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
@@ -275,9 +292,9 @@ int main() {
             engine.storage.blackTextureId,
             engine.storage.createTexture(brickwallFolder / "brickwall_normal.jpg", surge::Texture::texture2dNorm));
         {  // brickwall
-            const auto model    = engine.storage.createModel(surge::geom::square);
-            const auto pipeline = engine.storage.createPipeline<surge::geom::GltfVertex, surge::ModelMatrix>(
-                surge::ShaderType::shader, engine.storage.phongMaterialLayout);
+            const auto model = engine.storage.createModel(surge::geom::square);
+            const auto pipeline =
+                engine.storage.createPipeline<surge::geom::GltfVertex, surge::ModelMatrix>(surge::ShaderType::shader);
             constexpr auto radius { 10 };
             constexpr auto translations { generateTranslations<radius>() };
             surge::forEach<0, translations.size()>([&]<int i>() {
@@ -314,8 +331,7 @@ int main() {
             // coordinate system
                     .model = engine.storage.createAsset<surge::geom::PositionNormalTexture>(
                 surge::GltfHandle { cerberusFolder / "cerberus.gltf" }),
-                    .pipeline = engine.storage.createPipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix>(
-                surge::ShaderType::phongModel, engine.storage.phongMaterialLayout),
+                    .pipeline = phongPipeline,
                     .matrix   = engine.storage.createMatrix(surge::fullMatrix(cerberusMatrix)),
                     .material = engine.storage.createPhongMaterial(
                 engine.storage.createTexture(cerberusFolder / "albedo.ktx", surge::Texture::texture2d),
