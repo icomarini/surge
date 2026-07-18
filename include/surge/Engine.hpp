@@ -249,29 +249,21 @@ public:
         constexpr core::math::Vector<3> lightPosition { -2, 2, 1 };
         constexpr auto                  lightColor = core::RGBA::white;
 
-        const auto lightCube = std::invoke([&]() {
-            std::array<Entity, cubeFaceMatrices.size()> faces;
-            constexpr core::math::Translation<>         T { lightPosition };
-            constexpr core::math::Scaling<>             S { 0.1f, 0.1f, 0.1f };
-            core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
-                constexpr PushConstants matrix { T * S * cubeFaceMatrices.at(face), lightColor };
-                faces[face] = { planeModel, primitivePipeline, storage.createMatrix(matrix), MaterialID {} };
-            });
-            return faces;
+        const auto lightCube = core::createArray<Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
+            constexpr core::math::Translation<> T { lightPosition };
+            constexpr core::math::Scaling<>     S { 0.1f, 0.1f, 0.1f };
+            constexpr PushConstants             matrix { T * S * cubeFaceMatrices.at(faceId), lightColor };
+            face = { planeModel, primitivePipeline, storage.createMatrix(matrix), MaterialID {} };
         });
 
-        const auto untexturedCube = std::invoke([&]() {
-            std::array<Entity, cubeFaceMatrices.size()> faces;
-            constexpr core::math::Translation<>         T { 0, 0, 0 };
-            constexpr std::array                        cubeFaceColors {
+        const auto untexturedCube = core::createArray<Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
+            constexpr core::math::Translation<> T { 0, 0, 0 };
+            constexpr std::array                cubeFaceColors {
                 core::RGBA::darkRed, core::RGBA::red,      core::RGBA::darkGreen,
                 core::RGBA::green,   core::RGBA::darkBlue, core::RGBA::blue,
             };
-            core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
-                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), cubeFaceColors.at(face) };
-                faces[face] = { planeModel, primitivePipeline, storage.createMatrix(matrix), MaterialID {} };
-            });
-            return faces;
+            constexpr PushConstants matrix { T * cubeFaceMatrices.at(faceId), cubeFaceColors.at(faceId) };
+            face = { planeModel, primitivePipeline, storage.createMatrix(matrix), MaterialID {} };
         });
 
         const std::array cubeDiffuseTextures {
@@ -319,37 +311,36 @@ public:
                                         cubeNormalTextures.at(z)),
         };
 
-        const auto texturedCube = std::invoke([&]() {
-            std::array<Entity, cubeFaceMatrices.size()> faces;
-
-            const auto model    = storage.createModel(core::geometry::planeTextured);
-            const auto pipeline = storage.createPipeline<core::geometry::PositionTexture, PushConstants>(
-                core::shader::Type::primitiveTextured, storage.simpleMaterialLayout);
+        const auto planeTexturedNodel        = storage.createModel(core::geometry::planeTextured);
+        const auto primitiveTexturedPipeline = storage.createPipeline<core::geometry::PositionTexture, PushConstants>(
+            core::shader::Type::primitiveTextured, storage.simpleMaterialLayout);
+        const auto texturedCube = core::createArray<Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
             constexpr core::math::Translation<> T { 2, 0, 0 };
-            core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
-                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), lightColor };
-                faces[face] = { model, pipeline, storage.createMatrix(matrix), cubeSimpleMaterials.at(face) };
-            });
-            return faces;
+            constexpr PushConstants             matrix { T * cubeFaceMatrices.at(faceId), lightColor };
+            face = { planeTexturedNodel, primitiveTexturedPipeline, storage.createMatrix(matrix),
+                     cubeSimpleMaterials.at(faceId) };
         });
 
         const auto planeTexturedNormalsModel = storage.createModel(core::geometry::planeTexturedNormals);
-
-        const auto texturedNormalCube = std::invoke([&]() {
-            std::array<Entity, cubeFaceMatrices.size()> faces;
-            const auto pipeline = storage.createPipeline<core::geometry::PositionNormalTexture, PushConstants>(
+        const auto primitiveTexturedNormalPipeline =
+            storage.createPipeline<core::geometry::PositionNormalTexture, PushConstants>(
                 core::shader::Type::primitiveTexturedNormal, storage.simpleMaterialLayout);
+
+        const auto texturedNormalCube = core::createArray<Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
             constexpr core::math::Translation<> T { 4, 0, 0 };
-            core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
-                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), lightColor };
-                faces[face] = {
-                    .model    = planeTexturedNormalsModel,
-                    .pipeline = pipeline,
-                    .matrix   = storage.createMatrix(matrix),
-                    .material = cubeSimpleMaterials.at(face),
-                };
-            });
-            return faces;
+            constexpr PushConstants             matrix { T * cubeFaceMatrices.at(faceId), lightColor };
+            face = { planeTexturedNormalsModel, primitiveTexturedNormalPipeline, storage.createMatrix(matrix),
+                     cubeSimpleMaterials.at(faceId) };
+        });
+
+        const auto phongPipeline = storage.createPipeline<core::geometry::PositionNormalTexture, PushConstants>(
+            core::shader::Type::phongModel, storage.phongMaterialLayout);
+
+        const auto phongCube = core::createArray<Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
+            constexpr core::math::Translation<> T { 0, 0, 0 };
+            constexpr PushConstants             matrix { T * cubeFaceMatrices.at(faceId), lightColor };
+            face = { planeTexturedNormalsModel, phongPipeline, storage.createMatrix(matrix),
+                     cubePhongMaterials.at(faceId) };
         });
 
         const auto planeTexturedNormalTangentModel = storage.createModel(core::geometry::planeNormalTangentTexture);
@@ -357,19 +348,11 @@ public:
             storage.createPipeline<core::geometry::PositionNormalTangentTexture, PushConstants>(
                 core::shader::Type::phongModelNormal, storage.phongMaterialLayout);
 
-        const auto phongNormalCube = std::invoke([&]() {
-            std::array<Entity, cubeFaceMatrices.size()> faces;
-            constexpr core::math::Translation<>         T { 4, 2, 0 };
-            core::forEach<0, 6>([&]<int face>() {
-                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), core::RGBA::white };
-                faces[face] = {
-                    .model    = planeTexturedNormalTangentModel,
-                    .pipeline = phongModelNormalPipeline,
-                    .matrix   = storage.createMatrix(matrix),
-                    .material = cubePhongMaterials.at(face),
-                };
-            });
-            return faces;
+        const auto phongNormalCube = core::createArray<Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
+            constexpr core::math::Translation<> T { 4, 2, 0 };
+            constexpr PushConstants             matrix { T * cubeFaceMatrices.at(faceId), lightColor };
+            face = { planeTexturedNormalTangentModel, phongModelNormalPipeline, storage.createMatrix(matrix),
+                     cubePhongMaterials.at(faceId) };
         });
 
         std::vector<Entity>         brickwalls;
@@ -433,23 +416,6 @@ public:
                 storage.loadTexture(cerberusFolder / "normal.ktx", asset::Texture::texture2d)),
         };
 
-        const auto phongPipeline = storage.createPipeline<core::geometry::PositionNormalTexture, PushConstants>(
-            core::shader::Type::phongModel, storage.phongMaterialLayout);
-
-        const auto phongCube = std::invoke([&]() {
-            std::array<Entity, cubeFaceMatrices.size()> faces;
-            constexpr core::math::Translation<>         T { 0, 0, 0 };
-            core::forEach<0, 6>([&]<int face>() {
-                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), core::RGBA::white };
-                faces[face] = {
-                    .model    = planeTexturedNormalsModel,
-                    .pipeline = phongPipeline,
-                    .matrix   = storage.createMatrix(matrix),
-                    .material = cubePhongMaterials.at(face),
-                };
-            });
-            return faces;
-        });
 
         const std::filesystem::path crateFolder { "/home/ico/projects/surge/textures" };
         const auto                  crateMaterial = storage.createPhongMaterial(
@@ -473,17 +439,13 @@ public:
 
         constexpr auto floorMatrix = translate<x>(-2.0);
         const Entity   floor {
-            // coordinate system
               .model    = planeTexturedNormalTangentModel,
               .pipeline = phongModelNormalPipeline,
               .matrix   = storage.createMatrix(
                 PushConstants { .matrix = core::math::fullMatrix(floorMatrix), .baseColor = core::RGBA::white }),
               .material = brickwallMaterial,
         };
-        // {  // cerberus
-        //     const auto diffuse = storage.createTexture("/home/ico/projects/surge/textures/brickwall_diffuse.jpg");
-        //     const auto normal  = storage.createTexture("/home/ico/projects/surge/textures/brickwall_normal.jpg");
-        // }
+
         // === initialize ===
 
         // Phong light model
