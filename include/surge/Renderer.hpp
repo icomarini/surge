@@ -26,10 +26,7 @@ public:
                                          VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_VERTEX_BIT |
                                              VK_SHADER_STAGE_FRAGMENT_BIT,
                                          core::Buffer> { scene } }
-        , pipelines { createPipelines(context, descriptor.setLayout) }
-    // , lightColor { core::Colors<core::Type::rgba>::white }
-    // , lightPosition {}
-    {
+        , pipelines { createPipelines(context, descriptor.setLayout) } {
     }
 
     ~Renderer() {
@@ -55,96 +52,9 @@ public:
         pipeline = core::createGraphicPipeline(context, vertexInputState, pipelineLayout, shader);
     }
 
-
-    void drawLine(const VkCommandBuffer commandBuffer, const VkPipelineLayout pipelineLayout,
-                  const asset::Line& line) const {
-        vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(asset::Line), &line);
-        vkCmdDraw(commandBuffer, 2, 1, 0, 0);
-    }
-
-    void drawParticles(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const {
-        // if (physics.particles.empty() && physics.anchors.empty())
-        // {
-        //     return;
-        // }
-
-        const auto [pipelineLayout, pipeline] = pipelines.at("point");
-
-        constexpr uint32_t sceneUniformIndex = 0;
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, sceneUniformIndex, 1,
-                                &sceneDescriptor, 0, nullptr);
-
-        core::Extern::setPolygonMode(commandBuffer, core::translate(core::PolygonMode::point));
-
-        vkCmdSetLineWidth(commandBuffer, 1.0);
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-        // for (const auto& particle : physics.particles)
-        // {
-        //     drawPoint(commandBuffer, pipelineLayout,
-        //               asset::Point {
-        //                   .p     = particle.position,
-        //                   .color = core::Colors<core::Type::rgba>::green,
-        //               });
-        // }
-        // for (const auto& anchor : physics.anchors)
-        // {
-        //     drawPoint(commandBuffer, pipelineLayout,
-        //               asset::Point {
-        //                   .p     = anchor.position,
-        //                   .color = core::Colors<core::Type::rgba>::red,
-        //               });
-        // }
-    }
-
-    void drawSprings(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const {
-        // if (physics.springs.empty() && physics.anchoredSprings.empty())
-        // {
-        //     return;
-        // }
-
-        const auto [pipelineLayout, pipeline] = pipelines.at("line");
-
-        constexpr uint32_t sceneUniformIndex = 0;
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, sceneUniformIndex, 1,
-                                &sceneDescriptor, 0, nullptr);
-        core::Extern::setPolygonMode(commandBuffer, core::translate(core::PolygonMode::line));
-
-        vkCmdSetLineWidth(commandBuffer, 1.0);
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-        // for (const auto& spring : physics.springs)
-        // {
-        //     drawLine(commandBuffer, pipelineLayout,
-        //              asset::Line {
-        //                  .a     = spring.first.position,
-        //                  .b     = spring.second.position,
-        //                  .color = core::Colors<core::Type::rgba>::white,
-        //              });
-        // }
-        // for (const auto& spring : physics.anchoredSprings)
-        // {
-        //     drawLine(commandBuffer, pipelineLayout,
-        //              asset::Line {
-        //                  .a     = spring.particle.position,
-        //                  .b     = spring.anchor.position,
-        //                  .color = core::Colors<core::Type::rgba>::white,
-        //              });
-        // }
-    }
-
-    void drawPoint(const VkCommandBuffer commandBuffer, const VkPipelineLayout pipelineLayout,
-                   const asset::Point& point) const {
-        vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(asset::Point), &point);
-        vkCmdDraw(commandBuffer, 1, 1, 0, 0);
-    }
-
     core::Buffer                                                   scene;
     core::Descriptor                                               descriptor;
     std::map<std::string, std::pair<VkPipelineLayout, VkPipeline>> pipelines;
-    // core::math::Vector<4>                                          lightColor;
-    // core::math::Vector<3>                                          lightPosition;
-
 
     void update(const Camera<false>& camera, const core::math::Vector<4>& lightColor,
                 const core::math::Vector<3> lightPosition) {
@@ -153,10 +63,10 @@ public:
         memcpy(scene.mapped, &sceneMatrices, sizeof(SceneBuffer));
     }
 
-    void draw(const VkCommandBuffer commandBuffer) const {
-        drawParticles(commandBuffer, descriptor.set);
-        drawSprings(commandBuffer, descriptor.set);
-    }
+    // void draw(const VkCommandBuffer commandBuffer) const {
+    //     drawParticles(commandBuffer, descriptor.set);
+    //     drawSprings(commandBuffer, descriptor.set);
+    // }
 
 private:
     static std::map<std::string, std::pair<VkPipelineLayout, VkPipeline>>

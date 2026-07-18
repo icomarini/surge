@@ -30,17 +30,61 @@ struct Pipeline {
 };
 
 struct Descriptor {
-    VkDescriptorSetLayout descriptorSetLayout;
-    VkDescriptorSet       descriptorSet;
+    // VkDescriptorSetLayout descriptorSetLayout;
+    VkDescriptorSet descriptorSet;
 
-    const VkDescriptorSetLayout& layout() const {
-        return descriptorSetLayout;
-    }
+    // const VkDescriptorSetLayout& layout() const {
+    //     return descriptorSetLayout;
+    // }
     const VkDescriptorSet& get() const {
         return descriptorSet;
     }
 };
 
+template<VkDescriptorType... types>
+struct DescriptorLayout : core::Contextualized {
+    VkDescriptorSetLayout descriptorSetLayout;
+
+    DescriptorLayout(const core::Context& context)
+        : Contextualized(context)
+        , descriptorSetLayout { createDescriptorSetLayout() } {
+    }
+
+    ~DescriptorLayout() {
+        context.destroy(descriptorSetLayout);
+    }
+
+    VkDescriptorSetLayout get() const {
+        return descriptorSetLayout;
+    }
+
+    constexpr std::size_t descrtiptorCount() const {
+        return sizeof...(types);
+    }
+
+    VkDescriptorSetLayout createDescriptorSetLayout() const {
+        constexpr auto bindings =
+            core::createArray<VkDescriptorSetLayoutBinding, descrtiptorCount()>([&]<int index>(auto& binding) {
+                constexpr auto type = std::get<index>(std::array { types... });
+                binding             = {
+                                .binding         = index,
+                                .descriptorType  = type,
+                                .descriptorCount = 1,
+                                .stageFlags =
+                        VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                                .pImmutableSamplers = nullptr,
+                };
+            });
+
+        return context.create(VkDescriptorSetLayoutCreateInfo {
+            .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .pNext        = nullptr,
+            .flags        = {},
+            .bindingCount = static_cast<uint32_t>(bindings.size()),
+            .pBindings    = bindings.data(),
+        });
+    }
+};
 
 using ModelMatrix = core::math::Matrix<4, 4>;
 struct ModelMatrixAndColor {
@@ -62,10 +106,21 @@ struct Storage {
     using PushConstantsVariants = std::variant<ModelMatrix, ModelMatrixAndColor>;
     std::map<MatrixID, PushConstantsVariants> matrices;
 
-    std::map<TextureID, asset::Texture>                    textures;
-    VkDescriptorPool                                       materialPool;
-    VkDescriptorSetLayout                                  simpleMaterialLayout;
-    VkDescriptorSetLayout                                  phongMaterialLayout;
+    std::map<TextureID, asset::Texture> textures;
+
+    VkDescriptorPool materialPool;
+
+    using SceneLayout = DescriptorLayout<VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER>;
+    SceneLayout sceneLayout;
+
+    using SimpleMaterialLayout = DescriptorLayout<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER>;
+    VkDescriptorSetLayout simpleMaterialLayout;
+
+    using PhongMaterialLayout = DescriptorLayout<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,  //
+                                                 VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,  //
+                                                 VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER>;
+    VkDescriptorSetLayout phongMaterialLayout;
+
     core::LazyAccessContainer<MaterialID, VkDescriptorSet> materials;
     core::LazyAccessContainer<MaterialID, asset::Material> materials2;
     std::map<MeshID, asset::Mesh>                          meshes;
@@ -82,6 +137,7 @@ struct Storage {
         , mainCamera { mainCamera }
         , matrices {}
         , materialPool { createDescriptorPool<1, 3>(32, 32) }
+        , sceneLayout { command.context }
         , simpleMaterialLayout { createDescriptorSetLayout<1>() }
         , phongMaterialLayout { createDescriptorSetLayout<3>() }
         , materials {}
@@ -112,7 +168,7 @@ struct Storage {
         static constexpr auto               push { core::createPushConstantRange<PushConstants>(shaderStages) };
 
         const auto pipelineLayout =
-            core::createPipelineLayout(command.context, push, mainCamera.descriptorSetLayout, descriptorSetLayouts...);
+            core::createPipelineLayout(command.context, push, sceneLayout.get(), descriptorSetLayouts...);
 
         constexpr auto vertexInputState = core::createVertexInputState<VertexInputState>();
         const auto     pipeline =
@@ -122,8 +178,7 @@ struct Storage {
 
     PipelineID createLinePipeline() {
         const auto pipelineLayout = core::createPipelineLayout(
-            command.context, core::createPushConstantRange<asset::Line>(VK_SHADER_STAGE_VERTEX_BIT),
-            mainCamera.descriptorSetLayout);
+            command.context, core::createPushConstantRange<asset::Line>(VK_SHADER_STAGE_VERTEX_BIT), sceneLayout.get());
         const auto pipeline = core::createGraphicPipeline(
             command.context, core::createVertexInputState(), VK_NULL_HANDLE, pipelineLayout,
             core::shader::Shader {

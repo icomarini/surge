@@ -60,7 +60,7 @@ public:
         , presenter { command }  // , defaults { command }
         , renderer { context }
         , overlay { command, assets }
-        , mainCamera { renderer.descriptor.setLayout, renderer.descriptor.set }
+        , mainCamera { /*renderer.descriptor.setLayout,*/ renderer.descriptor.set }
         , storage { command, mainCamera } {
         log::checkpoint("The surge of urge to purge started");
     }

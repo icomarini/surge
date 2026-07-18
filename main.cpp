@@ -335,7 +335,6 @@ int main() {
             face = { planeTexturedNormalsModel, phongPipeline, engine.storage.createMatrix(matrix), crateMaterial };
         });
 
-
         // const auto crate = std::invoke([&]() {
         //     std::array<Entity, cubeFaceMatrices.size()> faces;
         //     core::forEach<0, 6>([&]<int face>() {
