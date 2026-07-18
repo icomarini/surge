@@ -39,7 +39,7 @@ void main(void) {
     vec3  ambient         = ambientStrength * lightColor.rgb * texture(diffuseSampler, inTexCoord).rgb;
 
     // diffuse
-    vec3  normal         = normalize(computeNormal());
+    vec3  normal         = normalize(inNormal);
     vec3  lightDirection = normalize(inLightPosition - inPosition);
     float diffuseCoef    = max(dot(normal, lightDirection), 0.0);
     vec3  diffuse        = diffuseCoef * lightColor.rgb * texture(diffuseSampler, inTexCoord).rgb;

@@ -100,8 +100,8 @@ static constexpr auto createDefaultTextureData(const core::Colors<core::Type::rg
     };
 }
 
-static constexpr auto textureDataX(const core::Colors<core::Type::rgba>::Format& background,
-                                   const core::Colors<core::Type::rgba>::Format& text) {
+static consteval auto createTextureDataX(const core::Colors<core::Type::rgba>::Format& background,
+                                         const core::Colors<core::Type::rgba>::Format& text) {
     const auto b = toUint8(background);
     const auto t = toUint8(text);
     return TextureData<16, 16> {
@@ -127,8 +127,8 @@ static constexpr auto textureDataX(const core::Colors<core::Type::rgba>::Format&
     };
 }
 
-static constexpr auto textureDataY(const core::Colors<core::Type::rgba>::Format& background,
-                                   const core::Colors<core::Type::rgba>::Format& text) {
+static consteval auto createTextureDataY(const core::Colors<core::Type::rgba>::Format& background,
+                                         const core::Colors<core::Type::rgba>::Format& text) {
     const auto b = toUint8(background);
     const auto t = toUint8(text);
     return TextureData<16, 16> {
@@ -154,8 +154,8 @@ static constexpr auto textureDataY(const core::Colors<core::Type::rgba>::Format&
     };
 }
 
-static constexpr auto textureDataZ(const core::Colors<core::Type::rgba>::Format& background,
-                                   const core::Colors<core::Type::rgba>::Format& text) {
+static consteval auto createTextureDataZ(const core::Colors<core::Type::rgba>::Format& background,
+                                         const core::Colors<core::Type::rgba>::Format& text) {
     const auto b = toUint8(background);
     const auto t = toUint8(text);
     return TextureData<16, 16> {

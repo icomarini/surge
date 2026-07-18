@@ -282,6 +282,8 @@ struct PushConstants {
     uint32_t                 isLight;
 };
 
+using ModelMatrix = core::math::Matrix<4, 4>;
+
 struct Storage {
     static constexpr auto                graphicsBindPoint { VK_PIPELINE_BIND_POINT_GRAPHICS };
     static constexpr VkShaderStageFlags  shaderStages { VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_VERTEX_BIT |
@@ -344,10 +346,15 @@ struct Storage {
         return models.create(command, loadedModel, asset::Model::scene);
     }
 
-    template<typename VertexInputState, typename... DescriptorSetLayouts>
+    template<typename VertexInputState, typename PushConstants, typename... DescriptorSetLayouts>
     PipelineID createPipeline(const core::shader::Type shaderType, const DescriptorSetLayouts... descriptorSetLayouts) {
-        const auto     pipelineLayout   = core::createPipelineLayout(command.context, pushConstantRange,
-                                                                     mainCamera.descriptorSetLayout, descriptorSetLayouts...);
+        static constexpr VkShaderStageFlags shaderStages { VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_VERTEX_BIT |
+                                                           VK_SHADER_STAGE_FRAGMENT_BIT };
+        static constexpr auto               push { core::createPushConstantRange<PushConstants>(shaderStages) };
+
+        const auto pipelineLayout =
+            core::createPipelineLayout(command.context, push, mainCamera.descriptorSetLayout, descriptorSetLayouts...);
+
         constexpr auto vertexInputState = core::createVertexInputState<VertexInputState>();
         const auto     pipeline =
             core::createGraphicPipeline(command.context, vertexInputState, pipelineLayout, shaderType);
@@ -381,6 +388,11 @@ struct Storage {
             throw std::runtime_error("Matrix already present");
         }
         return insertion.first->first;
+    }
+
+    template<typename TextureData>
+    TextureID createTexture(const TextureData& textureData) {
+        return createTexture("", textureData);
     }
 
     template<typename TextureData>
@@ -827,7 +839,8 @@ public:
         const Entity coordinates {
             // coordinate system
             .model    = storage.createModel(core::geometry::coordinates),
-            .pipeline = storage.createPipeline<core::geometry::PositionAndColor>(core::shader::Type::coordinates),
+            .pipeline = storage.createPipeline<core::geometry::PositionAndColor, PushConstants>(
+                core::shader::Type::coordinates),
             .matrix   = storage.createMatrix(PushConstants {
                   .matrix    = core::math::fullMatrix(core::math::identity<4>),
                   .baseColor = core::RGBA::white,
@@ -848,8 +861,9 @@ public:
             core::math::fullMatrix(translate<z>(+0.5)),  //
         };
 
-        const auto planeModel        = storage.createModel(core::geometry::plane);
-        const auto primitivePipeline = storage.createPipeline<core::geometry::Position>(core::shader::Type::primitive);
+        const auto planeModel = storage.createModel(core::geometry::plane);
+        const auto primitivePipeline =
+            storage.createPipeline<core::geometry::Position, PushConstants>(core::shader::Type::primitive);
 
         constexpr core::math::Vector<3> lightPosition { -2, 2, 1 };
         constexpr auto                  lightColor = core::RGBA::white;
@@ -876,33 +890,28 @@ public:
             });
         }
 
-        static constexpr auto xBackDiffuseTextureData  = load::textureDataX(core::RGBA::darkRed, core::RGBA::black);
-        static constexpr auto xFrontDiffuseTextureData = load::textureDataX(core::RGBA::red, core::RGBA::black);
-        static constexpr auto yBackDiffuseTextureData  = load::textureDataY(core::RGBA::darkGreen, core::RGBA::black);
-        static constexpr auto yFrontDiffuseTextureData = load::textureDataY(core::RGBA::green, core::RGBA::black);
-        static constexpr auto zBackDiffuseTextureData  = load::textureDataZ(core::RGBA::darkBlue, core::RGBA::black);
-        static constexpr auto zFrontDiffuseTextureData = load::textureDataZ(core::RGBA::blue, core::RGBA::black);
-
-        static constexpr auto xSpecularTextureData = load::textureDataX(core::RGBA::black, core::RGBA::white);
-        static constexpr auto ySpecularTextureData = load::textureDataY(core::RGBA::black, core::RGBA::white);
-        static constexpr auto zSpecularTextureData = load::textureDataZ(core::RGBA::black, core::RGBA::white);
-
         const std::array cubeDiffuseTextures {
-            storage.createTexture("xBack", xBackDiffuseTextureData),    //
-            storage.createTexture("xFront", xFrontDiffuseTextureData),  //
-            storage.createTexture("yBack", yBackDiffuseTextureData),    //
-            storage.createTexture("yFront", yFrontDiffuseTextureData),  //
-            storage.createTexture("zBack", zBackDiffuseTextureData),    //
-            storage.createTexture("zFront", zFrontDiffuseTextureData),  //
+            storage.createTexture(load::createTextureDataX(core::RGBA::darkRed, core::RGBA::black)),    //
+            storage.createTexture(load::createTextureDataX(core::RGBA::red, core::RGBA::black)),        //
+            storage.createTexture(load::createTextureDataY(core::RGBA::darkGreen, core::RGBA::black)),  //
+            storage.createTexture(load::createTextureDataY(core::RGBA::green, core::RGBA::black)),      //
+            storage.createTexture(load::createTextureDataZ(core::RGBA::darkBlue, core::RGBA::black)),   //
+            storage.createTexture(load::createTextureDataZ(core::RGBA::blue, core::RGBA::black)),       //
         };
 
         const std::array cubeSpecularTextures {
-            storage.createTexture("xBack", xSpecularTextureData),   //
-            storage.createTexture("xFront", ySpecularTextureData),  //
-            storage.createTexture("yBack", zSpecularTextureData),   //
+            storage.createTexture(load::createTextureDataX(core::RGBA::black, core::RGBA::white)),  //
+            storage.createTexture(load::createTextureDataY(core::RGBA::black, core::RGBA::white)),  //
+            storage.createTexture(load::createTextureDataZ(core::RGBA::black, core::RGBA::white)),  //
         };
 
-        const std::array cubeMaterials {
+        const std::array cubeNormalTextures {
+            storage.createTexture(load::createDefaultTextureData(core::RGBA::blue, core::RGBA::blue)),  //
+            storage.createTexture(load::createDefaultTextureData(core::RGBA::blue, core::RGBA::blue)),  //
+            storage.createTexture(load::createDefaultTextureData(core::RGBA::blue, core::RGBA::blue)),  //
+        };
+
+        const std::array cubeSimpleMaterials {
             storage.createSimpleMaterial(cubeDiffuseTextures.at(xBack)),
             storage.createSimpleMaterial(cubeDiffuseTextures.at(xFront)),
             storage.createSimpleMaterial(cubeDiffuseTextures.at(yBack)),
@@ -913,43 +922,61 @@ public:
 
         const std::array cubePhongMaterials {
             storage.createPhongMaterial(cubeDiffuseTextures.at(xBack), cubeSpecularTextures.at(x),
-                                        storage.defaultTextureId),  //
+                                        cubeNormalTextures.at(x)),
             storage.createPhongMaterial(cubeDiffuseTextures.at(xFront), cubeSpecularTextures.at(x),
-                                        storage.defaultTextureId),  //
+                                        cubeNormalTextures.at(x)),
             storage.createPhongMaterial(cubeDiffuseTextures.at(yBack), cubeSpecularTextures.at(y),
-                                        storage.defaultTextureId),  //
+                                        cubeNormalTextures.at(y)),
             storage.createPhongMaterial(cubeDiffuseTextures.at(yFront), cubeSpecularTextures.at(y),
-                                        storage.defaultTextureId),  //
+                                        cubeNormalTextures.at(y)),
             storage.createPhongMaterial(cubeDiffuseTextures.at(zBack), cubeSpecularTextures.at(z),
-                                        storage.defaultTextureId),  //
+                                        cubeNormalTextures.at(z)),
             storage.createPhongMaterial(cubeDiffuseTextures.at(zFront), cubeSpecularTextures.at(z),
-                                        storage.defaultTextureId),  //
+                                        cubeNormalTextures.at(z)),
         };
 
         {  // textured cube
             const auto model    = storage.createModel(core::geometry::planeTextured);
-            const auto pipeline = storage.createPipeline<core::geometry::PositionTexture>(
+            const auto pipeline = storage.createPipeline<core::geometry::PositionTexture, PushConstants>(
                 core::shader::Type::primitiveTextured, storage.simpleMaterialLayout);
             constexpr auto                      color { core::RGBA::white };
             constexpr uint32_t                  isLight {};
             constexpr core::math::Translation<> T { 2, 0, 0 };
             core::forEach<0, 6>([&]<int face>() {
                 constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), color, isLight };
-                cubes.emplace_back(model, pipeline, storage.createMatrix(matrix), cubeMaterials.at(face));
+                cubes.emplace_back(model, pipeline, storage.createMatrix(matrix), cubeSimpleMaterials.at(face));
             });
         }
 
         const auto planeTexturedNormalsModel = storage.createModel(core::geometry::planeTexturedNormals);
         {  // textured normal cube
             const auto model    = planeTexturedNormalsModel;
-            const auto pipeline = storage.createPipeline<core::geometry::PositionNormalTexture>(
+            const auto pipeline = storage.createPipeline<core::geometry::PositionNormalTexture, PushConstants>(
                 core::shader::Type::primitiveTexturedNormal, storage.simpleMaterialLayout);
             constexpr auto                      color { core::RGBA::white };
             constexpr uint32_t                  isLight {};
             constexpr core::math::Translation<> T { 4, 0, 0 };
             core::forEach<0, 6>([&]<int face>() {
                 constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), color, isLight };
-                cubes.emplace_back(model, pipeline, storage.createMatrix(matrix), cubeMaterials.at(face));
+                cubes.emplace_back(model, pipeline, storage.createMatrix(matrix), cubeSimpleMaterials.at(face));
+            });
+        }
+
+
+        const auto planeTexturedNormalTangentModel = storage.createModel(core::geometry::planeNormalTangentTexture);
+        const auto phongModelNormalPipeline =
+            storage.createPipeline<core::geometry::PositionNormalTangentTexture, PushConstants>(
+                core::shader::Type::phongModelNormal, storage.phongMaterialLayout);
+
+        {  // textured normal tangent cube
+            const auto                          model    = planeTexturedNormalTangentModel;
+            const auto                          pipeline = phongModelNormalPipeline;
+            constexpr auto                      color { core::RGBA::white };
+            constexpr uint32_t                  isLight {};
+            constexpr core::math::Translation<> T { 4, 2, 0 };
+            core::forEach<0, 6>([&]<int face>() {
+                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), color, isLight };
+                cubes.emplace_back(model, pipeline, storage.createMatrix(matrix), cubePhongMaterials.at(face));
             });
         }
 
@@ -962,7 +989,7 @@ public:
         {  // brickwall
             const auto model = storage.createModel(core::geometry::square);
             const auto pipeline =
-                storage.createPipeline<Vertex>(core::shader::Type::shader, storage.phongMaterialLayout);
+                storage.createPipeline<Vertex, PushConstants>(core::shader::Type::shader, storage.phongMaterialLayout);
             constexpr auto radius { 10 };
             constexpr auto translations { generateTranslations<radius>() };
             core::forEach<0, translations.size()>([&]<int i>() {
@@ -1003,8 +1030,8 @@ public:
             // coordinate system
                            .model = storage.createAsset<core::geometry::PositionNormalTexture>(
                 load::Gltf::Handle { cerberusFolder / "cerberus.gltf" }),
-                           .pipeline = storage.createPipeline<core::geometry::PositionNormalTexture>(core::shader::Type::phongModel,
-                                                                                                     storage.phongMaterialLayout),
+                           .pipeline = storage.createPipeline<core::geometry::PositionNormalTexture, PushConstants>(
+                core::shader::Type::phongModel, storage.phongMaterialLayout),
                            .matrix   = storage.createMatrix(PushConstants {
                                  .matrix    = core::math::fullMatrix(cerberusMatrix),
                                  .baseColor = core::RGBA::white,
@@ -1016,7 +1043,7 @@ public:
                 storage.loadTexture(cerberusFolder / "normal.ktx", asset::Texture::texture2d)),
         };
 
-        const auto phongPipeline = storage.createPipeline<core::geometry::PositionNormalTexture>(
+        const auto phongPipeline = storage.createPipeline<core::geometry::PositionNormalTexture, PushConstants>(
             core::shader::Type::phongModel, storage.phongMaterialLayout);
         std::vector<Entity> phongCube;
         {  // phong cube
@@ -1057,9 +1084,8 @@ public:
         constexpr auto floorMatrix = translate<x>(-2.0);
         const Entity   floor {
             // coordinate system
-              .model    = storage.createModel(core::geometry::planeNormalTangentTexture),
-              .pipeline = storage.createPipeline<core::geometry::PositionNormalTangentTexture>(
-                core::shader::Type::phongModelNormal, storage.phongMaterialLayout),
+              .model    = planeTexturedNormalTangentModel,
+              .pipeline = phongModelNormalPipeline,
               .matrix   = storage.createMatrix(PushConstants {
                     .matrix    = core::math::fullMatrix(floorMatrix),
                     .baseColor = core::RGBA::white,
