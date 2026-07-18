@@ -282,8 +282,6 @@ constexpr auto& get(const View<T>& t) {
     }
 }
 
-}  // namespace surge::core::math
-
 enum Coordinate {
     x = 0,
     y,
@@ -329,3 +327,5 @@ template<Coordinate c>
 constexpr auto flip() {
     return rotate<c>(90) * rotate<c>(90);
 }
+
+}  // namespace surge::core::math
