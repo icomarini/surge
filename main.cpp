@@ -81,8 +81,8 @@ int main() {
         constexpr surge::core::Window::Resolution resolution { .width = 1600, .height = 900 };
         surge::Engine                             engine(windowName, appName, resolution);
 
-        using Gltf   = surge::load::Gltf::Handle;
-        using Obj    = surge::load::Obj::Handle;
+        // using Gltf   = surge::load::Gltf::Handle;
+        // using Obj    = surge::load::Obj::Handle;
         using Skybox = surge::load::LoadedSkybox::Handle;
 
         engine.loadAsset("skybox", Skybox { home / "surge/textures/skybox.ktx" });
