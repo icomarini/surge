@@ -5,6 +5,9 @@
 
 #include <sstream>
 
+#define sqrt2 1.41421356237f
+#define sqrt2o2 0.70710678118f
+
 namespace surge::core::math {
 // implementation: Identity
 template<Size s, typename T = Float32>
@@ -280,3 +283,49 @@ constexpr auto& get(const View<T>& t) {
 }
 
 }  // namespace surge::core::math
+
+enum Coordinate {
+    x = 0,
+    y,
+    z,
+};
+
+template<Coordinate c>
+constexpr auto translate(const float t) {
+    using namespace surge;
+    if constexpr (c == x) {
+        return core::math::Translation<> { t, 0, 0 };
+    } else if constexpr (c == y) {
+        return core::math::Translation<> { 0, t, 0 };
+    } else if constexpr (c == z) {
+        return core::math::Translation<> { 0, 0, t };
+    } else {
+        throw;
+    }
+};
+
+template<Coordinate c>
+constexpr auto rotate(const float d) {
+    using namespace surge;
+    const auto coef = d > 0 ? -sqrt2o2 : sqrt2o2;
+    if constexpr (c == x) {
+        return core::math::Rotation<> {
+            core::math::Quaternion<> { coef, 0, 0, sqrt2o2 }
+        };
+    } else if constexpr (c == y) {
+        return core::math::Rotation<> {
+            core::math::Quaternion<> { 0, coef, 0, sqrt2o2 }
+        };
+    } else if constexpr (c == z) {
+        return core::math::Rotation<> {
+            core::math::Quaternion<> { 0, 0, coef, sqrt2o2 }
+        };
+    } else {
+        throw;
+    }
+}
+
+template<Coordinate c>
+constexpr auto flip() {
+    return rotate<c>(90) * rotate<c>(90);
+}

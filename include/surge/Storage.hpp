@@ -56,7 +56,7 @@ struct Storage {
         shaderStages) };
 
     const core::Command&                                   command;
-    const load::Defaults&                                  defaults;
+    load::Defaults                                         defaults;
     const Descriptor&                                      mainCamera;
     core::LazyAccessContainer<ModelID, asset::Model>       models;
     core::LazyAccessContainer<PipelineID, Pipeline>        pipelines;
@@ -81,9 +81,9 @@ struct Storage {
 
     PipelineID linePipelineId;
 
-    Storage(const core::Command& command, const load::Defaults& defaults, const Descriptor& mainCamera)
+    Storage(const core::Command& command, const Descriptor& mainCamera)
         : command { command }
-        , defaults { defaults }
+        , defaults { command }
         , mainCamera { mainCamera }
         , matrices {}
         , materialPool { createDescriptorPool<1, 3>(32, 32) }
@@ -233,19 +233,13 @@ struct Storage {
         return asset.createModel2<Vertex>(command, newMeshes, models);
     }
 
-    template<typename T>
-        requires container<T>
+    template<container T>
+    // requires container<T>
     void draw(const VkCommandBuffer commandBuffer, const T& entities) const {
         for (const auto& entity : entities) {
             draw(commandBuffer, entity);
         }
     }
-
-    // void draw(const VkCommandBuffer commandBuffer, const Entity& entity) const {
-    //     for (const auto& face : cubes) {
-    //         draw(commandBuffer, face);
-    //     }
-    // }
 
     void draw(const VkCommandBuffer commandBuffer, const Entity& entity) const {
         vkCmdSetLineWidth(commandBuffer, 2.0);

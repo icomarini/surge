@@ -15,9 +15,6 @@
 
 #include <type_traits>
 
-#define sqrt2 1.41421356237f
-#define sqrt2o2 0.70710678118f
-
 namespace surge {
 
 using vec3 = core::math::Vector<3>;
@@ -95,83 +92,6 @@ double elapsed(auto start) {
     return 1e-3 * std::chrono::duration<double, std::milli>(stop - start).count();
 }
 
-template<typename... Textures>
-auto createDescriptorSet(const core::Context& context, const Textures&... textures) {
-    constexpr uint32_t texturesCount { sizeof...(Textures) };
-
-    // descriptor pool
-    const std::array poolSizes {
-        VkDescriptorPoolSize {
-                              .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                              .descriptorCount = sizeof...(Textures),
-                              }
-    };
-    const auto descriptorPool = context.create(VkDescriptorPoolCreateInfo {
-        .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-        .pNext         = nullptr,
-        .flags         = {},
-        .maxSets       = 1,
-        .poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
-        .pPoolSizes    = poolSizes.data(),
-    });
-
-    // descriptor set layout
-    std::array<VkDescriptorSetLayoutBinding, texturesCount> bindings;
-    core::forEach<0, bindings.size()>([&]<int binding>() {
-        bindings[binding] = VkDescriptorSetLayoutBinding {
-            .binding            = binding,
-            .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .descriptorCount    = 1,
-            .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
-            .pImmutableSamplers = nullptr,
-        };
-    });
-    const auto descriptorSetLayout = context.create(VkDescriptorSetLayoutCreateInfo {
-        .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-        .pNext        = nullptr,
-        .flags        = {},
-        .bindingCount = static_cast<uint32_t>(bindings.size()),
-        .pBindings    = bindings.data(),
-    });
-
-    // descriptor set
-    const VkDescriptorSetAllocateInfo allocInfo {
-        .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-        .pNext              = nullptr,
-        .descriptorPool     = descriptorPool,
-        .descriptorSetCount = 1,
-        .pSetLayouts        = &descriptorSetLayout,
-    };
-
-    VkDescriptorSet descriptorSet;
-    if (vkAllocateDescriptorSets(context.device, &allocInfo, &descriptorSet) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to allocate descriptor sets");
-    }
-
-    // write descriptor set
-    std::array<VkWriteDescriptorSet, texturesCount> descriptorWrites;
-    core::forEach<0, descriptorWrites.size()>([&]<int binding>() {
-        const auto& texture = std::get<binding>(std::forward_as_tuple(textures...));
-
-        descriptorWrites[binding] = VkWriteDescriptorSet {
-            .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .pNext            = nullptr,
-            .dstSet           = descriptorSet,
-            .dstBinding       = binding,
-            .dstArrayElement  = 0,
-            .descriptorCount  = 1,
-            .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .pImageInfo       = texture.imageInfo(),
-            .pBufferInfo      = texture.bufferInfo(),
-            .pTexelBufferView = nullptr,
-        };
-    });
-    vkUpdateDescriptorSets(context.device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0,
-                           nullptr);
-
-    return std::make_tuple(descriptorPool, descriptorSetLayout, descriptorSet);
-}
-
 template<int radius>
 constexpr auto generateTranslations() {
     constexpr auto                          length = 2 * radius + 1;
@@ -184,64 +104,17 @@ constexpr auto generateTranslations() {
     return translations;
 }
 
-
-enum Coordinate {
-    x = 0,
-    y,
-    z,
-};
-
-template<Coordinate c>
-constexpr auto translate(const float t) {
-    if constexpr (c == x) {
-        return core::math::Translation<> { t, 0, 0 };
-    } else if constexpr (c == y) {
-        return core::math::Translation<> { 0, t, 0 };
-    } else if constexpr (c == z) {
-        return core::math::Translation<> { 0, 0, t };
-    } else {
-        throw;
-    }
-};
-
-template<Coordinate c>
-constexpr auto rotate(const float d) {
-    const auto coef = d > 0 ? -sqrt2o2 : sqrt2o2;
-    if constexpr (c == x) {
-        return core::math::Rotation<> {
-            core::math::Quaternion<> { coef, 0, 0, sqrt2o2 }
-        };
-    } else if constexpr (c == y) {
-        return core::math::Rotation<> {
-            core::math::Quaternion<> { 0, coef, 0, sqrt2o2 }
-        };
-    } else if constexpr (c == z) {
-        return core::math::Rotation<> {
-            core::math::Quaternion<> { 0, 0, coef, sqrt2o2 }
-        };
-    } else {
-        throw;
-    }
-}
-
-template<Coordinate c>
-constexpr auto flip() {
-    return rotate<c>(90) * rotate<c>(90);
-}
-
-
 class Engine {
 public:
     Engine(const std::string& windowName, const std::string& appName, const core::Window::Resolution& resolution)
         : input {}
         , context { windowName, appName, resolution, Callbacks { input } }
         , command { context }
-        , presenter { command }
-        , defaults { command }
+        , presenter { command }  // , defaults { command }
         , renderer { context }
         , overlay { command, assets }
         , mainCamera { renderer.descriptor.setLayout, renderer.descriptor.set }
-        , storage { command, defaults, mainCamera } {
+        , storage { command, mainCamera } {
         log::checkpoint("The surge of urge to purge started");
     }
 
@@ -270,7 +143,7 @@ public:
                 [&](const load::LoadedSkybox::Handle& handle) {
                     const auto [iter, inserted] =
                         assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
-                                       std::forward_as_tuple(command, load::LoadedSkybox { handle, defaults }));
+                                       std::forward_as_tuple(command, load::LoadedSkybox { handle, storage.defaults }));
                     assert(inserted);
                     const auto& [_, asset] = *iter;
                     renderer.createPipeline(name, asset.vertexInputState, asset.shader,
@@ -281,7 +154,7 @@ public:
                 [&](const load::Gltf::Handle& handle) {
                     const auto [iter, inserted] =
                         assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
-                                       std::forward_as_tuple(command, load::Gltf { handle, defaults }));
+                                       std::forward_as_tuple(command, load::Gltf { handle, storage.defaults }));
                     assert(inserted);
                     const auto& [_, asset] = *iter;
 
@@ -293,7 +166,7 @@ public:
                 [&](const load::Obj::Handle& handle) {
                     const auto [iter, inserted] =
                         assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
-                                       std::forward_as_tuple(command, load::Obj { handle, defaults }));
+                                       std::forward_as_tuple(command, load::Obj { handle, storage.defaults }));
                     assert(inserted);
                     const auto& [_, asset] = *iter;
                     renderer.createPipeline(name, asset.vertexInputState, asset.shader,
@@ -358,7 +231,6 @@ public:
             .material = {},
         };
 
-        std::vector<Entity> cubes;
         enum { xBack = 0, xFront, yBack, yFront, zBack, zFront };
 
         constexpr std::array cubeFaceMatrices {
@@ -388,18 +260,6 @@ public:
             return faces;
         });
 
-        // constexpr core::math::Vector<3> lightPosition { -2, 2, 1 };
-        // constexpr auto                  lightColor = core::RGBA::white;
-        // {  // light cube
-        //     constexpr uint32_t                  isLight {};
-        //     constexpr core::math::Translation<> T { lightPosition };
-        //     constexpr core::math::Scaling<>     S { 0.1f, 0.1f, 0.1f };
-        //     core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
-        //         constexpr PushConstants matrix { T * S * cubeFaceMatrices.at(face), core::RGBA::white, isLight };
-        //         cubes.emplace_back(planeModel, primitivePipeline, storage.createMatrix(matrix), MaterialID {});
-        //     });
-        // }
-
         const auto untexturedCube = std::invoke([&]() {
             std::array<Entity, cubeFaceMatrices.size()> faces;
             constexpr core::math::Translation<>         T { 0, 0, 0 };
@@ -413,18 +273,6 @@ public:
             });
             return faces;
         });
-
-        // {  // untextured cube
-        //     constexpr core::math::Translation<> T { 0, 0, 0 };
-        //     constexpr std::array                cubeFaceColors {
-        //         core::RGBA::darkRed, core::RGBA::red,      core::RGBA::darkGreen,
-        //         core::RGBA::green,   core::RGBA::darkBlue, core::RGBA::blue,
-        //     };
-        //     core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
-        //         constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), cubeFaceColors.at(face) };
-        //         cubes.emplace_back(planeModel, primitivePipeline, storage.createMatrix(matrix), MaterialID {});
-        //     });
-        // }
 
         const std::array cubeDiffuseTextures {
             storage.createTexture(load::createTextureDataX(core::RGBA::darkRed, core::RGBA::black)),    //
@@ -471,46 +319,58 @@ public:
                                         cubeNormalTextures.at(z)),
         };
 
-        {  // textured cube
+        const auto texturedCube = std::invoke([&]() {
+            std::array<Entity, cubeFaceMatrices.size()> faces;
+
             const auto model    = storage.createModel(core::geometry::planeTextured);
             const auto pipeline = storage.createPipeline<core::geometry::PositionTexture, PushConstants>(
                 core::shader::Type::primitiveTextured, storage.simpleMaterialLayout);
-            constexpr auto                      color { core::RGBA::white };
             constexpr core::math::Translation<> T { 2, 0, 0 };
-            core::forEach<0, 6>([&]<int face>() {
-                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), color };
-                cubes.emplace_back(model, pipeline, storage.createMatrix(matrix), cubeSimpleMaterials.at(face));
+            core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
+                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), lightColor };
+                faces[face] = { model, pipeline, storage.createMatrix(matrix), cubeSimpleMaterials.at(face) };
             });
-        }
+            return faces;
+        });
 
         const auto planeTexturedNormalsModel = storage.createModel(core::geometry::planeTexturedNormals);
-        {  // textured normal cube
-            const auto model    = planeTexturedNormalsModel;
+
+        const auto texturedNormalCube = std::invoke([&]() {
+            std::array<Entity, cubeFaceMatrices.size()> faces;
             const auto pipeline = storage.createPipeline<core::geometry::PositionNormalTexture, PushConstants>(
                 core::shader::Type::primitiveTexturedNormal, storage.simpleMaterialLayout);
-            constexpr auto                      color { core::RGBA::white };
             constexpr core::math::Translation<> T { 4, 0, 0 };
-            core::forEach<0, 6>([&]<int face>() {
-                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), color };
-                cubes.emplace_back(model, pipeline, storage.createMatrix(matrix), cubeSimpleMaterials.at(face));
+            core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
+                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), lightColor };
+                faces[face] = {
+                    .model    = planeTexturedNormalsModel,
+                    .pipeline = pipeline,
+                    .matrix   = storage.createMatrix(matrix),
+                    .material = cubeSimpleMaterials.at(face),
+                };
             });
-        }
+            return faces;
+        });
 
         const auto planeTexturedNormalTangentModel = storage.createModel(core::geometry::planeNormalTangentTexture);
         const auto phongModelNormalPipeline =
             storage.createPipeline<core::geometry::PositionNormalTangentTexture, PushConstants>(
                 core::shader::Type::phongModelNormal, storage.phongMaterialLayout);
 
-        {  // textured normal tangent cube
-            const auto                          model    = planeTexturedNormalTangentModel;
-            const auto                          pipeline = phongModelNormalPipeline;
-            constexpr auto                      color { core::RGBA::white };
-            constexpr core::math::Translation<> T { 4, 2, 0 };
+        const auto phongNormalCube = std::invoke([&]() {
+            std::array<Entity, cubeFaceMatrices.size()> faces;
+            constexpr core::math::Translation<>         T { 4, 2, 0 };
             core::forEach<0, 6>([&]<int face>() {
-                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), color };
-                cubes.emplace_back(model, pipeline, storage.createMatrix(matrix), cubePhongMaterials.at(face));
+                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), core::RGBA::white };
+                faces[face] = {
+                    .model    = planeTexturedNormalTangentModel,
+                    .pipeline = phongModelNormalPipeline,
+                    .matrix   = storage.createMatrix(matrix),
+                    .material = cubePhongMaterials.at(face),
+                };
             });
-        }
+            return faces;
+        });
 
         std::vector<Entity>         brickwalls;
         const std::filesystem::path brickwallFolder { "/home/ico/projects/surge/textures" };
@@ -575,39 +435,41 @@ public:
 
         const auto phongPipeline = storage.createPipeline<core::geometry::PositionNormalTexture, PushConstants>(
             core::shader::Type::phongModel, storage.phongMaterialLayout);
-        std::vector<Entity> phongCube;
-        {  // phong cube
-            const auto                          model    = planeTexturedNormalsModel;
-            const auto                          pipeline = phongPipeline;
-            constexpr auto                      color { core::RGBA::white };
-            constexpr core::math::Translation<> T { 0, 0, 0 };
+
+        const auto phongCube = std::invoke([&]() {
+            std::array<Entity, cubeFaceMatrices.size()> faces;
+            constexpr core::math::Translation<>         T { 0, 0, 0 };
             core::forEach<0, 6>([&]<int face>() {
-                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), color };
-                phongCube.emplace_back(model, pipeline, storage.createMatrix(matrix), cubePhongMaterials.at(face));
+                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), core::RGBA::white };
+                faces[face] = {
+                    .model    = planeTexturedNormalsModel,
+                    .pipeline = phongPipeline,
+                    .matrix   = storage.createMatrix(matrix),
+                    .material = cubePhongMaterials.at(face),
+                };
             });
-        }
+            return faces;
+        });
 
-
-        const auto crateDiffuseTexture { storage.loadTexture("/home/ico/projects/surge/textures/container_diffuse.png",
-                                                             asset::Texture::texture2d) };
-        const auto crateSpecularTexture { storage.loadTexture(
-            "/home/ico/projects/surge/textures/container_specular.png", asset::Texture::texture2d) };
-
-        const auto crateMaterial = storage.createPhongMaterial(
-            storage.loadTexture("/home/ico/projects/surge/textures/container_diffuse.png", asset::Texture::texture2d),
-            storage.loadTexture("/home/ico/projects/surge/textures/container_specular.png", asset::Texture::texture2d),
+        const std::filesystem::path crateFolder { "/home/ico/projects/surge/textures" };
+        const auto                  crateMaterial = storage.createPhongMaterial(
+            storage.loadTexture(crateFolder / "container_diffuse.png", asset::Texture::texture2d),
+            storage.loadTexture(crateFolder / "container_specular.png", asset::Texture::texture2d),
             storage.defaultTextureId);
 
-        std::vector<Entity> crate;
-        {  // crate
-            const auto     model    = planeTexturedNormalsModel;
-            const auto     pipeline = phongPipeline;
-            constexpr auto color { core::RGBA::white };
+        const auto crate = std::invoke([&]() {
+            std::array<Entity, cubeFaceMatrices.size()> faces;
             core::forEach<0, 6>([&]<int face>() {
-                constexpr PushConstants matrix { translate<x>(12.0) * cubeFaceMatrices.at(face), color };
-                crate.emplace_back(model, pipeline, storage.createMatrix(matrix), crateMaterial);
+                constexpr PushConstants matrix { translate<x>(12.0) * cubeFaceMatrices.at(face), core::RGBA::white };
+                faces[face] = {
+                    .model    = planeTexturedNormalsModel,
+                    .pipeline = phongPipeline,
+                    .matrix   = storage.createMatrix(matrix),
+                    .material = crateMaterial,
+                };
             });
-        }
+            return faces;
+        });
 
         constexpr auto floorMatrix = translate<x>(-2.0);
         const Entity   floor {
@@ -643,21 +505,9 @@ public:
                 input.reset();
                 context.pollEvents();
 
-                // === entity playground ===
-                // entities.back().nodes.get(1).state.translation = lightCamera.vecs.position;
-
-                // for (auto& entity : entities) {
-                //     entity.update(0, elapsedTime);
-                // }
-                // === entity playground ===
-
+                // === update ===
                 playerCamera.update(input, context.window.resolution);
-                // playerCamera = Camera<false> { 16.0 / 9.0, lightCamera.vecs.position, -lightCamera.vecs.position
-                // };
                 skyboxCamera.update(input, context.window.resolution);
-                // lightCamera.update(input.timer, context.window.resolution);
-                // playerCamera           = lightCamera;
-                // renderer.lightPosition = lightPosition;
                 skybox.update(skyboxCamera);
                 renderer.update(playerCamera, lightColor, lightPosition);
                 // overlay.update(input, playerCamera);
@@ -665,9 +515,10 @@ public:
                 // rotate cube
                 const core::math::Rotation rotationY { core::math::toQuaternion(0.0f, 1.0f * input.timer, 0.0f) };
                 const core::math::Rotation rotationX { core::math::toQuaternion(1.0f * input.timer, 0.0f, 0.0f) };
-                // const core::math::Translation<> translation { 4.0f, 0.5f * std::sin(5.0f * input.timer), 0.0f };
-                core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
-                    storage.matrices[face + 19].matrix = translate<x>(4.0) * rotationY * cubeFaceMatrices.at(face);
+
+                core::forEach<0, texturedNormalCube.size()>([&]<int face>() {
+                    const auto matrixId               = texturedNormalCube[face].matrix;
+                    storage.matrices[matrixId].matrix = translate<x>(4.0) * rotationY * cubeFaceMatrices.at(face);
                 });
 
                 // rotate dragon
@@ -676,14 +527,21 @@ public:
                 // rotate cerberus
                 storage.matrices.at(cerberus.matrix).matrix = translate<x>(8.0) * rotationY * cerberusMatrix;
 
-                // rotate cube
-                core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
+                // rotate phongCube
+                core::forEach<0, phongCube.size()>([&]<int face>() {
                     const auto matrixId = phongCube.at(face).matrix;
                     storage.matrices[matrixId.get()].matrix =
                         translate<x>(10.0) * rotationY * cubeFaceMatrices.at(face);
                 });
 
-                // rotate cube
+                // rotate phongNormalCube
+                core::forEach<0, phongNormalCube.size()>([&]<int face>() {
+                    const auto matrixId = phongNormalCube.at(face).matrix;
+                    storage.matrices[matrixId.get()].matrix =
+                        translate<x>(10.0) * translate<y>(2.0) * rotationY * cubeFaceMatrices.at(face);
+                });
+
+                // rotate crate
                 core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
                     const auto matrixId = crate.at(face).matrix;
                     storage.matrices[matrixId.get()].matrix =
@@ -698,29 +556,17 @@ public:
                 presenter.beginRendering();
                 skybox.draw(commandBuffer, renderer.descriptor.set);
 
-
                 storage.reset();
-
-
                 storage.draw(commandBuffer, lightCube);
-
                 storage.draw(commandBuffer, coordinates);
                 storage.draw(commandBuffer, untexturedCube);
-
-                for (const auto& face : cubes) {
-                    storage.draw(commandBuffer, face);
-                }
-                for (const auto& tile : brickwalls) {
-                    storage.draw(commandBuffer, tile);
-                }
-                // storage.draw(commandBuffer, dragon);
+                storage.draw(commandBuffer, texturedCube);
+                storage.draw(commandBuffer, texturedNormalCube);
+                storage.draw(commandBuffer, phongNormalCube);
+                storage.draw(commandBuffer, brickwalls);
                 storage.draw(commandBuffer, cerberus);
-                for (const auto& face : phongCube) {
-                    storage.draw(commandBuffer, face);
-                }
-                for (const auto& face : crate) {
-                    storage.draw(commandBuffer, face);
-                }
+                storage.draw(commandBuffer, phongCube);
+                storage.draw(commandBuffer, crate);
                 storage.draw(commandBuffer, floor);
 
                 core::forEach<0, cubeFaceMatrices.size(), 0, 2>([&]<int face, int triangle>() {
@@ -745,14 +591,6 @@ public:
                                                 });
                 });
 
-                // === draw ===
-
-                // for (const auto& entity : entities)
-                // {
-                //     entity.draw(commandBuffer, renderer.descriptor.set);
-                // }
-                // overlay.draw(commandBuffer);
-
                 presenter.endRendering();
                 presenter.present(command);
                 // === rendering ===
@@ -771,19 +609,16 @@ public:
     }
 
 private:
-    mutable Input                         input;
-    core::Context                         context;
-    core::Command                         command;
-    core::Presenter                       presenter;
-    load::Defaults                        defaults;
+    mutable Input   input;
+    core::Context   context;
+    core::Command   command;
+    core::Presenter presenter;
+    // load::Defaults                        defaults;
     std::map<std::string, asset::Asset>   assets;
     std::map<std::string, asset::Texture> textures;
     Renderer                              renderer;
-    const Descriptor                      mainCamera;
     overlay::Overlay                      overlay;
+    const Descriptor                      mainCamera;
     Storage                               storage;
-    // std::map<std::string, Material>       materials;
-    // std::map<std::string, Model>          models;
-    // std::map<std::string, Animations>     animations;
 };
 }  // namespace surge
