@@ -1,76 +1,76 @@
 
 #include "surge/surge.hpp"
 
-void createRope(surge::physics::Physics& physics, const surge::physics::Position& first,
-                const surge::physics::Position& second, const int size) {
-    auto& firstAnchor  = physics.addAnchor(first);
-    auto& secondAnchor = physics.addAnchor(second);
+// void createRope(surge::physics::Physics& physics, const surge::physics::Position& first,
+//                 const surge::physics::Position& second, const int size) {
+//     auto& firstAnchor  = physics.addAnchor(first);
+//     auto& secondAnchor = physics.addAnchor(second);
 
-    const auto trajectory = second - first;
-    const auto distance   = surge::core::math::norm(trajectory);
-    const auto direction  = surge::core::math::normalize(trajectory);
+//     const auto trajectory = second - first;
+//     const auto distance   = surge::core::math::norm(trajectory);
+//     const auto direction  = surge::core::math::normalize(trajectory);
 
-    std::vector<surge::physics::Particle*> particles;
-    particles.reserve(size - 2);
-    for (int index = 1; index < size - 1; ++index) {
-        const auto step     = index * distance / size;
-        const auto position = first + step * direction;
-        particles.emplace_back(&physics.addParticle(surge::physics::Mass { 0.01 }, position));
-    };
-    constexpr surge::physics::Scalar springConstant = 0.1;
-    constexpr surge::physics::Scalar restLength     = 0.0;
-    // const physics::Scalar     restLength     = distance / size;
-    physics.addAnchoredSpring(firstAnchor, *particles.front(), springConstant, restLength);
-    physics.addAnchoredSpring(secondAnchor, *particles.back(), springConstant, restLength);
-    for (int index = 0; index < size - 3; ++index) {
-        physics.addSpring(*particles.at(index), *particles.at(index + 1), springConstant, restLength);
-    };
-}
+//     std::vector<surge::physics::Particle*> particles;
+//     particles.reserve(size - 2);
+//     for (int index = 1; index < size - 1; ++index) {
+//         const auto step     = index * distance / size;
+//         const auto position = first + step * direction;
+//         particles.emplace_back(&physics.addParticle(surge::physics::Mass { 0.01 }, position));
+//     };
+//     constexpr surge::physics::Scalar springConstant = 0.1;
+//     constexpr surge::physics::Scalar restLength     = 0.0;
+//     // const physics::Scalar     restLength     = distance / size;
+//     physics.addAnchoredSpring(firstAnchor, *particles.front(), springConstant, restLength);
+//     physics.addAnchoredSpring(secondAnchor, *particles.back(), springConstant, restLength);
+//     for (int index = 0; index < size - 3; ++index) {
+//         physics.addSpring(*particles.at(index), *particles.at(index + 1), springConstant, restLength);
+//     };
+// }
 
-void resetPhysics(surge::physics::Physics& physics) {
-    using namespace surge::physics;
-    physics.clear();
+// void resetPhysics(surge::physics::Physics& physics) {
+//     using namespace surge::physics;
+//     physics.clear();
 
-    auto& anchor1   = physics.addAnchor(Position { 0, 0.5, 0 });
-    auto& anchor2   = physics.addAnchor(Position { 0, 0.5, 1 });
-    auto& anchor3   = physics.addAnchor(Position { 1, 0.5, 0 });
-    auto& anchor4   = physics.addAnchor(Position { 1, 0.5, 1 });
-    auto& particle1 = physics.addParticle(Mass { 1 }, Position { 0.4, 1.0, 0.5 });
+//     auto& anchor1   = physics.addAnchor(Position { 0, 0.5, 0 });
+//     auto& anchor2   = physics.addAnchor(Position { 0, 0.5, 1 });
+//     auto& anchor3   = physics.addAnchor(Position { 1, 0.5, 0 });
+//     auto& anchor4   = physics.addAnchor(Position { 1, 0.5, 1 });
+//     auto& particle1 = physics.addParticle(Mass { 1 }, Position { 0.4, 1.0, 0.5 });
 
-    constexpr Scalar springConstant = 0.5;
-    constexpr Scalar restLength     = 1;
-    physics.addAnchoredSpring(anchor1, particle1, springConstant, restLength);
-    physics.addAnchoredSpring(anchor2, particle1, springConstant, restLength);
-    physics.addAnchoredSpring(anchor3, particle1, springConstant, restLength);
-    physics.addAnchoredSpring(anchor4, particle1, springConstant, restLength);
+//     constexpr Scalar springConstant = 0.5;
+//     constexpr Scalar restLength     = 1;
+//     physics.addAnchoredSpring(anchor1, particle1, springConstant, restLength);
+//     physics.addAnchoredSpring(anchor2, particle1, springConstant, restLength);
+//     physics.addAnchoredSpring(anchor3, particle1, springConstant, restLength);
+//     physics.addAnchoredSpring(anchor4, particle1, springConstant, restLength);
 
-    auto& particle2 = physics.addParticle(Mass { 0.1 }, Position { -1.4, 1.0, 0.5 });
-    physics.addSpring(particle1, particle2, springConstant, restLength);
+//     auto& particle2 = physics.addParticle(Mass { 0.1 }, Position { -1.4, 1.0, 0.5 });
+//     physics.addSpring(particle1, particle2, springConstant, restLength);
 
-    createRope(physics, Position { -10, 0, 0 }, Position { 0, 0, -10 }, 32);
-    createRope(physics, Position { -9, 0, 0 }, Position { 0, 0, -9 }, 32);
-}
+//     createRope(physics, Position { -10, 0, 0 }, Position { 0, 0, -10 }, 32);
+//     createRope(physics, Position { -9, 0, 0 }, Position { 0, 0, -9 }, 32);
+// }
 
-void physicsPlayground() {
-    // using Action = core::input::Action;
-    // if (!physicsActive && input.mouse.left == Action::press)
-    // {
-    //     physicsActive = true;
-    // }
+// void physicsPlayground() {
+// using Action = core::input::Action;
+// if (!physicsActive && input.mouse.left == Action::press)
+// {
+//     physicsActive = true;
+// }
 
-    // if (physicsActive)
-    // {
-    //     const auto duration = input.elapsedTime;
+// if (physicsActive)
+// {
+//     const auto duration = input.elapsedTime;
 
-    //     if (input.mouse.right == Action::press)
-    //     {
-    //         resetPhysics();
-    //         physicsActive = false;
-    //     }
+//     if (input.mouse.right == Action::press)
+//     {
+//         resetPhysics();
+//         physicsActive = false;
+//     }
 
-    //     physics.update(duration);
-    // }
-}
+//     physics.update(duration);
+// }
+// }
 
 template<int radius>
 constexpr auto generateTranslations() {
@@ -115,9 +115,18 @@ int main() {
         engine.loadAsset("skybox", surge::SkyboxHandle { home / "surge/textures/skybox.ktx" });
         auto skybox = engine.createSkybox("skybox");
 
+        // create skybox
+        const surge::Entity skybox2 {
+            .model    = engine.storage.createModel(surge::geom::cube),
+            .pipeline = engine.storage.createPipeline<surge::geom::Position, surge::ModelMatrix>(
+                surge::ShaderType::skybox, engine.storage.simpleMaterialLayout),
+            .matrix   = engine.storage.createMatrix(surge::fullMatrix(surge::identity<4>)),
+            .material = engine.storage.createSimpleMaterial(
+                engine.storage.createTexture(home / "surge/textures/skybox.ktx", surge::Texture::cube)),
+        };
+
         // create coordinates
         const surge::Entity coordinates {
-            // coordinate system
             .model    = engine.storage.createModel(surge::geom::coordinates),
             .pipeline = engine.storage.createPipeline<surge::geom::PositionAndColor, surge::ModelMatrix>(
                 surge::ShaderType::coordinates),
@@ -262,9 +271,9 @@ int main() {
         std::vector<surge::Entity>  brickwalls;
         const std::filesystem::path brickwallFolder { "/home/ico/projects/surge/textures" };
         const auto                  brickwallMaterial = engine.storage.createPhongMaterial(
-            engine.storage.loadTexture(brickwallFolder / "brickwall_diffuse.jpg", surge::Texture::texture2d),
+            engine.storage.createTexture(brickwallFolder / "brickwall_diffuse.jpg", surge::Texture::texture2d),
             engine.storage.blackTextureId,
-            engine.storage.loadTexture(brickwallFolder / "brickwall_normal.jpg", surge::Texture::texture2dNorm));
+            engine.storage.createTexture(brickwallFolder / "brickwall_normal.jpg", surge::Texture::texture2dNorm));
         {  // brickwall
             const auto model    = engine.storage.createModel(surge::geom::square);
             const auto pipeline = engine.storage.createPipeline<surge::geom::GltfVertex, surge::ModelMatrix>(
@@ -309,16 +318,15 @@ int main() {
                 surge::ShaderType::phongModel, engine.storage.phongMaterialLayout),
                     .matrix   = engine.storage.createMatrix(surge::fullMatrix(cerberusMatrix)),
                     .material = engine.storage.createPhongMaterial(
-                engine.storage.loadTexture(cerberusFolder / "albedo.ktx", surge::Texture::texture2d),
-                engine.storage.loadTexture(cerberusFolder / "metallic.ktx", surge::Texture::metallic),
-                engine.storage.loadTexture(cerberusFolder / "normal.ktx", surge::Texture::texture2d)),
+                engine.storage.createTexture(cerberusFolder / "albedo.ktx", surge::Texture::texture2d),
+                engine.storage.createTexture(cerberusFolder / "metallic.ktx", surge::Texture::metallic),
+                engine.storage.createTexture(cerberusFolder / "normal.ktx", surge::Texture::texture2d)),
         };
-
 
         const std::filesystem::path crateFolder { "/home/ico/projects/surge/textures" };
         const auto                  crateMaterial = engine.storage.createPhongMaterial(
-            engine.storage.loadTexture(crateFolder / "container_diffuse.png", surge::Texture::texture2d),
-            engine.storage.loadTexture(crateFolder / "container_specular.png", surge::Texture::texture2d),
+            engine.storage.createTexture(crateFolder / "container_diffuse.png", surge::Texture::texture2d),
+            engine.storage.createTexture(crateFolder / "container_specular.png", surge::Texture::texture2d),
             engine.storage.defaultTextureId);
 
         const auto crate = surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {

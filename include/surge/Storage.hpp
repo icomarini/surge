@@ -152,11 +152,6 @@ struct Storage {
 
     template<typename TextureData>
     TextureID createTexture(const TextureData& textureData) {
-        return createTexture("", textureData);
-    }
-
-    template<typename TextureData>
-    TextureID createTexture(const std::string& name, const TextureData& textureData) {
         constexpr asset::Texture::Sampler sampler {
             .magFilter    = VK_FILTER_NEAREST,
             .minFilter    = VK_FILTER_NEAREST,
@@ -177,9 +172,9 @@ struct Storage {
         const auto insertion = textures.emplace(
             std::piecewise_construct,  //
             std::forward_as_tuple(textures.size()),
-            std::forward_as_tuple(
-                command, load::LoadedTexture { name, textureData.data(), textureData.width, textureData.height },
-                sampler, TextureInfo {}));
+            std::forward_as_tuple(command,
+                                  load::LoadedTexture { "", textureData.data(), textureData.width, textureData.height },
+                                  sampler, TextureInfo {}));
         if (!insertion.second) {
             throw std::runtime_error("Texture already present");
         }
@@ -187,7 +182,7 @@ struct Storage {
     }
 
     template<typename Info>
-    TextureID loadTexture(const std::filesystem::path& path, Info) {
+    TextureID createTexture(const std::filesystem::path& path, Info) {
         constexpr asset::Texture::Sampler sampler {
             .magFilter    = VK_FILTER_LINEAR,
             .minFilter    = VK_FILTER_LINEAR,
@@ -229,8 +224,7 @@ struct Storage {
         return asset.createModel2<Vertex>(command, newMeshes, models);
     }
 
-    template<container T>
-    // requires container<T>
+    template<Container T>
     void draw(const VkCommandBuffer commandBuffer, const T& entities) const {
         for (const auto& entity : entities) {
             draw(commandBuffer, entity);

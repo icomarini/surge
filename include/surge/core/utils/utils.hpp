@@ -169,6 +169,7 @@ private:
     Underyling id;
 };
 
+using BufferID   = ID<>;
 using ModelID    = ID<>;
 using PipelineID = ID<>;
 using MatrixID   = ID<>;
@@ -211,7 +212,7 @@ concept erasable = (is_basic_string_v<T> && default_erasable<E>) ||
                    (!allocator_aware<T> && default_erasable<E>);
 
 template<class T>
-concept container = requires(T a, const T b) {
+concept Container = requires(T a, const T b) {
     requires std::regular<T>;
     requires std::swappable<T>;
     requires erasable<typename T::value_type, T>;
