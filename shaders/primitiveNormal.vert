@@ -8,7 +8,6 @@ layout(location = 1) in vec3 inNormal;
 layout(push_constant) uniform PushConstants {
     mat4 model;
     vec4 baseColor;
-    uint isLight;
 };
 
 layout(set = 0, binding = 0) uniform Scene {

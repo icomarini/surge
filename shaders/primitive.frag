@@ -4,7 +4,6 @@
 layout(push_constant) uniform PushConstants {
     mat4 model;
     vec4 baseColor;
-    uint isLight;
 };
 
 // output =======================================

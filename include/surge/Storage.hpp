@@ -44,7 +44,6 @@ struct Descriptor {
 struct PushConstants {
     core::math::Matrix<4, 4> matrix;
     core::math::Vector<4>    baseColor;
-    uint32_t                 isLight;
 };
 
 using ModelMatrix = core::math::Matrix<4, 4>;
@@ -233,6 +232,20 @@ struct Storage {
         //                                              }));
         return asset.createModel2<Vertex>(command, newMeshes, models);
     }
+
+    template<typename T>
+        requires container<T>
+    void draw(const VkCommandBuffer commandBuffer, const T& entities) const {
+        for (const auto& entity : entities) {
+            draw(commandBuffer, entity);
+        }
+    }
+
+    // void draw(const VkCommandBuffer commandBuffer, const Entity& entity) const {
+    //     for (const auto& face : cubes) {
+    //         draw(commandBuffer, face);
+    //     }
+    // }
 
     void draw(const VkCommandBuffer commandBuffer, const Entity& entity) const {
         vkCmdSetLineWidth(commandBuffer, 2.0);

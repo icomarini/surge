@@ -6,7 +6,6 @@ layout(location = 0) in vec2 inTexCoord;
 layout(push_constant) uniform PushConstants {
     mat4 model;
     vec4 baseColor;
-    uint isLight;
 };
 
 layout(set = 1, binding = 0) uniform sampler2D texSampler;

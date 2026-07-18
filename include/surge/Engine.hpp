@@ -354,7 +354,6 @@ public:
             .matrix   = storage.createMatrix(PushConstants {
                   .matrix    = core::math::fullMatrix(core::math::identity<4>),
                   .baseColor = core::RGBA::white,
-                  .isLight   = {},
             }),
             .material = {},
         };
@@ -377,28 +376,55 @@ public:
 
         constexpr core::math::Vector<3> lightPosition { -2, 2, 1 };
         constexpr auto                  lightColor = core::RGBA::white;
-        {  // light cube
-            constexpr uint32_t                  isLight {};
-            constexpr core::math::Translation<> T { lightPosition };
-            constexpr core::math::Scaling<>     S { 0.1f, 0.1f, 0.1f };
-            core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
-                constexpr PushConstants matrix { T * S * cubeFaceMatrices.at(face), core::RGBA::white, isLight };
-                cubes.emplace_back(planeModel, primitivePipeline, storage.createMatrix(matrix), MaterialID {});
-            });
-        }
 
-        {  // untextured cube
-            constexpr uint32_t                  isLight {};
-            constexpr core::math::Translation<> T { 0, 0, 0 };
-            constexpr std::array                cubeFaceColors {
+        const auto lightCube = std::invoke([&]() {
+            std::array<Entity, cubeFaceMatrices.size()> faces;
+            constexpr core::math::Translation<>         T { lightPosition };
+            constexpr core::math::Scaling<>             S { 0.1f, 0.1f, 0.1f };
+            core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
+                constexpr PushConstants matrix { T * S * cubeFaceMatrices.at(face), lightColor };
+                faces[face] = { planeModel, primitivePipeline, storage.createMatrix(matrix), MaterialID {} };
+            });
+            return faces;
+        });
+
+        // constexpr core::math::Vector<3> lightPosition { -2, 2, 1 };
+        // constexpr auto                  lightColor = core::RGBA::white;
+        // {  // light cube
+        //     constexpr uint32_t                  isLight {};
+        //     constexpr core::math::Translation<> T { lightPosition };
+        //     constexpr core::math::Scaling<>     S { 0.1f, 0.1f, 0.1f };
+        //     core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
+        //         constexpr PushConstants matrix { T * S * cubeFaceMatrices.at(face), core::RGBA::white, isLight };
+        //         cubes.emplace_back(planeModel, primitivePipeline, storage.createMatrix(matrix), MaterialID {});
+        //     });
+        // }
+
+        const auto untexturedCube = std::invoke([&]() {
+            std::array<Entity, cubeFaceMatrices.size()> faces;
+            constexpr core::math::Translation<>         T { 0, 0, 0 };
+            constexpr std::array                        cubeFaceColors {
                 core::RGBA::darkRed, core::RGBA::red,      core::RGBA::darkGreen,
                 core::RGBA::green,   core::RGBA::darkBlue, core::RGBA::blue,
             };
             core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
-                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), cubeFaceColors.at(face), isLight };
-                cubes.emplace_back(planeModel, primitivePipeline, storage.createMatrix(matrix), MaterialID {});
+                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), cubeFaceColors.at(face) };
+                faces[face] = { planeModel, primitivePipeline, storage.createMatrix(matrix), MaterialID {} };
             });
-        }
+            return faces;
+        });
+
+        // {  // untextured cube
+        //     constexpr core::math::Translation<> T { 0, 0, 0 };
+        //     constexpr std::array                cubeFaceColors {
+        //         core::RGBA::darkRed, core::RGBA::red,      core::RGBA::darkGreen,
+        //         core::RGBA::green,   core::RGBA::darkBlue, core::RGBA::blue,
+        //     };
+        //     core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
+        //         constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), cubeFaceColors.at(face) };
+        //         cubes.emplace_back(planeModel, primitivePipeline, storage.createMatrix(matrix), MaterialID {});
+        //     });
+        // }
 
         const std::array cubeDiffuseTextures {
             storage.createTexture(load::createTextureDataX(core::RGBA::darkRed, core::RGBA::black)),    //
@@ -450,10 +476,9 @@ public:
             const auto pipeline = storage.createPipeline<core::geometry::PositionTexture, PushConstants>(
                 core::shader::Type::primitiveTextured, storage.simpleMaterialLayout);
             constexpr auto                      color { core::RGBA::white };
-            constexpr uint32_t                  isLight {};
             constexpr core::math::Translation<> T { 2, 0, 0 };
             core::forEach<0, 6>([&]<int face>() {
-                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), color, isLight };
+                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), color };
                 cubes.emplace_back(model, pipeline, storage.createMatrix(matrix), cubeSimpleMaterials.at(face));
             });
         }
@@ -464,14 +489,12 @@ public:
             const auto pipeline = storage.createPipeline<core::geometry::PositionNormalTexture, PushConstants>(
                 core::shader::Type::primitiveTexturedNormal, storage.simpleMaterialLayout);
             constexpr auto                      color { core::RGBA::white };
-            constexpr uint32_t                  isLight {};
             constexpr core::math::Translation<> T { 4, 0, 0 };
             core::forEach<0, 6>([&]<int face>() {
-                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), color, isLight };
+                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), color };
                 cubes.emplace_back(model, pipeline, storage.createMatrix(matrix), cubeSimpleMaterials.at(face));
             });
         }
-
 
         const auto planeTexturedNormalTangentModel = storage.createModel(core::geometry::planeNormalTangentTexture);
         const auto phongModelNormalPipeline =
@@ -482,10 +505,9 @@ public:
             const auto                          model    = planeTexturedNormalTangentModel;
             const auto                          pipeline = phongModelNormalPipeline;
             constexpr auto                      color { core::RGBA::white };
-            constexpr uint32_t                  isLight {};
             constexpr core::math::Translation<> T { 4, 2, 0 };
             core::forEach<0, 6>([&]<int face>() {
-                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), color, isLight };
+                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), color };
                 cubes.emplace_back(model, pipeline, storage.createMatrix(matrix), cubePhongMaterials.at(face));
             });
         }
@@ -513,7 +535,6 @@ public:
                 const PushConstants matrix {
                     .matrix    = translation * rotation * scaling,
                     .baseColor = core::Colors<core::Type::rgba>::coral,
-                    .isLight   = false,
                 };
                 brickwalls.emplace_back(model, pipeline, storage.createMatrix(matrix), brickwallMaterial);
             });
@@ -545,7 +566,6 @@ public:
                            .matrix   = storage.createMatrix(PushConstants {
                                  .matrix    = core::math::fullMatrix(cerberusMatrix),
                                  .baseColor = core::RGBA::white,
-                                 .isLight   = {},
             }),
                            .material = storage.createPhongMaterial(
                 storage.loadTexture(cerberusFolder / "albedo.ktx", asset::Texture::texture2d),
@@ -560,10 +580,9 @@ public:
             const auto                          model    = planeTexturedNormalsModel;
             const auto                          pipeline = phongPipeline;
             constexpr auto                      color { core::RGBA::white };
-            constexpr uint32_t                  isLight {};
             constexpr core::math::Translation<> T { 0, 0, 0 };
             core::forEach<0, 6>([&]<int face>() {
-                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), color, isLight };
+                constexpr PushConstants matrix { T * cubeFaceMatrices.at(face), color };
                 phongCube.emplace_back(model, pipeline, storage.createMatrix(matrix), cubePhongMaterials.at(face));
             });
         }
@@ -581,12 +600,11 @@ public:
 
         std::vector<Entity> crate;
         {  // crate
-            const auto         model    = planeTexturedNormalsModel;
-            const auto         pipeline = phongPipeline;
-            constexpr auto     color { core::RGBA::white };
-            constexpr uint32_t isLight {};
+            const auto     model    = planeTexturedNormalsModel;
+            const auto     pipeline = phongPipeline;
+            constexpr auto color { core::RGBA::white };
             core::forEach<0, 6>([&]<int face>() {
-                constexpr PushConstants matrix { translate<x>(12.0) * cubeFaceMatrices.at(face), color, isLight };
+                constexpr PushConstants matrix { translate<x>(12.0) * cubeFaceMatrices.at(face), color };
                 crate.emplace_back(model, pipeline, storage.createMatrix(matrix), crateMaterial);
             });
         }
@@ -596,11 +614,8 @@ public:
             // coordinate system
               .model    = planeTexturedNormalTangentModel,
               .pipeline = phongModelNormalPipeline,
-              .matrix   = storage.createMatrix(PushConstants {
-                    .matrix    = core::math::fullMatrix(floorMatrix),
-                    .baseColor = core::RGBA::white,
-                    .isLight   = {},
-            }),
+              .matrix   = storage.createMatrix(
+                PushConstants { .matrix = core::math::fullMatrix(floorMatrix), .baseColor = core::RGBA::white }),
               .material = brickwallMaterial,
         };
         // {  // cerberus
@@ -683,8 +698,15 @@ public:
                 presenter.beginRendering();
                 skybox.draw(commandBuffer, renderer.descriptor.set);
 
+
                 storage.reset();
+
+
+                storage.draw(commandBuffer, lightCube);
+
                 storage.draw(commandBuffer, coordinates);
+                storage.draw(commandBuffer, untexturedCube);
+
                 for (const auto& face : cubes) {
                     storage.draw(commandBuffer, face);
                 }
