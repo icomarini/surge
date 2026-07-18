@@ -9,7 +9,6 @@ layout(location = 4) in mat3 inTBN;
 
 layout(push_constant) uniform PushConstants {
     mat4 model;
-    vec4 baseColor;
 };
 
 layout(set = 0, binding = 0) uniform Scene {

@@ -41,26 +41,27 @@ struct Descriptor {
     }
 };
 
-struct PushConstants {
+
+using ModelMatrix = core::math::Matrix<4, 4>;
+struct ModelMatrixAndColor {
     core::math::Matrix<4, 4> matrix;
     core::math::Vector<4>    baseColor;
 };
 
-using ModelMatrix = core::math::Matrix<4, 4>;
-
 struct Storage {
-    static constexpr auto                graphicsBindPoint { VK_PIPELINE_BIND_POINT_GRAPHICS };
-    static constexpr VkShaderStageFlags  shaderStages { VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_VERTEX_BIT |
+    static constexpr auto               graphicsBindPoint { VK_PIPELINE_BIND_POINT_GRAPHICS };
+    static constexpr VkShaderStageFlags shaderStages { VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_VERTEX_BIT |
                                                        VK_SHADER_STAGE_FRAGMENT_BIT };
-    static constexpr VkPushConstantRange pushConstantRange { core::createPushConstantRange<PushConstants>(
-        shaderStages) };
 
-    const core::Command&                                   command;
-    load::Defaults                                         defaults;
-    const Descriptor&                                      mainCamera;
-    core::LazyAccessContainer<ModelID, asset::Model>       models;
-    core::LazyAccessContainer<PipelineID, Pipeline>        pipelines;
-    std::map<MatrixID, PushConstants>                      matrices;
+    const core::Command&                             command;
+    load::Defaults                                   defaults;
+    const Descriptor&                                mainCamera;
+    core::LazyAccessContainer<ModelID, asset::Model> models;
+    core::LazyAccessContainer<PipelineID, Pipeline>  pipelines;
+
+    using PushConstantsVariants = std::variant<ModelMatrix, ModelMatrixAndColor>;
+    std::map<MatrixID, PushConstantsVariants> matrices;
+
     std::map<TextureID, asset::Texture>                    textures;
     VkDescriptorPool                                       materialPool;
     VkDescriptorSetLayout                                  simpleMaterialLayout;
@@ -68,15 +69,9 @@ struct Storage {
     core::LazyAccessContainer<MaterialID, VkDescriptorSet> materials;
     core::LazyAccessContainer<MaterialID, asset::Material> materials2;
     std::map<MeshID, asset::Mesh>                          meshes;
-
-    static constexpr auto defaultTextureData = load::createDefaultTextureData(core::RGBA::white, core::RGBA::black);
-    TextureID             defaultTextureId;
-
-    static constexpr auto whiteTextureData = load::createFlatTextureData(core::RGBA::white);
-    TextureID             whiteTextureId;
-
-    static constexpr auto blackTextureData = load::createFlatTextureData(core::RGBA::black);
-    TextureID             blackTextureId;
+    TextureID                                              defaultTextureId;
+    TextureID                                              whiteTextureId;
+    TextureID                                              blackTextureId;
 
 
     PipelineID linePipelineId;
@@ -92,9 +87,9 @@ struct Storage {
         , materials {}
         , materials2 {}
         , meshes {}
-        , defaultTextureId { createTexture("default", defaultTextureData) }
-        , whiteTextureId { createTexture("white", whiteTextureData) }
-        , blackTextureId { createTexture("black", blackTextureData) }
+        , defaultTextureId { createTexture(load::createDefaultTextureData(core::RGBA::white, core::RGBA::black)) }
+        , whiteTextureId { createTexture(load::createFlatTextureData(core::RGBA::white)) }
+        , blackTextureId { createTexture(load::createFlatTextureData(core::RGBA::black)) }
         , linePipelineId { createLinePipeline() } {
     }
 
@@ -146,7 +141,8 @@ struct Storage {
         return pipelines.create(pipelineLayout, pipeline);
     }
 
-    MatrixID createMatrix(const PushConstants& matrix) {
+    template<typename T>
+    MatrixID createMatrix(const T& matrix) {
         const auto insertion = matrices.emplace(matrices.size(), matrix);
         if (!insertion.second) {
             throw std::runtime_error("Matrix already present");
@@ -262,7 +258,14 @@ struct Storage {
         });
 
         // bind matrix
-        vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(PushConstants),
+
+        const core::overload visitor {
+            [&](const ModelMatrix&) -> auto { return sizeof(ModelMatrix); },
+            [&](const ModelMatrixAndColor&) -> auto { return sizeof(ModelMatrixAndColor); },
+        };
+        const auto sizeofPushConstants = std::visit(visitor, matrices.at(entity.matrix));
+
+        vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeofPushConstants,
                            &matrices.at(entity.matrix));
 
         // bind material

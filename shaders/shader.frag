@@ -9,7 +9,7 @@ layout(location = 4) in mat3 inTBN;
 
 layout(push_constant) uniform PushConstants {
     mat4 model;
-    vec4 baseColor;
+    // vec4 baseColor;
 };
 
 layout(set = 0, binding = 0) uniform Scene {
@@ -33,7 +33,7 @@ vec3 computeNormal() {
 
 void main() {
     if (0 == 1) {
-        outColor = baseColor;
+        // outColor = baseColor;
     } else {
         // ambient
         float ambientStrength = 0.001;

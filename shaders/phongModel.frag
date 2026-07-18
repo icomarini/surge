@@ -8,7 +8,6 @@ layout(location = 3) in vec2 inTexCoord;
 
 layout(push_constant) uniform PushConstants {
     mat4 model;
-    vec4 baseColor;
 };
 
 layout(set = 0, binding = 0) uniform Scene {

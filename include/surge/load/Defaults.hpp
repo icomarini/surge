@@ -73,7 +73,7 @@ struct TextureData {
     }
 };
 
-static constexpr auto createDefaultTextureData(const core::Colors<core::Type::rgba>::Format& background,
+static consteval auto createDefaultTextureData(const core::Colors<core::Type::rgba>::Format& background,
                                                const core::Colors<core::Type::rgba>::Format& square) {
     const auto g = toUint8(background);
     const auto w = toUint8(square);
@@ -186,7 +186,7 @@ static consteval auto createTextureDataZ(const core::Colors<core::Type::rgba>::F
 //     return std::array<decltype(w), 1> { w };
 // }
 
-static constexpr auto createFlatTextureData(const core::Colors<core::Type::rgba>::Format& color) {
+static consteval auto createFlatTextureData(const core::Colors<core::Type::rgba>::Format& color) {
     // const auto c = toUint8(color);
     return TextureData<1, 1> { std::array { toUint8(color) } };
 }

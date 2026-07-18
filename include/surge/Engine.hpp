@@ -221,13 +221,10 @@ public:
 
         const Entity coordinates {
             // coordinate system
-            .model    = storage.createModel(core::geometry::coordinates),
-            .pipeline = storage.createPipeline<core::geometry::PositionAndColor, PushConstants>(
-                core::shader::Type::coordinates),
-            .matrix   = storage.createMatrix(PushConstants {
-                  .matrix    = core::math::fullMatrix(core::math::identity<4>),
-                  .baseColor = core::RGBA::white,
-            }),
+            .model = storage.createModel(core::geometry::coordinates),
+            .pipeline =
+                storage.createPipeline<core::geometry::PositionAndColor, ModelMatrix>(core::shader::Type::coordinates),
+            .matrix   = storage.createMatrix(core::math::fullMatrix(core::math::identity<4>)),
             .material = {},
         };
 
@@ -244,7 +241,7 @@ public:
 
         const auto planeModel = storage.createModel(core::geometry::plane);
         const auto primitivePipeline =
-            storage.createPipeline<core::geometry::Position, PushConstants>(core::shader::Type::primitive);
+            storage.createPipeline<core::geometry::Position, ModelMatrixAndColor>(core::shader::Type::primitive);
 
         constexpr core::math::Vector<3> lightPosition { -2, 2, 1 };
         constexpr auto                  lightColor = core::RGBA::white;
@@ -252,7 +249,7 @@ public:
         const auto lightCube = core::createArray<Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
             constexpr core::math::Translation<> T { lightPosition };
             constexpr core::math::Scaling<>     S { 0.1f, 0.1f, 0.1f };
-            constexpr PushConstants             matrix { T * S * cubeFaceMatrices.at(faceId), lightColor };
+            constexpr ModelMatrixAndColor       matrix { T * S * cubeFaceMatrices.at(faceId), lightColor };
             face = { planeModel, primitivePipeline, storage.createMatrix(matrix), MaterialID {} };
         });
 
@@ -262,7 +259,7 @@ public:
                 core::RGBA::darkRed, core::RGBA::red,      core::RGBA::darkGreen,
                 core::RGBA::green,   core::RGBA::darkBlue, core::RGBA::blue,
             };
-            constexpr PushConstants matrix { T * cubeFaceMatrices.at(faceId), cubeFaceColors.at(faceId) };
+            constexpr ModelMatrixAndColor matrix { T * cubeFaceMatrices.at(faceId), cubeFaceColors.at(faceId) };
             face = { planeModel, primitivePipeline, storage.createMatrix(matrix), MaterialID {} };
         });
 
@@ -312,45 +309,45 @@ public:
         };
 
         const auto planeTexturedNodel        = storage.createModel(core::geometry::planeTextured);
-        const auto primitiveTexturedPipeline = storage.createPipeline<core::geometry::PositionTexture, PushConstants>(
+        const auto primitiveTexturedPipeline = storage.createPipeline<core::geometry::PositionTexture, ModelMatrix>(
             core::shader::Type::primitiveTextured, storage.simpleMaterialLayout);
         const auto texturedCube = core::createArray<Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
             constexpr core::math::Translation<> T { 2, 0, 0 };
-            constexpr PushConstants             matrix { T * cubeFaceMatrices.at(faceId), lightColor };
+            constexpr ModelMatrix               matrix { T * cubeFaceMatrices.at(faceId) };
             face = { planeTexturedNodel, primitiveTexturedPipeline, storage.createMatrix(matrix),
                      cubeSimpleMaterials.at(faceId) };
         });
 
         const auto planeTexturedNormalsModel = storage.createModel(core::geometry::planeTexturedNormals);
         const auto primitiveTexturedNormalPipeline =
-            storage.createPipeline<core::geometry::PositionNormalTexture, PushConstants>(
+            storage.createPipeline<core::geometry::PositionNormalTexture, ModelMatrix>(
                 core::shader::Type::primitiveTexturedNormal, storage.simpleMaterialLayout);
 
         const auto texturedNormalCube = core::createArray<Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
             constexpr core::math::Translation<> T { 4, 0, 0 };
-            constexpr PushConstants             matrix { T * cubeFaceMatrices.at(faceId), lightColor };
+            constexpr ModelMatrix               matrix { T * cubeFaceMatrices.at(faceId) };
             face = { planeTexturedNormalsModel, primitiveTexturedNormalPipeline, storage.createMatrix(matrix),
                      cubeSimpleMaterials.at(faceId) };
         });
 
-        const auto phongPipeline = storage.createPipeline<core::geometry::PositionNormalTexture, PushConstants>(
+        const auto phongPipeline = storage.createPipeline<core::geometry::PositionNormalTexture, ModelMatrix>(
             core::shader::Type::phongModel, storage.phongMaterialLayout);
 
         const auto phongCube = core::createArray<Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
             constexpr core::math::Translation<> T { 0, 0, 0 };
-            constexpr PushConstants             matrix { T * cubeFaceMatrices.at(faceId), lightColor };
+            constexpr ModelMatrix               matrix { T * cubeFaceMatrices.at(faceId) };
             face = { planeTexturedNormalsModel, phongPipeline, storage.createMatrix(matrix),
                      cubePhongMaterials.at(faceId) };
         });
 
         const auto planeTexturedNormalTangentModel = storage.createModel(core::geometry::planeNormalTangentTexture);
         const auto phongModelNormalPipeline =
-            storage.createPipeline<core::geometry::PositionNormalTangentTexture, PushConstants>(
+            storage.createPipeline<core::geometry::PositionNormalTangentTexture, ModelMatrix>(
                 core::shader::Type::phongModelNormal, storage.phongMaterialLayout);
 
         const auto phongNormalCube = core::createArray<Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
             constexpr core::math::Translation<> T { 4, 2, 0 };
-            constexpr PushConstants             matrix { T * cubeFaceMatrices.at(faceId), lightColor };
+            constexpr ModelMatrix               matrix { T * cubeFaceMatrices.at(faceId) };
             face = { planeTexturedNormalTangentModel, phongModelNormalPipeline, storage.createMatrix(matrix),
                      cubePhongMaterials.at(faceId) };
         });
@@ -363,8 +360,8 @@ public:
             storage.loadTexture(brickwallFolder / "brickwall_normal.jpg", asset::Texture::texture2dNorm));
         {  // brickwall
             const auto model    = storage.createModel(core::geometry::square);
-            const auto pipeline = storage.createPipeline<load::Gltf::Vertex, PushConstants>(
-                core::shader::Type::shader, storage.phongMaterialLayout);
+            const auto pipeline = storage.createPipeline<load::Gltf::Vertex, ModelMatrix>(core::shader::Type::shader,
+                                                                                          storage.phongMaterialLayout);
             constexpr auto radius { 10 };
             constexpr auto translations { generateTranslations<radius>() };
             core::forEach<0, translations.size()>([&]<int i>() {
@@ -375,10 +372,7 @@ public:
                 constexpr core::math::Scaling scaling {
                     core::math::Vector<3> { 4, 4, 4 }
                 };
-                const PushConstants matrix {
-                    .matrix    = translation * rotation * scaling,
-                    .baseColor = core::Colors<core::Type::rgba>::coral,
-                };
+                const ModelMatrix matrix { translation * rotation * scaling };
                 brickwalls.emplace_back(model, pipeline, storage.createMatrix(matrix), brickwallMaterial);
             });
         }
@@ -404,12 +398,9 @@ public:
             // coordinate system
                            .model = storage.createAsset<core::geometry::PositionNormalTexture>(
                 load::Gltf::Handle { cerberusFolder / "cerberus.gltf" }),
-                           .pipeline = storage.createPipeline<core::geometry::PositionNormalTexture, PushConstants>(
+                           .pipeline = storage.createPipeline<core::geometry::PositionNormalTexture, ModelMatrix>(
                 core::shader::Type::phongModel, storage.phongMaterialLayout),
-                           .matrix   = storage.createMatrix(PushConstants {
-                                 .matrix    = core::math::fullMatrix(cerberusMatrix),
-                                 .baseColor = core::RGBA::white,
-            }),
+                           .matrix   = storage.createMatrix(core::math::fullMatrix(cerberusMatrix)),
                            .material = storage.createPhongMaterial(
                 storage.loadTexture(cerberusFolder / "albedo.ktx", asset::Texture::texture2d),
                 storage.loadTexture(cerberusFolder / "metallic.ktx", asset::Texture::metallic),
@@ -426,7 +417,7 @@ public:
         const auto crate = std::invoke([&]() {
             std::array<Entity, cubeFaceMatrices.size()> faces;
             core::forEach<0, 6>([&]<int face>() {
-                constexpr PushConstants matrix { translate<x>(12.0) * cubeFaceMatrices.at(face), core::RGBA::white };
+                constexpr auto matrix { translate<x>(12.0) * cubeFaceMatrices.at(face) };
                 faces[face] = {
                     .model    = planeTexturedNormalsModel,
                     .pipeline = phongPipeline,
@@ -441,8 +432,7 @@ public:
         const Entity   floor {
               .model    = planeTexturedNormalTangentModel,
               .pipeline = phongModelNormalPipeline,
-              .matrix   = storage.createMatrix(
-                PushConstants { .matrix = core::math::fullMatrix(floorMatrix), .baseColor = core::RGBA::white }),
+              .matrix   = storage.createMatrix(core::math::fullMatrix(floorMatrix)),
               .material = brickwallMaterial,
         };
 
@@ -479,39 +469,37 @@ public:
                 const core::math::Rotation rotationX { core::math::toQuaternion(1.0f * input.timer, 0.0f, 0.0f) };
 
                 core::forEach<0, texturedNormalCube.size()>([&]<int face>() {
-                    const auto matrixId               = texturedNormalCube[face].matrix;
-                    storage.matrices[matrixId].matrix = translate<x>(4.0) * rotationY * cubeFaceMatrices.at(face);
+                    const auto matrixId        = texturedNormalCube[face].matrix;
+                    storage.matrices[matrixId] = translate<x>(4.0) * rotationY * cubeFaceMatrices.at(face);
                 });
 
                 // rotate dragon
                 // storage.matrices.at(dragon.matrix).matrix = translate<x>(6.0) * rotationY * dragonMatrix;
 
                 // rotate cerberus
-                storage.matrices.at(cerberus.matrix).matrix = translate<x>(8.0) * rotationY * cerberusMatrix;
+                storage.matrices.at(cerberus.matrix) = translate<x>(8.0) * rotationY * cerberusMatrix;
 
                 // rotate phongCube
                 core::forEach<0, phongCube.size()>([&]<int face>() {
-                    const auto matrixId = phongCube.at(face).matrix;
-                    storage.matrices[matrixId.get()].matrix =
-                        translate<x>(10.0) * rotationY * cubeFaceMatrices.at(face);
+                    const auto matrixId              = phongCube.at(face).matrix;
+                    storage.matrices[matrixId.get()] = translate<x>(10.0) * rotationY * cubeFaceMatrices.at(face);
                 });
 
                 // rotate phongNormalCube
                 core::forEach<0, phongNormalCube.size()>([&]<int face>() {
                     const auto matrixId = phongNormalCube.at(face).matrix;
-                    storage.matrices[matrixId.get()].matrix =
+                    storage.matrices[matrixId.get()] =
                         translate<x>(10.0) * translate<y>(2.0) * rotationY * cubeFaceMatrices.at(face);
                 });
 
                 // rotate crate
                 core::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
-                    const auto matrixId = crate.at(face).matrix;
-                    storage.matrices[matrixId.get()].matrix =
-                        translate<x>(12.0) * rotationY * cubeFaceMatrices.at(face);
+                    const auto matrixId              = crate.at(face).matrix;
+                    storage.matrices[matrixId.get()] = translate<x>(12.0) * rotationY * cubeFaceMatrices.at(face);
                 });
 
                 // rotate floor
-                storage.matrices.at(floor.matrix).matrix = translate<x>(-2.0) * rotationY;
+                storage.matrices.at(floor.matrix) = translate<x>(-2.0) * rotationY;
 
                 // === rendering ===
                 const auto commandBuffer = presenter.acquire();
@@ -531,27 +519,27 @@ public:
                 storage.draw(commandBuffer, crate);
                 storage.draw(commandBuffer, floor);
 
-                core::forEach<0, cubeFaceMatrices.size(), 0, 2>([&]<int face, int triangle>() {
-                    using namespace core::geometry;
-                    constexpr auto& vertices = planeTexturedNormals.vertices;
-                    constexpr auto& indices  = planeTexturedNormals.indices;
-                    constexpr auto  offset   = triangle * 3;
+                // core::forEach<0, cubeFaceMatrices.size(), 0, 2>([&]<int face, int triangle>() {
+                //     using namespace core::geometry;
+                //     constexpr auto& vertices = planeTexturedNormals.vertices;
+                //     constexpr auto& indices  = planeTexturedNormals.indices;
+                //     constexpr auto  offset   = triangle * 3;
 
-                    constexpr auto a = (vertices.at(indices.at(offset + 0)).get<Attribute::position>() +
-                                        vertices.at(indices.at(offset + 1)).get<Attribute::position>() +
-                                        vertices.at(indices.at(offset + 2)).get<Attribute::position>()) /
-                                       3.0f;
-                    constexpr auto b = a + (vertices.at(indices.at(offset + 0)).get<Attribute::normal>() +
-                                            vertices.at(indices.at(offset + 1)).get<Attribute::normal>() +
-                                            vertices.at(indices.at(offset + 2)).get<Attribute::normal>()) /
-                                               3.0f;
-                    const auto& matrix = storage.matrices[face + 19].matrix;
-                    storage.draw(commandBuffer, asset::Line {
-                                                    .a     = transform(a, matrix),
-                                                    .b     = transform(b, matrix),
-                                                    .color = core::Colors<core::Type::rgba>::white,
-                                                });
-                });
+                //     constexpr auto a = (vertices.at(indices.at(offset + 0)).get<Attribute::position>() +
+                //                         vertices.at(indices.at(offset + 1)).get<Attribute::position>() +
+                //                         vertices.at(indices.at(offset + 2)).get<Attribute::position>()) /
+                //                        3.0f;
+                //     constexpr auto b = a + (vertices.at(indices.at(offset + 0)).get<Attribute::normal>() +
+                //                             vertices.at(indices.at(offset + 1)).get<Attribute::normal>() +
+                //                             vertices.at(indices.at(offset + 2)).get<Attribute::normal>()) /
+                //                                3.0f;
+                //     const auto& matrix = storage.matrices[face + 19].matrix;
+                //     storage.draw(commandBuffer, asset::Line {
+                //                                     .a     = transform(a, matrix),
+                //                                     .b     = transform(b, matrix),
+                //                                     .color = core::Colors<core::Type::rgba>::white,
+                //                                 });
+                // });
 
                 presenter.endRendering();
                 presenter.present(command);
@@ -571,11 +559,10 @@ public:
     }
 
 private:
-    mutable Input   input;
-    core::Context   context;
-    core::Command   command;
-    core::Presenter presenter;
-    // load::Defaults                        defaults;
+    mutable Input                         input;
+    core::Context                         context;
+    core::Command                         command;
+    core::Presenter                       presenter;
     std::map<std::string, asset::Asset>   assets;
     std::map<std::string, asset::Texture> textures;
     Renderer                              renderer;
