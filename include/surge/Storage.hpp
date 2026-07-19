@@ -145,7 +145,9 @@ struct Storage {
         , simpleMaterialLayout { command.context }
         , phongMaterialLayout { command.context }
         , materialPool { createDescriptorPool<1, 3>(32, 32) }
-        , descriptorPool { command.context }
+        , descriptorPool { command.context, core::DescriptorAllocation<SceneLayout2> { 2 },
+                           core::DescriptorAllocation<SimpleMaterialLayout2> { 32 },
+                           core::DescriptorAllocation<PhongMaterialLayout2> { 32 } }
         , materials {}
         , materials2 {}
         , meshes {}
@@ -274,11 +276,15 @@ struct Storage {
 
     MaterialID createSimpleMaterial(const TextureID textureId) {
         // return materials.create(createMaterialDescriptorSet(simpleMaterialLayout.get(), textureId));
-        return materials.create(createMaterialDescriptorSet(descriptorPool.layout<SimpleMaterialLayout2>(), textureId));
+        // return materials.create(createMaterialDescriptorSet(descriptorPool.layout<SimpleMaterialLayout2>(),
+        // textureId));
+        return materials.create(descriptorPool.allocate<SimpleMaterialLayout2>(textures.at(textureId)));
     }
 
     MaterialID createPhongMaterial(const TextureID diffuse, const TextureID specular, const TextureID normal) {
-        return materials.create(createMaterialDescriptorSet(phongMaterialLayout.get(), diffuse, specular, normal));
+        // return materials.create(createMaterialDescriptorSet(phongMaterialLayout.get(), diffuse, specular, normal));
+        return materials.create(descriptorPool.allocate<PhongMaterialLayout2>(
+            textures.at(diffuse), textures.at(specular), textures.at(normal)));
     }
 
     template<typename Vertex>

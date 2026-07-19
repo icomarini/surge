@@ -58,10 +58,10 @@ public:
 
 template<typename Layout>
 struct DescriptorAllocation {
-    DescriptorAllocation(const std::size_t quantity)
-        : count { quantity * Layout::descrtiptorCount() } {
+    DescriptorAllocation(const auto quantity)
+        : quantity { quantity } {
     }
-    std::size_t count;
+    std::size_t quantity;
 };
 
 template<typename... Layouts>
@@ -72,17 +72,14 @@ class DescriptorPool : public Contextualized {
     VkDescriptorPool                               pool;
 
 public:
-    DescriptorPool(const Context& context)
+    DescriptorPool(const Context& context, const DescriptorAllocation<Layouts>&... allocations)
         : Contextualized { context }
-        , layouts { createDescriptorSetLayouts(context) } {
-        // core::forEach<0, layoutCount>([&]<int index>() {
-        //     auto& layout = std::get<index>(layouts);
-        //     using Layout = std::tuple_element_t<index, std::tuple<Layouts...>>;
-        //     layout       = createDescriptorSetLayout<Layout>(context);
-        // });
+        , layouts { createDescriptorSetLayouts(context) }
+        , pool { createDescriptorPool(context, allocations...) } {
     }
 
     ~DescriptorPool() {
+        context.destroy(pool);
         core::forEach<0, layoutCount>([&]<int index>() {
             auto& layout = std::get<index>(layouts);
             context.destroy(layout);
@@ -96,14 +93,15 @@ public:
     }
 
     template<typename Layout, typename... Resources>
-    VkDescriptorSet allocate(const VkDescriptorSetLayout descriptorSetLayout, const Resources&... resources) const {
+    VkDescriptorSet allocate(const Resources&... resources) const {
         // allocate descriptor sets
+        const auto                        descriptorLayout = layout<Layout>();
         const VkDescriptorSetAllocateInfo allocInfo {
             .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
             .pNext              = nullptr,
             .descriptorPool     = pool,
             .descriptorSetCount = 1,
-            .pSetLayouts        = &descriptorSetLayout,
+            .pSetLayouts        = &descriptorLayout,
         };
         VkDescriptorSet descriptorSet;
         if (vkAllocateDescriptorSets(context.device, &allocInfo, &descriptorSet) != VK_SUCCESS) {
@@ -158,6 +156,53 @@ private:
                 .bindingCount = static_cast<uint32_t>(bindings.size()),
                 .pBindings    = bindings.data(),
             });
+        });
+    }
+
+    // template<std::uint32_t simpleBindingCount, std::uint32_t pbrBindingCount>
+    static VkDescriptorPool createDescriptorPool(const Context& context,
+                                                 const DescriptorAllocation<Layouts>&... allocations) {
+        uint32_t                            maxSets {};
+        std::array<VkDescriptorPoolSize, 2> descriptorPoolSizes {
+            VkDescriptorPoolSize { .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = {} },
+            VkDescriptorPoolSize { .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         .descriptorCount = {} }
+        };
+        core::forEach<0, layoutCount>([&]<int layoutIdx>() {
+            const auto& allocation = std::get<layoutIdx>(std::forward_as_tuple(allocations...));
+            maxSets += allocation.quantity;
+
+            using Layout = std::tuple_element_t<layoutIdx, std::tuple<Layouts...>>;
+            core::forEach<0, Layout::descriptorTypes.size()>([&]<int descriptorIdx>() {
+                constexpr auto type         = Layout::descriptorTypes.at(descriptorIdx);
+                constexpr auto poolSizesIdx = std::invoke([]() {
+                    if constexpr (type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
+                        return 0;
+                    } else if constexpr (type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+                        return 1;
+                    } else {
+                        throw;
+                    }
+                });
+                descriptorPoolSizes[poolSizesIdx].descriptorCount +=
+                    allocation.quantity * Layout::descriptorTypes.size();
+            });
+        });
+        // const auto maxCount = simpleMaxCount * simpleBindingCount + pbrMaxCount * pbrBindingCount;
+
+        // const VkDescriptorPoolSize descriptorPoolSize {
+        //     .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        //     .descriptorCount = maxCount,
+        // };
+        // log::info("Allocated " + std::to_string(maxSets) + "max sets");
+        // for (const auto& descriptorPoolSizes : )
+
+        return context.create(VkDescriptorPoolCreateInfo {
+            .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            .pNext         = nullptr,
+            .flags         = {},
+            .maxSets       = maxSets,
+            .poolSizeCount = descriptorPoolSizes.size(),
+            .pPoolSizes    = descriptorPoolSizes.data(),
         });
     }
 };
