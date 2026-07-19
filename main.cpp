@@ -91,14 +91,14 @@ struct Pipeline { };
 
 using UntexturedPipeline = Pipeline<surge::geom::Position, surge::ModelMatrixAndColor>;
 
-using TexturedPipeline =
-    Pipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix, surge::Storage::SimpleMaterialLayout>;
+// using TexturedPipeline =
+//     Pipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix, surge::Storage::SimpleMaterialLayout>;
 
-using PhongPipeline =
-    Pipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix, surge::Storage::PhongMaterialLayout>;
+// using PhongPipeline =
+//     Pipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix, surge::Storage::PhongMaterialLayout>;
 
-using PhongNormalPipeline =
-    Pipeline<surge::geom::PositionNormalTangentTexture, surge::ModelMatrix, surge::Storage::PhongMaterialLayout>;
+// using PhongNormalPipeline =
+//     Pipeline<surge::geom::PositionNormalTangentTexture, surge::ModelMatrix, surge::Storage::PhongMaterialLayout>;
 }  // namespace experimental
 
 int main() {

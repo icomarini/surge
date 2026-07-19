@@ -105,18 +105,18 @@ struct Storage {
     std::map<TextureID, asset::Texture> textures;
     std::map<BufferID, core::Buffer>    buffers;
 
-    using SceneLayout = DescriptorLayout<VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER>;
-    SceneLayout sceneLayout;
+    // using SceneLayout = DescriptorLayout<VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER>;
+    // SceneLayout sceneLayout;
 
-    using SimpleMaterialLayout = DescriptorLayout<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER>;
-    SimpleMaterialLayout simpleMaterialLayout;
+    // using SimpleMaterialLayout = DescriptorLayout<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER>;
+    // SimpleMaterialLayout simpleMaterialLayout;
 
-    using PhongMaterialLayout = DescriptorLayout<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,  //
-                                                 VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,  //
-                                                 VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER>;
-    PhongMaterialLayout phongMaterialLayout;
+    // using PhongMaterialLayout = DescriptorLayout<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,  //
+    //                                              VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,  //
+    //                                              VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER>;
+    // PhongMaterialLayout phongMaterialLayout;
 
-    VkDescriptorPool materialPool;
+    // VkDescriptorPool materialPool;
 
 
     using SceneLayout2          = core::DescriptorLayout<VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER>;
@@ -140,11 +140,10 @@ struct Storage {
         : command { command }
         , defaults { command }
         , mainCamera { mainCamera }
-        , matrices {}
-        , sceneLayout { command.context }
-        , simpleMaterialLayout { command.context }
-        , phongMaterialLayout { command.context }
-        , materialPool { createDescriptorPool<1, 3>(32, 32) }
+        , matrices {}  // , sceneLayout { command.context }
+                       // , simpleMaterialLayout { command.context }
+        // , phongMaterialLayout { command.context }
+        // , materialPool { createDescriptorPool<1, 3>(32, 32) }
         , descriptorPool { command.context, core::DescriptorAllocation<SceneLayout2> { 2 },
                            core::DescriptorAllocation<SimpleMaterialLayout2> { 32 },
                            core::DescriptorAllocation<PhongMaterialLayout2> { 32 } }
@@ -159,7 +158,7 @@ struct Storage {
 
     ~Storage() {
         pipelines.apply([&](Pipeline& pipeline) { pipeline.destroy(command.context); });
-        command.context.destroy(materialPool);
+        // command.context.destroy(materialPool);
     }
 
     template<typename LoadedModel>
@@ -184,8 +183,9 @@ struct Storage {
 
         const auto pipelineLayout =
             layouts.contains(shaderType) ?
-                core::createPipelineLayout(command.context, push, sceneLayout.get(), layouts.at(shaderType)) :
-                core::createPipelineLayout(command.context, push, sceneLayout.get());
+                core::createPipelineLayout(command.context, push, descriptorPool.layout<SceneLayout2>(),
+                                           layouts.at(shaderType)) :
+                core::createPipelineLayout(command.context, push, descriptorPool.layout<SceneLayout2>());
 
         constexpr auto vertexInputState = core::createVertexInputState<VertexInputState>();
         const auto     pipeline =
@@ -195,7 +195,8 @@ struct Storage {
 
     PipelineID createLinePipeline() {
         const auto pipelineLayout = core::createPipelineLayout(
-            command.context, core::createPushConstantRange<asset::Line>(VK_SHADER_STAGE_VERTEX_BIT), sceneLayout.get());
+            command.context, core::createPushConstantRange<asset::Line>(VK_SHADER_STAGE_VERTEX_BIT),
+            descriptorPool.layout<SceneLayout2>());
         const auto pipeline = core::createGraphicPipeline(
             command.context, core::createVertexInputState(), VK_NULL_HANDLE, pipelineLayout,
             core::shader::Shader {
@@ -292,7 +293,7 @@ struct Storage {
         const load::Gltf asset { handle, defaults };
         const auto       newTextures = asset.createTextures2(command, textures);
         const auto       newMaterials =
-            asset.createMaterials2(command.context, materialPool, phongMaterialLayout.get(), newTextures, materials2);
+            asset.createMaterials2<PhongMaterialLayout2>(command.context, descriptorPool, newTextures, materials2);
         const auto newMeshes = asset.createMeshes2(newMaterials, meshes);
         // const auto model     = asset.createModel2(command, newMeshes, models);
         // const auto [iter, inserted] = assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
@@ -442,45 +443,45 @@ private:
         });
     }
 
-    template<typename... TextureIDs>
-    VkDescriptorSet createMaterialDescriptorSet(const VkDescriptorSetLayout descriptorSetLayout,
-                                                const TextureIDs... textureIds) const {
-        // allocate descriptor sets
-        const VkDescriptorSetAllocateInfo allocInfo {
-            .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-            .pNext              = nullptr,
-            .descriptorPool     = materialPool,
-            .descriptorSetCount = 1,
-            .pSetLayouts        = &descriptorSetLayout,
-        };
-        VkDescriptorSet descriptorSet;
-        if (vkAllocateDescriptorSets(command.context.device, &allocInfo, &descriptorSet) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate descriptor sets");
-        }
+    // template<typename... TextureIDs>
+    // VkDescriptorSet createMaterialDescriptorSet(const VkDescriptorSetLayout descriptorSetLayout,
+    //                                             const TextureIDs... textureIds) const {
+    //     // allocate descriptor sets
+    //     const VkDescriptorSetAllocateInfo allocInfo {
+    //         .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+    //         .pNext              = nullptr,
+    //         .descriptorPool     = materialPool,
+    //         .descriptorSetCount = 1,
+    //         .pSetLayouts        = &descriptorSetLayout,
+    //     };
+    //     VkDescriptorSet descriptorSet;
+    //     if (vkAllocateDescriptorSets(command.context.device, &allocInfo, &descriptorSet) != VK_SUCCESS) {
+    //         throw std::runtime_error("Failed to allocate descriptor sets");
+    //     }
 
-        // write descriptor sets
-        constexpr auto bindingCount = sizeof...(TextureIDs);
-        const auto     descriptorWrites =
-            core::createArray<VkWriteDescriptorSet, bindingCount>([&]<int binding>(auto& descriptorWrite) {
-                const auto& texture = textures.at(std::get<binding>(std::forward_as_tuple(textureIds...)));
-                descriptorWrite     = {
-                        .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                        .pNext            = nullptr,
-                        .dstSet           = descriptorSet,
-                        .dstBinding       = binding,
-                        .dstArrayElement  = 0,
-                        .descriptorCount  = 1,
-                        .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                        .pImageInfo       = texture.imageInfo(),
-                        .pBufferInfo      = texture.bufferInfo(),
-                        .pTexelBufferView = nullptr,
-                };
-            });
-        vkUpdateDescriptorSets(command.context.device, static_cast<uint32_t>(descriptorWrites.size()),
-                               descriptorWrites.data(), 0, nullptr);
+    //     // write descriptor sets
+    //     constexpr auto bindingCount = sizeof...(TextureIDs);
+    //     const auto     descriptorWrites =
+    //         core::createArray<VkWriteDescriptorSet, bindingCount>([&]<int binding>(auto& descriptorWrite) {
+    //             const auto& texture = textures.at(std::get<binding>(std::forward_as_tuple(textureIds...)));
+    //             descriptorWrite     = {
+    //                     .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+    //                     .pNext            = nullptr,
+    //                     .dstSet           = descriptorSet,
+    //                     .dstBinding       = binding,
+    //                     .dstArrayElement  = 0,
+    //                     .descriptorCount  = 1,
+    //                     .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+    //                     .pImageInfo       = texture.imageInfo(),
+    //                     .pBufferInfo      = texture.bufferInfo(),
+    //                     .pTexelBufferView = nullptr,
+    //             };
+    //         });
+    //     vkUpdateDescriptorSets(command.context.device, static_cast<uint32_t>(descriptorWrites.size()),
+    //                            descriptorWrites.data(), 0, nullptr);
 
-        return descriptorSet;
-    }
+    //     return descriptorSet;
+    // }
 };
 
 

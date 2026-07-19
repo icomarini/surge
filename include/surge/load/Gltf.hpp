@@ -3,6 +3,7 @@
 #include "surge/asset/Mesh.hpp"
 #include "surge/asset/Scene.hpp"
 #include "surge/asset/Skin.hpp"
+#include "surge/core/DescriptorPool.hpp"
 #include "surge/load/Defaults.hpp"
 
 #include "fastgltf/core.hpp"
@@ -814,12 +815,16 @@ public:
         return descriptorSet;
     }
 
-    // template<typename EntityID>
+    template<typename Layout, typename DescriptorPool>
     std::map<MaterialID, const asset::Material*>
-    createMaterials2(const core::Context& context, const VkDescriptorPool descriptorPool,
-                     const VkDescriptorSetLayout                             descriptorSetLayout,
-                     const std::map<TextureID, const asset::Texture*>&       textures,
-                     core::LazyAccessContainer<MaterialID, asset::Material>& materials) const {
+    createMaterials2(const core::Context&
+                         context,  //
+                                   // const VkDescriptorPool                                  descriptorPool,       //
+                                   // const VkDescriptorSetLayout                             descriptorSetLayout,  //
+                     const DescriptorPool&                                   descriptorPool,
+                     const std::map<TextureID, const asset::Texture*>&       textures,  //
+                     core::LazyAccessContainer<MaterialID, asset::Material>& materials  //
+    ) const {
         constexpr auto extractAlphaMode = [](const fastgltf::AlphaMode alphaMode) {
             switch (alphaMode) {
             case fastgltf::AlphaMode::Blend:
@@ -901,9 +906,11 @@ public:
                 .normalScale              = normalScale,
                 .occlusionTexture         = occlusionTexture,
                 .occlusionStrength        = occlusionStrength,
-                .descriptorSet            = createMaterialDescriptorSet2(
-                    context, descriptorPool, descriptorSetLayout, *baseColorTexture.texture,
-                    *metallicRoughnessTexture.texture, *normalTexture.texture),
+                .descriptorSet            = descriptorPool.template allocate<Layout>(
+                    *baseColorTexture.texture, *metallicRoughnessTexture.texture, *normalTexture.texture),
+                // createMaterialDescriptorSet2(
+                //     context, descriptorPool, descriptorSetLayout, *baseColorTexture.texture,
+                //     *metallicRoughnessTexture.texture, *normalTexture.texture),
             });
             materialIds.emplace(materialId, &materials.get(newMaterial));
             ++materialId;
