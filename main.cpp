@@ -432,42 +432,42 @@ int main() {
                 // === rendering ===
                 const auto commandBuffer = engine.presenter.acquire();
                 engine.presenter.beginRendering();
-                skybox.draw(commandBuffer, engine.renderer.descriptor.set);
+                skybox.draw(commandBuffer);
 
                 engine.storage.reset();
-                engine.storage.draw(commandBuffer, lightCube);
-                engine.storage.draw(commandBuffer, coordinates);
-                engine.storage.draw(commandBuffer, untexturedCube);
-                engine.storage.draw(commandBuffer, texturedCube);
-                engine.storage.draw(commandBuffer, texturedNormalCube);
-                engine.storage.draw(commandBuffer, phongCube);
-                engine.storage.draw(commandBuffer, phongNormalCube);
-                engine.storage.draw(commandBuffer, brickwalls);
-                engine.storage.draw(commandBuffer, cerberus);
-                engine.storage.draw(commandBuffer, crate);
-                engine.storage.draw(commandBuffer, floor);
+                engine.renderer.draw(commandBuffer, lightCube);
+                engine.renderer.draw(commandBuffer, coordinates);
+                engine.renderer.draw(commandBuffer, untexturedCube);
+                engine.renderer.draw(commandBuffer, texturedCube);
+                engine.renderer.draw(commandBuffer, texturedNormalCube);
+                engine.renderer.draw(commandBuffer, phongCube);
+                engine.renderer.draw(commandBuffer, phongNormalCube);
+                engine.renderer.draw(commandBuffer, brickwalls);
+                engine.renderer.draw(commandBuffer, cerberus);
+                engine.renderer.draw(commandBuffer, crate);
+                engine.renderer.draw(commandBuffer, floor);
 
-                // core::forEach<0, cubeFaceMatrices.size(), 0, 2>([&]<int face, int triangle>() {
-                //     using namespace core::geometry;
-                //     constexpr auto& vertices = planeTexturedNormals.vertices;
-                //     constexpr auto& indices  = planeTexturedNormals.indices;
-                //     constexpr auto  offset   = triangle * 3;
+                surge::forEach<0, cubeFaceMatrices.size(), 0, 2>([&]<int face, int triangle>() {
+                    using namespace surge::geom;
+                    constexpr auto& vertices = planeTexturedNormals.vertices;
+                    constexpr auto& indices  = planeTexturedNormals.indices;
+                    constexpr auto  offset   = triangle * 3;
 
-                //     constexpr auto a = (vertices.at(indices.at(offset + 0)).get<Attribute::position>() +
-                //                         vertices.at(indices.at(offset + 1)).get<Attribute::position>() +
-                //                         vertices.at(indices.at(offset + 2)).get<Attribute::position>()) /
-                //                        3.0f;
-                //     constexpr auto b = a + (vertices.at(indices.at(offset + 0)).get<Attribute::normal>() +
-                //                             vertices.at(indices.at(offset + 1)).get<Attribute::normal>() +
-                //                             vertices.at(indices.at(offset + 2)).get<Attribute::normal>()) /
-                //                                3.0f;
-                //     const auto& matrix = storage.matrices[face + 19].matrix;
-                //     storage.draw(commandBuffer, asset::Line {
-                //                                     .a     = transform(a, matrix),
-                //                                     .b     = transform(b, matrix),
-                //                                     .color = core::Colors<core::Type::rgba>::white,
-                //                                 });
-                // });
+                    constexpr auto a = (vertices.at(indices.at(offset + 0)).get<Attribute::position>() +
+                                        vertices.at(indices.at(offset + 1)).get<Attribute::position>() +
+                                        vertices.at(indices.at(offset + 2)).get<Attribute::position>()) /
+                                       3.0f;
+                    constexpr auto b = a + (vertices.at(indices.at(offset + 0)).get<Attribute::normal>() +
+                                            vertices.at(indices.at(offset + 1)).get<Attribute::normal>() +
+                                            vertices.at(indices.at(offset + 2)).get<Attribute::normal>()) /
+                                               3.0f;
+                    const auto& matrix = engine.storage.getMatrix(texturedNormalCube.at(face).matrix);
+                    engine.renderer.draw(commandBuffer, surge::Line {
+                                                            .a     = transform(a, matrix),
+                                                            .b     = transform(b, matrix),
+                                                            .color = surge::RGBA::white,
+                                                        });
+                });
 
                 engine.presenter.endRendering();
                 engine.presenter.present(engine.command);

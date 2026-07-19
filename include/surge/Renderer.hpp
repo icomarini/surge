@@ -1,32 +1,20 @@
 #pragma once
 
+#include "surge/Storage.hpp"
 #include "surge/Camera.hpp"
 #include "surge/physics/Physics.hpp"
 #include "surge/core/Pipeline.hpp"
-#include "surge/asset/Line.hpp"
+
 #include "surge/core/Descriptor.hpp"
 
 namespace surge {
 
 class Renderer : public core::Contextualized {
 public:
-    struct SceneBuffer {
-        core::math::Matrix<4, 4> perspective;
-        core::math::Matrix<4, 4> view;
-        core::math::Vector<4>    lightColor;
-        core::math::Vector<3>    lightPosition;
-    };
-
-
-    Renderer(const core::Context& context)
-        : Contextualized { context }
-        , scene { context, sizeof(SceneBuffer), core::Buffer::uniform }
-        , descriptor { context, 1,
-                       core::Description<VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                         VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_VERTEX_BIT |
-                                             VK_SHADER_STAGE_FRAGMENT_BIT,
-                                         core::Buffer> { scene } }
-        , pipelines { createPipelines(context, descriptor.setLayout) } {
+    Renderer(const Storage& storage)
+        : Contextualized { storage.command.context }
+        , storage { storage }
+        , pipelines {} {
     }
 
     ~Renderer() {
@@ -36,82 +24,90 @@ public:
         }
     }
 
+    template<Container T>
+    void draw(const VkCommandBuffer commandBuffer, const T& entities) const {
+        for (const auto& entity : entities) {
+            draw(commandBuffer, entity);
+        }
+    }
+
+    void draw(const VkCommandBuffer commandBuffer, const Entity& entity) const {
+        vkCmdSetLineWidth(commandBuffer, 2.0);
+        const auto pipelineLayout = storage.pipelines.get(entity.pipeline).layout();
+
+        // bind pipeline and main camera
+        storage.pipelines.apply(entity.pipeline, [&](const Pipeline& pipeline) {
+            core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+            vkCmdBindPipeline(commandBuffer, Storage::graphicsBindPoint, pipeline.get());
+            constexpr uint32_t sceneIndex { 0 };
+            vkCmdBindDescriptorSets(commandBuffer, Storage::graphicsBindPoint, pipelineLayout, sceneIndex, 1,
+                                    &storage.sceneDescriptorSet, 0, nullptr);
+        });
+
+        // bind model
+        storage.models.apply(entity.model, [&](const asset::Model& model) {
+            constexpr VkDeviceSize offset { 0 };
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model.vertexBuffer.buffer, &offset);
+            vkCmdBindIndexBuffer(commandBuffer, model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+        });
+
+        // bind matrix
+
+        const core::overload visitor {
+            [&](const ModelMatrix&) -> auto { return sizeof(ModelMatrix); },
+            [&](const ModelMatrixAndColor&) -> auto { return sizeof(ModelMatrixAndColor); },
+        };
+        const auto sizeofPushConstants = std::visit(visitor, storage.matrices.at(entity.matrix));
+
+        vkCmdPushConstants(commandBuffer, pipelineLayout, Storage::shaderStages, 0, sizeofPushConstants,
+                           &storage.matrices.at(entity.matrix));
+
+        // bind material
+        if (entity.material) {
+            storage.materials.apply(entity.material, [&](const VkDescriptorSet& material) {
+                constexpr uint32_t materialIndex { 1 };
+                vkCmdBindDescriptorSets(commandBuffer, Storage::graphicsBindPoint, pipelineLayout, materialIndex, 1,
+                                        &material, 0, nullptr);
+            });
+        }
+
+        vkCmdDrawIndexed(commandBuffer, storage.models.get(entity.model).indexCount, 1, 0, 0, 0);
+    }
+
+    void draw(const VkCommandBuffer commandBuffer, const asset::Line& line) const {
+        // bind main camera
+        const auto pipelineLayout = storage.pipelines.get(storage.linePipelineId).layout();
+
+        storage.pipelines.apply(storage.linePipelineId, [&](const Pipeline& pipeline) {
+            core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+            vkCmdBindPipeline(commandBuffer, Storage::graphicsBindPoint, pipeline.get());
+            constexpr uint32_t sceneIndex { 0 };
+            vkCmdBindDescriptorSets(commandBuffer, Storage::graphicsBindPoint, pipelineLayout, sceneIndex, 1,
+                                    &storage.sceneDescriptorSet, 0, nullptr);
+        });
+        vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(asset::Line), &line);
+        vkCmdDraw(commandBuffer, 2, 1, 0, 0);
+    }
+
     void createPipeline(const std::string& name, const VkPipelineVertexInputStateCreateInfo& vertexInputState,
                         const core::shader::Type shader, const VkDescriptorSetLayout materialDescriptorSetLayout,
                         const std::optional<VkDescriptorSetLayout> jointMatricesDescriptorSetLayout) {
         constexpr VkPushConstantRange nodePushConstantRange { core::createPushConstantRange<asset::Node::PushConstants>(
             VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT) };
+        const auto                    sceneDescriptorSetLayout = storage.descriptorPool.layout<Storage::SceneLayout>();
 
         auto& [pipelineLayout, pipeline] = pipelines[name];
         pipelineLayout =
             jointMatricesDescriptorSetLayout.has_value() ?
-                core::createPipelineLayout(context, nodePushConstantRange, descriptor.setLayout,
+                core::createPipelineLayout(context, nodePushConstantRange, sceneDescriptorSetLayout,
                                            materialDescriptorSetLayout, jointMatricesDescriptorSetLayout.value()) :
-                core::createPipelineLayout(context, nodePushConstantRange, descriptor.setLayout,
+                core::createPipelineLayout(context, nodePushConstantRange, sceneDescriptorSetLayout,
                                            materialDescriptorSetLayout);
         pipeline = core::createGraphicPipeline(context, vertexInputState, pipelineLayout, shader);
     }
 
-    core::Buffer                                                   scene;
-    core::Descriptor                                               descriptor;
+    const Storage&                                                 storage;
     std::map<std::string, std::pair<VkPipelineLayout, VkPipeline>> pipelines;
-
-    void update(const Camera<false>& camera, const core::math::Vector<4>& lightColor,
-                const core::math::Vector<3> lightPosition) {
-        const SceneBuffer sceneMatrices { core::math::fullMatrix(camera.mats.perspective),
-                                          core::math::fullMatrix(camera.mats.view), lightColor, lightPosition };
-        memcpy(scene.mapped, &sceneMatrices, sizeof(SceneBuffer));
-    }
-
-private:
-    static std::map<std::string, std::pair<VkPipelineLayout, VkPipeline>>
-    createPipelines(const core::Context& context, const VkDescriptorSetLayout sceneDescriptorSetLayout) {
-        std::map<std::string, std::pair<VkPipelineLayout, VkPipeline>> pipelines;
-
-        constexpr VkPipelineVertexInputStateCreateInfo emptyVertexInputState = core::createVertexInputState();
-        {  // line
-            auto& [pipelineLayout, pipeline] = pipelines["line"];
-            pipelineLayout                   = core::createPipelineLayout(
-                context, core::createPushConstantRange<asset::Line>(VK_SHADER_STAGE_VERTEX_BIT),
-                sceneDescriptorSetLayout);
-            pipeline = core::createGraphicPipeline(
-                context, emptyVertexInputState, VK_NULL_HANDLE, pipelineLayout,
-                core::shader::Shader {
-                    context,
-                    core::shader::ShaderInfo<core::shader::Type::line, core::shader::Stage::vertex> { nullptr },
-                    core::shader::ShaderInfo<core::shader::Type::line, core::shader::Stage::fragment> { nullptr },
-                },
-                VkPipelineInputAssemblyStateCreateInfo {
-                    .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-                    .pNext                  = nullptr,
-                    .flags                  = {},
-                    .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
-                    .primitiveRestartEnable = VK_FALSE,
-                });
-        }
-
-        {  // point
-            auto& [pipelineLayout, pipeline] = pipelines["point"];
-            pipelineLayout                   = core::createPipelineLayout(
-                context, core::createPushConstantRange<asset::Point>(VK_SHADER_STAGE_VERTEX_BIT),
-                sceneDescriptorSetLayout);
-            pipeline = core::createGraphicPipeline(
-                context, emptyVertexInputState, VK_NULL_HANDLE, pipelineLayout,
-                core::shader::Shader {
-                    context,
-                    core::shader::ShaderInfo<core::shader::Type::point, core::shader::Stage::vertex> { nullptr },
-                    core::shader::ShaderInfo<core::shader::Type::point, core::shader::Stage::fragment> { nullptr },
-                },
-                VkPipelineInputAssemblyStateCreateInfo {
-                    .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-                    .pNext                  = nullptr,
-                    .flags                  = {},
-                    .topology               = VK_PRIMITIVE_TOPOLOGY_POINT_LIST,
-                    .primitiveRestartEnable = VK_FALSE,
-                });
-        }
-        return pipelines;
-    }
 };
 
 }  // namespace surge

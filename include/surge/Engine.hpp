@@ -4,32 +4,14 @@
 #include "surge/core/colors.hpp"
 #include "surge/core/Presenter.hpp"
 #include "surge/Renderer.hpp"
-#include "surge/Storage.hpp"
 
 #include "surge/entity/Skybox.hpp"
 
 #include "surge/Log.hpp"
 
-// #include <type_traits>
 
 namespace surge {
 
-template<typename Transformation>
-core::math::Vector<3> transform(const core::math::Vector<3>& point, const Transformation& transformation) {
-    using namespace core::math;
-    const Vector<4> p0 {
-        get<0>(point),
-        get<1>(point),
-        get<2>(point),
-        one<ValueType<Vector<4>>>,
-    };
-    const auto p1 = transformation * p0;
-    return Vector<3> {
-        get<0>(p1),
-        get<1>(p1),
-        get<2>(p1),
-    };
-}
 
 double elapsed(auto start) {
     const auto stop = std::chrono::high_resolution_clock::now();
@@ -55,10 +37,9 @@ public:
         , context { windowName, appName, resolution, Callbacks { input } }
         , command { context }
         , presenter { command }
-        , renderer { context }
-        , overlay { command, assets }
-        , mainCamera { renderer.descriptor.set }
-        , storage { command, mainCamera } {
+        , storage { command }
+        , renderer { storage }
+        , overlay { command, assets } {
         log::checkpoint("The surge of urge to purge started");
     }
 
@@ -145,6 +126,7 @@ public:
     core::Context   context;
     core::Command   command;
     core::Presenter presenter;
+    Storage         storage;
 
 private:
     std::map<std::string, asset::Asset>   assets;
@@ -155,9 +137,7 @@ public:
 
 private:
     overlay::Overlay overlay;
-    const Descriptor mainCamera;
 
 public:
-    Storage storage;
 };
 }  // namespace surge

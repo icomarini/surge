@@ -1,9 +1,9 @@
 #pragma once
 
-// #include "surge/core/Command.hpp"
 #include "surge/load/Defaults.hpp"
 #include "surge/core/DescriptorPool.hpp"
 #include "surge/load/AssetHandle.hpp"
+#include "surge/asset/Line.hpp"
 
 namespace surge {
 
@@ -30,12 +30,6 @@ struct Pipeline {
     }
 };
 
-struct Descriptor {
-    VkDescriptorSet        descriptorSet;
-    const VkDescriptorSet& get() const {
-        return descriptorSet;
-    }
-};
 
 using ModelMatrix = core::math::Matrix<4, 4>;
 struct ModelMatrixAndColor {
@@ -50,7 +44,6 @@ struct Storage {
 
     const core::Command&                             command;
     load::Defaults                                   defaults;
-    const Descriptor&                                mainCamera;
     core::LazyAccessContainer<ModelID, asset::Model> models;
     core::LazyAccessContainer<PipelineID, Pipeline>  pipelines;
 
@@ -86,10 +79,9 @@ struct Storage {
     TextureID  blackTextureId;
     PipelineID linePipelineId;
 
-    Storage(const core::Command& command, const Descriptor& mainCamera)
+    Storage(const core::Command& command)
         : command { command }
         , defaults { command }
-        , mainCamera { mainCamera }
         , matrices {}
         , descriptorPool { command.context, core::DescriptorAllocation<SceneLayout> { 2 },
                            core::DescriptorAllocation<SimpleMaterialLayout> { 32 },
@@ -259,75 +251,18 @@ struct Storage {
         return asset.createModel2<Vertex>(command, newMeshes, models);
     }
 
-    template<Container T>
-    void draw(const VkCommandBuffer commandBuffer, const T& entities) const {
-        for (const auto& entity : entities) {
-            draw(commandBuffer, entity);
-        }
-    }
-
-    void draw(const VkCommandBuffer commandBuffer, const Entity& entity) const {
-        vkCmdSetLineWidth(commandBuffer, 2.0);
-        const auto pipelineLayout = pipelines.get(entity.pipeline).layout();
-
-        // bind pipeline and main camera
-        pipelines.apply(entity.pipeline, [&](const Pipeline& pipeline) {
-            core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
-            vkCmdBindPipeline(commandBuffer, graphicsBindPoint, pipeline.get());
-            constexpr uint32_t sceneIndex { 0 };
-            vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, sceneIndex, 1,
-                                    &sceneDescriptorSet, 0, nullptr);
-        });
-
-        // bind model
-        models.apply(entity.model, [&](const asset::Model& model) {
-            constexpr VkDeviceSize offset { 0 };
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model.vertexBuffer.buffer, &offset);
-            vkCmdBindIndexBuffer(commandBuffer, model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-        });
-
-        // bind matrix
-
-        const core::overload visitor {
-            [&](const ModelMatrix&) -> auto { return sizeof(ModelMatrix); },
-            [&](const ModelMatrixAndColor&) -> auto { return sizeof(ModelMatrixAndColor); },
-        };
-        const auto sizeofPushConstants = std::visit(visitor, matrices.at(entity.matrix));
-
-        vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeofPushConstants,
-                           &matrices.at(entity.matrix));
-
-        // bind material
-        if (entity.material) {
-            materials.apply(entity.material, [&](const VkDescriptorSet& material) {
-                constexpr uint32_t materialIndex { 1 };
-                vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, materialIndex, 1, &material,
-                                        0, nullptr);
-            });
-        }
-
-        vkCmdDrawIndexed(commandBuffer, models.get(entity.model).indexCount, 1, 0, 0, 0);
-    }
-
-    void draw(const VkCommandBuffer commandBuffer, const asset::Line& line) const {
-        // bind main camera
-        const auto pipelineLayout = pipelines.get(linePipelineId).layout();
-
-        pipelines.apply(linePipelineId, [&](const Pipeline& pipeline) {
-            core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
-            vkCmdBindPipeline(commandBuffer, graphicsBindPoint, pipeline.get());
-            constexpr uint32_t sceneIndex { 0 };
-            vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, sceneIndex, 1,
-                                    &sceneDescriptorSet, 0, nullptr);
-        });
-        vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(asset::Line), &line);
-        vkCmdDraw(commandBuffer, 2, 1, 0, 0);
-    }
-
     void reset() {
         models.reset();
         pipelines.reset();
         materials.reset();
+    }
+
+    auto getMatrix(const MatrixID matrixId) {
+        const surge::core::overload visitor {
+            [&](const ModelMatrix& m) -> auto { return m; },
+            [&](const ModelMatrixAndColor& m) -> auto { return m.matrix; },
+        };
+        return std::visit(visitor, matrices.at(matrixId));
     }
 };
 

@@ -20,6 +20,8 @@ using load::createTextureDataX;
 using load::createTextureDataY;
 using load::createTextureDataZ;
 
+using asset::Line;
+
 using namespace core::math;
 
 

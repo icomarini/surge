@@ -41,7 +41,7 @@ public:
         nodes.traverse<core::utils::Traversal::depthFirst>(&asset::Node::update, state.modelMatrix);
     }
 
-    void draw(const VkCommandBuffer commandBuffer, const VkDescriptorSet sceneDescriptor) const {
+    void draw(const VkCommandBuffer commandBuffer) const {
         if (!state.active) {
             return;
         }
@@ -55,9 +55,9 @@ public:
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
         // bind scene uniform
-        constexpr uint32_t sceneUniformIndex = 0;
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, sceneUniformIndex, 1,
-                                &sceneDescriptor, 0, nullptr);
+        // constexpr uint32_t sceneUniformIndex = 0;
+        // vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, sceneUniformIndex, 1,
+        //                         &sceneDescriptor, 0, nullptr);
 
         nodes.traverse<core::utils::Traversal::linear>([&](const asset::Node& node) {
             if (node.meshIndex) {

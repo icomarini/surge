@@ -328,4 +328,20 @@ constexpr auto flip() {
     return rotate<c>(90) * rotate<c>(90);
 }
 
+template<typename Transformation>
+core::math::Vector<3> transform(const core::math::Vector<3>& point, const Transformation& transformation) {
+    using namespace core::math;
+    const Vector<4> p0 {
+        get<0>(point),
+        get<1>(point),
+        get<2>(point),
+        one<ValueType<Vector<4>>>,
+    };
+    const auto p1 = transformation * p0;
+    return Vector<3> {
+        get<0>(p1),
+        get<1>(p1),
+        get<2>(p1),
+    };
+}
 }  // namespace surge::core::math
