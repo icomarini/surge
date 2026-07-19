@@ -26,7 +26,7 @@ layout(set = 1, binding = 2) uniform sampler2D normalSampler;
 layout(location = 0) out vec4 outFragColor;
 
 vec3 computeNormal() {
-    vec3 tangentNormal = normalize(texture(normalSampler, inTexCoord).rgb * 2.0 - 1.0);
+    vec3 tangentNormal = normalize(texture(normalSampler, inTexCoord).bgr * 2.0 - 1.0);
     return normalize(inTBN * tangentNormal);
 }
 
@@ -37,7 +37,7 @@ void main(void) {
     vec3  ambient         = ambientStrength * lightColor.rgb * texture(diffuseSampler, inTexCoord).rgb;
 
     // diffuse
-    vec3  normal         = normalize(inNormal);
+    vec3  normal         = normalize(computeNormal());
     vec3  lightDirection = normalize(inLightPosition - inPosition);
     float diffuseCoef    = max(dot(normal, lightDirection), 0.0);
     vec3  diffuse        = diffuseCoef * lightColor.rgb * texture(diffuseSampler, inTexCoord).rgb;

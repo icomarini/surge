@@ -83,9 +83,8 @@ public:
                     assert(inserted);
                     const auto& [_, asset] = *iter;
 
-                    // renderer.createPipeline(name, asset.vertexInputState, asset.shader,
-                    //                         asset.materialDescriptorSetLayout,
-                    //                         asset.jointMatricesDescriptorSetLayout);
+                    renderer.createPipeline(name, asset.vertexInputState, asset.shader,
+                                            asset.materialDescriptorSetLayout, asset.jointMatricesDescriptorSetLayout);
                     log::info(core::math::toString(elapsed(start)) + " Loaded gltf asset " + handle.path.string());
                 },
                 [&](const load::Obj::Handle& handle) {

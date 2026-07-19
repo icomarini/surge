@@ -351,20 +351,6 @@ int main() {
             face = { planeTexturedNormalsModel, phongPipeline, engine.storage.createMatrix(matrix), crateMaterial };
         });
 
-        // const auto crate = std::invoke([&]() {
-        //     std::array<Entity, cubeFaceMatrices.size()> faces;
-        //     core::forEach<0, 6>([&]<int face>() {
-        //         constexpr auto matrix { core::math::translate<x>(12.0) * cubeFaceMatrices.at(face) };
-        //         faces[face] = {
-        //             .model    = planeTexturedNormalsModel,
-        //             .pipeline = phongPipeline,
-        //             .matrix   = storage.createMatrix(matrix),
-        //             .material = crateMaterial,
-        //         };
-        //     });
-        //     return faces;
-        // });
-
         constexpr auto      floorMatrix = surge::translate<x>(-2.0);
         const surge::Entity floor {
             .model    = planeTexturedNormalTangentModel,
@@ -427,7 +413,7 @@ int main() {
                 });
 
                 // // rotate floor
-                engine.storage.matrices.at(floor.matrix) = surge::translate<x>(-2.0) * rotationY;
+                engine.storage.matrices.at(floor.matrix) = surge::translate<x>(-2.0) * rotationY * surge::rotate<x>(90);
 
                 // === rendering ===
                 const auto commandBuffer = engine.presenter.acquire();

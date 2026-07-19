@@ -27,7 +27,7 @@ layout(set = 1, binding = 2) uniform sampler2D normalSampler;
 layout(location = 0) out vec4 outColor;
 
 vec3 computeNormal() {
-    vec3 tangentNormal = normalize(texture(normalSampler, inTextureCoordinate).rgb * 2.0 - 1.0);
+    vec3 tangentNormal = normalize(texture(normalSampler, inTextureCoordinate).bgr * 2.0 - 1.0);
     return normalize(inTBN * tangentNormal);
 }
 
