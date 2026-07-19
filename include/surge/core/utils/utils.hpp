@@ -169,14 +169,15 @@ private:
     Underyling id;
 };
 
-using BufferID   = ID<>;
-using ModelID    = ID<>;
-using PipelineID = ID<>;
-using MatrixID   = ID<>;
-using MaterialID = ID<>;
-using TextureID  = ID<>;
-using MeshID     = ID<>;
-using AssetID    = ID<>;
+using BufferID        = ID<>;
+using UniformBufferID = ID<>;
+using ModelID         = ID<>;
+using PipelineID      = ID<>;
+using MatrixID        = ID<>;
+using MaterialID      = ID<>;
+using TextureID       = ID<>;
+using MeshID          = ID<>;
+using AssetID         = ID<>;
 
 
 // Source - https://stackoverflow.com/a/60450396

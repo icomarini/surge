@@ -384,7 +384,9 @@ int main() {
                 playerCamera.update(engine.input, engine.context.window.resolution);
                 skyboxCamera.update(engine.input, engine.context.window.resolution);
                 skybox.update(skyboxCamera);
-                engine.renderer.update(playerCamera, lightColor, lightPosition);
+                // engine.renderer.update(playerCamera, lightColor, lightPosition);
+                engine.storage.updateSceneBuffer(playerCamera, lightColor, lightPosition);
+
                 // overlay.update(input, playerCamera);
 
                 // // rotate cube

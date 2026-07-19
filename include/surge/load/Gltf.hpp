@@ -817,11 +817,7 @@ public:
 
     template<typename Layout, typename DescriptorPool>
     std::map<MaterialID, const asset::Material*>
-    createMaterials2(const core::Context&
-                         context,  //
-                                   // const VkDescriptorPool                                  descriptorPool,       //
-                                   // const VkDescriptorSetLayout                             descriptorSetLayout,  //
-                     const DescriptorPool&                                   descriptorPool,
+    createMaterials2(const DescriptorPool&                                   descriptorPool,
                      const std::map<TextureID, const asset::Texture*>&       textures,  //
                      core::LazyAccessContainer<MaterialID, asset::Material>& materials  //
     ) const {
@@ -908,9 +904,6 @@ public:
                 .occlusionStrength        = occlusionStrength,
                 .descriptorSet            = descriptorPool.template allocate<Layout>(
                     *baseColorTexture.texture, *metallicRoughnessTexture.texture, *normalTexture.texture),
-                // createMaterialDescriptorSet2(
-                //     context, descriptorPool, descriptorSetLayout, *baseColorTexture.texture,
-                //     *metallicRoughnessTexture.texture, *normalTexture.texture),
             });
             materialIds.emplace(materialId, &materials.get(newMaterial));
             ++materialId;

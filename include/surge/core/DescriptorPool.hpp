@@ -11,49 +11,7 @@ enum class DescriptorType {
 
 template<VkDescriptorType... types>
 struct DescriptorLayout {
-public:
     static constexpr std::array descriptorTypes { types... };
-    // VkDescriptorSetLayout descriptorSetLayout;
-
-    // DescriptorLayout(const Context& context)
-    //     : Contextualized { context }
-    //     , descriptorSetLayout { createDescriptorSetLayout() } {
-    // }
-
-    // ~DescriptorLayout() {
-    //     context.destroy(descriptorSetLayout);
-    // }
-
-    // VkDescriptorSetLayout get() const {
-    //     return descriptorSetLayout;
-    // }
-
-    // constexpr std::size_t descrtiptorCount() const {
-    //     return sizeof...(types);
-    // }
-
-    // VkDescriptorSetLayout createDescriptorSetLayout() const {
-    //     constexpr auto bindings =
-    //         core::createArray<VkDescriptorSetLayoutBinding, descrtiptorCount()>([&]<int index>(auto& binding) {
-    //             constexpr auto type = std::get<index>(std::array { types... });
-    //             binding             = {
-    //                             .binding         = index,
-    //                             .descriptorType  = type,
-    //                             .descriptorCount = 1,
-    //                             .stageFlags =
-    //                     VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-    //                             .pImmutableSamplers = nullptr,
-    //             };
-    //         });
-
-    //     return context.create(VkDescriptorSetLayoutCreateInfo {
-    //         .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-    //         .pNext        = nullptr,
-    //         .flags        = {},
-    //         .bindingCount = static_cast<uint32_t>(bindings.size()),
-    //         .pBindings    = bindings.data(),
-    //     });
-    // }
 };
 
 template<typename Layout>
@@ -109,21 +67,21 @@ public:
         }
 
         // write descriptor sets
-        constexpr auto bindingCount = sizeof...(Resources);
-        const auto     descriptorWrites =
-            core::createArray<VkWriteDescriptorSet, bindingCount>([&]<int binding>(auto& descriptorWrite) {
-                const auto& resource = std::get<binding>(std::forward_as_tuple(resources...));
-                descriptorWrite      = {
-                         .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                         .pNext            = nullptr,
-                         .dstSet           = descriptorSet,
-                         .dstBinding       = binding,
-                         .dstArrayElement  = 0,
-                         .descriptorCount  = 1,
-                         .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                         .pImageInfo       = resource.imageInfo(),
-                         .pBufferInfo      = resource.bufferInfo(),
-                         .pTexelBufferView = nullptr,
+        const auto descriptorWrites =
+            core::createArray<VkWriteDescriptorSet, sizeof...(Resources)>([&]<int binding>(auto& descriptorWrite) {
+                const auto&    resource = std::get<binding>(std::forward_as_tuple(resources...));
+                constexpr auto type     = Layout::descriptorTypes.at(binding);
+                descriptorWrite         = {
+                            .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                            .pNext            = nullptr,
+                            .dstSet           = descriptorSet,
+                            .dstBinding       = binding,
+                            .dstArrayElement  = 0,
+                            .descriptorCount  = 1,
+                            .descriptorType   = type,
+                            .pImageInfo       = resource.imageInfo(),
+                            .pBufferInfo      = resource.bufferInfo(),
+                            .pTexelBufferView = nullptr,
                 };
             });
         vkUpdateDescriptorSets(context.device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),
@@ -187,15 +145,6 @@ private:
                     allocation.quantity * Layout::descriptorTypes.size();
             });
         });
-        // const auto maxCount = simpleMaxCount * simpleBindingCount + pbrMaxCount * pbrBindingCount;
-
-        // const VkDescriptorPoolSize descriptorPoolSize {
-        //     .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-        //     .descriptorCount = maxCount,
-        // };
-        // log::info("Allocated " + std::to_string(maxSets) + "max sets");
-        // for (const auto& descriptorPoolSizes : )
-
         return context.create(VkDescriptorPoolCreateInfo {
             .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
             .pNext         = nullptr,
