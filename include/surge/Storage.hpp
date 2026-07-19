@@ -2,6 +2,7 @@
 
 // #include "surge/core/Command.hpp"
 #include "surge/load/Defaults.hpp"
+#include "surge/core/DescriptorPool.hpp"
 #include "surge/load/AssetHandle.hpp"
 
 namespace surge {
@@ -102,6 +103,7 @@ struct Storage {
     std::map<MatrixID, PushConstantsVariants> matrices;
 
     std::map<TextureID, asset::Texture> textures;
+    std::map<BufferID, core::Buffer>    buffers;
 
     using SceneLayout = DescriptorLayout<VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER>;
     SceneLayout sceneLayout;
@@ -116,14 +118,22 @@ struct Storage {
 
     VkDescriptorPool materialPool;
 
+
+    using SceneLayout2          = core::DescriptorLayout<VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER>;
+    using SimpleMaterialLayout2 = core::DescriptorLayout<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER>;
+    using PhongMaterialLayout2  = core::DescriptorLayout<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,  //
+                                                         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,  //
+                                                         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER>;
+    using DescriptorPool        = core::DescriptorPool<SceneLayout2, SimpleMaterialLayout2, PhongMaterialLayout2>;
+    DescriptorPool descriptorPool;
+
     core::LazyAccessContainer<MaterialID, VkDescriptorSet> materials;
     core::LazyAccessContainer<MaterialID, asset::Material> materials2;
     std::map<MeshID, asset::Mesh>                          meshes;
-    TextureID                                              defaultTextureId;
-    TextureID                                              whiteTextureId;
-    TextureID                                              blackTextureId;
 
-
+    TextureID  defaultTextureId;
+    TextureID  whiteTextureId;
+    TextureID  blackTextureId;
     PipelineID linePipelineId;
 
     Storage(const core::Command& command, const Descriptor& mainCamera)
@@ -135,6 +145,7 @@ struct Storage {
         , simpleMaterialLayout { command.context }
         , phongMaterialLayout { command.context }
         , materialPool { createDescriptorPool<1, 3>(32, 32) }
+        , descriptorPool { command.context }
         , materials {}
         , materials2 {}
         , meshes {}
@@ -161,12 +172,12 @@ struct Storage {
         static constexpr auto               push { core::createPushConstantRange<PushConstants>(shaderStages) };
 
         const std::map<core::shader::Type, VkDescriptorSetLayout> layouts {
-            { core::shader::Type::skybox,                  simpleMaterialLayout.get() },
-            { core::shader::Type::primitiveTextured,       simpleMaterialLayout.get() },
-            { core::shader::Type::primitiveTexturedNormal, simpleMaterialLayout.get() },
-            { core::shader::Type::phongModel,              phongMaterialLayout.get()  },
-            { core::shader::Type::phongModelNormal,        phongMaterialLayout.get()  },
-            { core::shader::Type::shader,                  phongMaterialLayout.get()  },
+            { core::shader::Type::skybox,                  descriptorPool.layout<SimpleMaterialLayout2>() },
+            { core::shader::Type::primitiveTextured,       descriptorPool.layout<SimpleMaterialLayout2>() },
+            { core::shader::Type::primitiveTexturedNormal, descriptorPool.layout<SimpleMaterialLayout2>() },
+            { core::shader::Type::phongModel,              descriptorPool.layout<PhongMaterialLayout2>()  },
+            { core::shader::Type::phongModelNormal,        descriptorPool.layout<PhongMaterialLayout2>()  },
+            { core::shader::Type::shader,                  descriptorPool.layout<PhongMaterialLayout2>()  },
         };
 
         const auto pipelineLayout =
@@ -262,7 +273,8 @@ struct Storage {
     }
 
     MaterialID createSimpleMaterial(const TextureID textureId) {
-        return materials.create(createMaterialDescriptorSet(simpleMaterialLayout.get(), textureId));
+        // return materials.create(createMaterialDescriptorSet(simpleMaterialLayout.get(), textureId));
+        return materials.create(createMaterialDescriptorSet(descriptorPool.layout<SimpleMaterialLayout2>(), textureId));
     }
 
     MaterialID createPhongMaterial(const TextureID diffuse, const TextureID specular, const TextureID normal) {

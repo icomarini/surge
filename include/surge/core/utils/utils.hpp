@@ -236,4 +236,16 @@ concept Container = requires(T a, const T b) {
     { a.empty() } -> std::convertible_to<bool>;
 };
 
+// template<typename U, typename... T>
+// constexpr bool contains(std::tuple<T...>) {
+//     return (std::is_same_v<U, T> || ...);
+// }
+
+// static_assert(contains<int>(std::declval<std::tuple<int, float>>()));
+// static_assert(contains<float>(std::declval<std::tuple<int, float>>()));
+// static_assert(!contains<double>(std::declval<std::tuple<int, float>>()));
+
+//// In case std::declval ever becomes constexpr, the following should work as well:
+// template<typename U, typename Tuple>
+// constexpr inline bool contains_v = contains<U>(std::declval<Tuple>());
 }  // namespace surge

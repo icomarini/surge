@@ -6,14 +6,11 @@
 #include "surge/Renderer.hpp"
 #include "surge/Storage.hpp"
 
-
-// #include "surge/physics/Physics.hpp"
-// #include "surge/entity/Entity.hpp"
 #include "surge/entity/Skybox.hpp"
 
 #include "surge/Log.hpp"
 
-#include <type_traits>
+// #include <type_traits>
 
 namespace surge {
 
@@ -57,10 +54,10 @@ public:
         : input {}
         , context { windowName, appName, resolution, Callbacks { input } }
         , command { context }
-        , presenter { command }  // , defaults { command }
+        , presenter { command }
         , renderer { context }
         , overlay { command, assets }
-        , mainCamera { /*renderer.descriptor.setLayout,*/ renderer.descriptor.set }
+        , mainCamera { renderer.descriptor.set }
         , storage { command, mainCamera } {
         log::checkpoint("The surge of urge to purge started");
     }

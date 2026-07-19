@@ -63,11 +63,6 @@ public:
         memcpy(scene.mapped, &sceneMatrices, sizeof(SceneBuffer));
     }
 
-    // void draw(const VkCommandBuffer commandBuffer) const {
-    //     drawParticles(commandBuffer, descriptor.set);
-    //     drawSprings(commandBuffer, descriptor.set);
-    // }
-
 private:
     static std::map<std::string, std::pair<VkPipelineLayout, VkPipeline>>
     createPipelines(const core::Context& context, const VkDescriptorSetLayout sceneDescriptorSetLayout) {
