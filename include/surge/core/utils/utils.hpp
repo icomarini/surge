@@ -174,6 +174,7 @@ using UniformBufferID = ID<>;
 using ModelID         = ID<>;
 using PipelineID      = ID<>;
 using MatrixID        = ID<>;
+using SceneID         = ID<>;
 using MaterialID      = ID<>;
 using TextureID       = ID<>;
 using MeshID          = ID<>;

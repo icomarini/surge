@@ -14,9 +14,15 @@ struct Entity {
     MaterialID material;
 };
 
+struct Scene {
+    BufferID   bufferId;
+    MaterialID materialId;
+};
+
 struct Pipeline {
     VkPipelineLayout pipelineLayout;
     VkPipeline       pipeline;
+    SceneID          sceneId;
 
     const VkPipelineLayout& layout() const {
         return pipelineLayout;
@@ -30,6 +36,11 @@ struct Pipeline {
     }
 };
 
+using SceneLayout          = core::DescriptorLayout<VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER>;
+using SimpleMaterialLayout = core::DescriptorLayout<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER>;
+using PhongMaterialLayout  = core::DescriptorLayout<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,  //
+                                                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,  //
+                                                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER>;
 
 using ModelMatrix = core::math::Matrix<4, 4>;
 struct ModelMatrixAndColor {
@@ -50,15 +61,11 @@ struct Storage {
     using PushConstantsVariants = std::variant<ModelMatrix, ModelMatrixAndColor>;
     std::map<MatrixID, PushConstantsVariants> matrices;
 
-    std::map<TextureID, asset::Texture> textures;
     std::map<BufferID, core::Buffer>    buffers;
+    std::map<TextureID, asset::Texture> textures;
+    std::map<SceneID, Scene>            scenes;
 
-    using SceneLayout          = core::DescriptorLayout<VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER>;
-    using SimpleMaterialLayout = core::DescriptorLayout<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER>;
-    using PhongMaterialLayout  = core::DescriptorLayout<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,  //
-                                                        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,  //
-                                                        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER>;
-    using DescriptorPool       = core::DescriptorPool<SceneLayout, SimpleMaterialLayout, PhongMaterialLayout>;
+    using DescriptorPool = core::DescriptorPool<SceneLayout, SimpleMaterialLayout, PhongMaterialLayout>;
     DescriptorPool descriptorPool;
 
     struct SceneBuffer {
@@ -119,42 +126,44 @@ struct Storage {
         return insertion.first->first;
     };
 
+    SceneID createScene() {
+        const auto bufferId   = createBuffer(sizeof(SceneBuffer));
+        const auto materialId = materials.create(descriptorPool.allocate<SceneLayout>(buffers.at(bufferId)));
+        const auto insertion  = scenes.emplace(std::piecewise_construct,              //
+                                               std::forward_as_tuple(scenes.size()),  //
+                                               std::forward_as_tuple(bufferId, materialId));
+        if (!insertion.second) {
+            throw std::runtime_error("Scene already present");
+        }
+        return insertion.first->first;
+    }
+
     template<typename LoadedModel>
     ModelID createModel(const LoadedModel& loadedModel) {
         return models.create(command, loadedModel, asset::Model::scene);
     }
 
-    template<typename VertexInputState, typename PushConstants>
-    PipelineID createPipeline(const core::shader::Type shaderType) {
-        static constexpr VkShaderStageFlags shaderStages { VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_VERTEX_BIT |
-                                                           VK_SHADER_STAGE_FRAGMENT_BIT };
-        static constexpr auto               push { core::createPushConstantRange<PushConstants>(shaderStages) };
-
-        const std::map<core::shader::Type, VkDescriptorSetLayout> layouts {
-            { core::shader::Type::skybox,                  descriptorPool.layout<SimpleMaterialLayout>() },
-            { core::shader::Type::primitiveTextured,       descriptorPool.layout<SimpleMaterialLayout>() },
-            { core::shader::Type::primitiveTexturedNormal, descriptorPool.layout<SimpleMaterialLayout>() },
-            { core::shader::Type::phongModel,              descriptorPool.layout<PhongMaterialLayout>()  },
-            { core::shader::Type::phongModelNormal,        descriptorPool.layout<PhongMaterialLayout>()  },
-            { core::shader::Type::shader,                  descriptorPool.layout<PhongMaterialLayout>()  },
-        };
-
-        const auto pipelineLayout =
-            layouts.contains(shaderType) ?
-                core::createPipelineLayout(command.context, push, descriptorPool.layout<SceneLayout>(),
-                                           layouts.at(shaderType)) :
-                core::createPipelineLayout(command.context, push, descriptorPool.layout<SceneLayout>());
-
+    template<typename VertexInputState, typename PushConstants, typename... Layouts>
+    PipelineID createPipeline(const core::shader::Type shaderType, const SceneID sceneId) {
+        constexpr auto push = core::createPushConstantRange<PushConstants>(shaderStages);
+        const auto     pipelineLayout =
+            core::createPipelineLayout(command.context, push, descriptorPool.layout<Layouts>()...);
         constexpr auto vertexInputState = core::createVertexInputState<VertexInputState>();
         const auto     pipeline =
             core::createGraphicPipeline(command.context, vertexInputState, pipelineLayout, shaderType);
-        return pipelines.create(pipelineLayout, pipeline);
+
+        return pipelines.create(pipelineLayout, pipeline, sceneId);
+    }
+
+    template<typename VertexInputState, typename PushConstants, typename... Layouts>
+    PipelineID createPipeline(const core::shader::Type shaderType) {
+        return createPipeline<VertexInputState, PushConstants, Layouts...>(shaderType, SceneID {});
     }
 
     PipelineID createLinePipeline() {
-        const auto pipelineLayout = core::createPipelineLayout(
-            command.context, core::createPushConstantRange<asset::Line>(VK_SHADER_STAGE_VERTEX_BIT),
-            descriptorPool.layout<SceneLayout>());
+        const auto pipelineLayout =
+            core::createPipelineLayout(command.context, core::createPushConstantRange<asset::Line>(shaderStages),
+                                       descriptorPool.layout<SceneLayout>());
         const auto pipeline = core::createGraphicPipeline(
             command.context, core::createVertexInputState(), VK_NULL_HANDLE, pipelineLayout,
             core::shader::Shader {
@@ -257,10 +266,10 @@ struct Storage {
         materials.reset();
     }
 
-    auto getMatrix(const MatrixID matrixId) {
+    auto& getMatrix(const MatrixID matrixId) {
         const surge::core::overload visitor {
-            [&](const ModelMatrix& m) -> auto { return m; },
-            [&](const ModelMatrixAndColor& m) -> auto { return m.matrix; },
+            [&](const ModelMatrix& m) -> auto& { return m; },
+            [&](const ModelMatrixAndColor& m) -> auto& { return m.matrix; },
         };
         return std::visit(visitor, matrices.at(matrixId));
     }

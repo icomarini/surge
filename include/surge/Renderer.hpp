@@ -39,9 +39,13 @@ public:
         storage.pipelines.apply(entity.pipeline, [&](const Pipeline& pipeline) {
             core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
             vkCmdBindPipeline(commandBuffer, Storage::graphicsBindPoint, pipeline.get());
-            constexpr uint32_t sceneIndex { 0 };
-            vkCmdBindDescriptorSets(commandBuffer, Storage::graphicsBindPoint, pipelineLayout, sceneIndex, 1,
-                                    &storage.sceneDescriptorSet, 0, nullptr);
+            if (pipeline.sceneId) {
+                const auto         scene              = storage.scenes.at(pipeline.sceneId);
+                const auto         sceneDescriptorSet = storage.materials.get(scene.materialId);
+                constexpr uint32_t sceneIndex { 0 };
+                vkCmdBindDescriptorSets(commandBuffer, Storage::graphicsBindPoint, pipelineLayout, sceneIndex, 1,
+                                        &sceneDescriptorSet, 0, nullptr);
+            }
         });
 
         // bind model
@@ -52,13 +56,10 @@ public:
         });
 
         // bind matrix
-
         const core::overload visitor {
-            [&](const ModelMatrix&) -> auto { return sizeof(ModelMatrix); },
-            [&](const ModelMatrixAndColor&) -> auto { return sizeof(ModelMatrixAndColor); },
+            [&](const auto& m) -> auto { return sizeof(decltype(m)); },
         };
         const auto sizeofPushConstants = std::visit(visitor, storage.matrices.at(entity.matrix));
-
         vkCmdPushConstants(commandBuffer, pipelineLayout, Storage::shaderStages, 0, sizeofPushConstants,
                            &storage.matrices.at(entity.matrix));
 
@@ -85,7 +86,7 @@ public:
             vkCmdBindDescriptorSets(commandBuffer, Storage::graphicsBindPoint, pipelineLayout, sceneIndex, 1,
                                     &storage.sceneDescriptorSet, 0, nullptr);
         });
-        vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(asset::Line), &line);
+        vkCmdPushConstants(commandBuffer, pipelineLayout, Storage::shaderStages, 0, sizeof(asset::Line), &line);
         vkCmdDraw(commandBuffer, 2, 1, 0, 0);
     }
 
@@ -93,8 +94,8 @@ public:
                         const core::shader::Type shader, const VkDescriptorSetLayout materialDescriptorSetLayout,
                         const std::optional<VkDescriptorSetLayout> jointMatricesDescriptorSetLayout) {
         constexpr VkPushConstantRange nodePushConstantRange { core::createPushConstantRange<asset::Node::PushConstants>(
-            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT) };
-        const auto                    sceneDescriptorSetLayout = storage.descriptorPool.layout<Storage::SceneLayout>();
+            Storage::shaderStages) };
+        const auto                    sceneDescriptorSetLayout = storage.descriptorPool.layout<SceneLayout>();
 
         auto& [pipelineLayout, pipeline] = pipelines[name];
         pipelineLayout =

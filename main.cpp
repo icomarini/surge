@@ -129,14 +129,18 @@ int main() {
         };
 
         // create skybox
-        engine.loadAsset("skybox", surge::SkyboxHandle { home / "surge/textures/skybox.ktx" });
-        auto skybox = engine.createSkybox("skybox");
+        // engine.loadAsset("skybox", surge::SkyboxHandle { home / "surge/textures/skybox.ktx" });
+        // auto skybox = engine.createSkybox("skybox");
+
+        // create scene
+        const auto mainScene    = engine.storage.createScene();
+        const auto mainSceneUbo = engine.storage.scenes.at(mainScene).bufferId;
 
         // create skybox
         const surge::Entity skybox2 {
-            .model = engine.storage.createModel(surge::geom::cube),
-            .pipeline =
-                engine.storage.createPipeline<surge::geom::Position, surge::ModelMatrix>(surge::ShaderType::skybox),
+            .model    = engine.storage.createModel(surge::geom::cube),
+            .pipeline = engine.storage.createPipeline<surge::geom::Position, surge::ModelMatrix, surge::SceneLayout,
+                                                      surge::SimpleMaterialLayout>(surge::ShaderType::skybox),
             .matrix   = engine.storage.createMatrix(surge::fullMatrix(surge::identity<4>)),
             .material = engine.storage.createSimpleMaterial(
                 engine.storage.createTexture(home / "surge/textures/skybox.ktx", surge::Texture::cube)),
@@ -144,9 +148,10 @@ int main() {
 
         // create coordinates
         const surge::Entity coordinates {
-            .model    = engine.storage.createModel(surge::geom::coordinates),
-            .pipeline = engine.storage.createPipeline<surge::geom::PositionAndColor, surge::ModelMatrix>(
-                surge::ShaderType::coordinates),
+            .model = engine.storage.createModel(surge::geom::coordinates),
+            .pipeline =
+                engine.storage.createPipeline<surge::geom::PositionAndColor, surge::ModelMatrix, surge::SceneLayout>(
+                    surge::ShaderType::coordinates, mainScene),
             .matrix   = engine.storage.createMatrix(surge::fullMatrix(surge::identity<4>)),
             .material = {},
         };
@@ -168,9 +173,10 @@ int main() {
             surge::fullMatrix(surge::translate<z>(+0.5)),       //
         };
 
-        const auto planeModel        = engine.storage.createModel(surge::geom::plane);
-        const auto primitivePipeline = engine.storage.createPipeline<surge::geom::Position, surge::ModelMatrixAndColor>(
-            surge::ShaderType::primitive);
+        const auto planeModel = engine.storage.createModel(surge::geom::plane);
+        const auto primitivePipeline =
+            engine.storage.createPipeline<surge::geom::Position, surge::ModelMatrixAndColor, surge::SceneLayout>(
+                surge::ShaderType::primitive, mainScene);
 
         const auto lightCube = surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
             constexpr surge::Translation<>       T { lightPosition };
@@ -238,8 +244,8 @@ int main() {
 
         const auto planeTexturedNodel = engine.storage.createModel(surge::geom::planeTextured);
         const auto primitiveTexturedPipeline =
-            engine.storage.createPipeline<surge::geom::PositionTexture, surge::ModelMatrix>(
-                surge::ShaderType::primitiveTextured);
+            engine.storage.createPipeline<surge::geom::PositionTexture, surge::ModelMatrix, surge::SceneLayout,
+                                          surge::SimpleMaterialLayout>(surge::ShaderType::primitiveTextured, mainScene);
         const auto texturedCube =
             surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
                 constexpr surge::Translation<> T { 2, 0, 0 };
@@ -250,8 +256,9 @@ int main() {
 
         const auto planeTexturedNormalsModel = engine.storage.createModel(surge::geom::planeTexturedNormals);
         const auto primitiveTexturedNormalPipeline =
-            engine.storage.createPipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix>(
-                surge::ShaderType::primitiveTexturedNormal);
+            engine.storage.createPipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix, surge::SceneLayout,
+                                          surge::SimpleMaterialLayout>(surge::ShaderType::primitiveTexturedNormal,
+                                                                       mainScene);
 
         const auto texturedNormalCube =
             surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
@@ -262,8 +269,8 @@ int main() {
             });
 
         const auto phongPipeline =
-            engine.storage.createPipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix>(
-                surge::ShaderType::phongModel);
+            engine.storage.createPipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix, surge::SceneLayout,
+                                          surge::PhongMaterialLayout>(surge::ShaderType::phongModel, mainScene);
 
         const auto phongCube = surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
             constexpr surge::Translation<> T { 0, 0, 0 };
@@ -274,8 +281,9 @@ int main() {
 
         const auto planeTexturedNormalTangentModel = engine.storage.createModel(surge::geom::planeNormalTangentTexture);
         const auto phongModelNormalPipeline =
-            engine.storage.createPipeline<surge::geom::PositionNormalTangentTexture, surge::ModelMatrix>(
-                surge::ShaderType::phongModelNormal);
+            engine.storage.createPipeline<surge::geom::PositionNormalTangentTexture, surge::ModelMatrix,
+                                          surge::SceneLayout, surge::PhongMaterialLayout>(
+                surge::ShaderType::phongModelNormal, mainScene);
 
         const auto phongNormalCube =
             surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
@@ -294,7 +302,8 @@ int main() {
         {  // brickwall
             const auto model = engine.storage.createModel(surge::geom::square);
             const auto pipeline =
-                engine.storage.createPipeline<surge::geom::GltfVertex, surge::ModelMatrix>(surge::ShaderType::shader);
+                engine.storage.createPipeline<surge::geom::GltfVertex, surge::ModelMatrix, surge::SceneLayout,
+                                              surge::PhongMaterialLayout>(surge::ShaderType::shader, mainScene);
             constexpr auto radius { 10 };
             constexpr auto translations { generateTranslations<radius>() };
             surge::forEach<0, translations.size()>([&]<int i>() {
@@ -369,10 +378,13 @@ int main() {
                 // === update ===
                 playerCamera.update(engine.input, engine.context.window.resolution);
                 skyboxCamera.update(engine.input, engine.context.window.resolution);
-                skybox.update(skyboxCamera);
-                // engine.renderer.update(playerCamera, lightColor, lightPosition);
-                engine.storage.updateSceneBuffer(playerCamera, lightColor, lightPosition);
 
+                engine.storage.matrices.at(skybox2.matrix) = skyboxCamera.mats.perspective * skyboxCamera.mats.view;
+
+                engine.updateBuffer(mainSceneUbo,
+                                    surge::Storage::SceneBuffer { surge::fullMatrix(playerCamera.mats.perspective),
+                                                                  surge::fullMatrix(playerCamera.mats.view), lightColor,
+                                                                  lightPosition });
                 // overlay.update(input, playerCamera);
 
                 // // rotate cube
@@ -382,7 +394,7 @@ int main() {
                 // rotate phongCube
                 surge::forEach<0, phongCube.size()>([&]<int face>() {
                     const auto matrixId = phongCube.at(face).matrix;
-                    engine.storage.matrices[matrixId.get()] =
+                    engine.storage.matrices[matrixId] =
                         surge::translate<x>(10.0) * rotationY * cubeFaceMatrices.at(face);
                 });
 
@@ -418,9 +430,10 @@ int main() {
                 // === rendering ===
                 const auto commandBuffer = engine.presenter.acquire();
                 engine.presenter.beginRendering();
-                skybox.draw(commandBuffer);
+                // skybox.draw(commandBuffer);
 
                 engine.storage.reset();
+                engine.renderer.draw(commandBuffer, skybox2);
                 engine.renderer.draw(commandBuffer, lightCube);
                 engine.renderer.draw(commandBuffer, coordinates);
                 engine.renderer.draw(commandBuffer, untexturedCube);

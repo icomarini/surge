@@ -109,6 +109,11 @@ public:
     //     return entity::Entity { asset, pipelineLayout, pipeline, matrix };
     // }
 
+    template<typename Data>
+    void updateBuffer(const BufferID bufferId, const Data& data) {
+        memcpy(storage.buffers.at(bufferId).mapped, &data, sizeof(Data));
+    }
+
     entity::Skybox createSkybox(const std::string& name) {
         const auto& asset                     = assets.at(name);
         const auto [pipelineLayout, pipeline] = renderer.pipelines.at(name);
@@ -126,6 +131,13 @@ public:
     core::Command   command;
     core::Presenter presenter;
     Storage         storage;
+
+    // struct Defaults {
+    //     TextureID  defaultTextureId;
+    //     TextureID  whiteTextureId;
+    //     TextureID  blackTextureId;
+    //     PipelineID linePipelineId;
+    // } defaults;
 
 private:
     std::map<std::string, asset::Asset>   assets;
