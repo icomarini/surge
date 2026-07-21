@@ -1015,6 +1015,10 @@ public:
                     constexpr auto name      = attributes.at(i).first;
                     constexpr auto attribute = attributes.at(i).second;
                     using Attribute          = typename V::Attribute<Vertex::attributeIndex<attribute>()>;
+                    // if constexpr (attribute == core::geometry::Attribute::tangent) {
+                    //     static_assert(sizeof(typename Attribute::Value) == 8);
+                    //     static_assert(sizeof(typename Attribute) == 16);
+                    // }
 
                     if (const auto values = primitive.findAttribute(name); values != primitive.attributes.end()) {
                         fastgltf::iterateAccessorWithIndex<typename Attribute::Value>(

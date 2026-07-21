@@ -213,9 +213,12 @@ int main() {
         };
 
         const std::array cubeNormalTextures {
-            engine.storage.createTexture(surge::createDefaultTextureData(surge::RGBA::blue, surge::RGBA::blue)),  //
-            engine.storage.createTexture(surge::createDefaultTextureData(surge::RGBA::blue, surge::RGBA::blue)),  //
-            engine.storage.createTexture(surge::createDefaultTextureData(surge::RGBA::blue, surge::RGBA::blue)),  //
+            engine.storage.createTexture(
+                surge::createDefaultTextureData(surge::RGBA::blue, surge::RGBA::Format { 0, 0.15, 0.87, 1 })),  //
+            engine.storage.createTexture(
+                surge::createDefaultTextureData(surge::RGBA::blue, surge::RGBA::Format { 0, 0.15, 0.87, 1 })),  //
+            engine.storage.createTexture(
+                surge::createDefaultTextureData(surge::RGBA::blue, surge::RGBA::Format { 0, 0.15, 0.87, 1 })),  //
         };
 
         const std::array cubeSimpleMaterials {
@@ -300,21 +303,19 @@ int main() {
             engine.storage.blackTextureId,
             engine.storage.createTexture(brickwallFolder / "brickwall_normal.jpg", surge::Texture::texture2dNorm));
         {  // brickwall
-            const auto model = engine.storage.createModel(surge::geom::square);
-            const auto pipeline =
-                engine.storage.createPipeline<surge::geom::GltfVertex, surge::ModelMatrix, surge::SceneLayout,
-                                              surge::PhongMaterialLayout>(surge::ShaderType::shader, mainScene);
+            const auto     model    = planeTexturedNormalTangentModel;
+            const auto     pipeline = phongModelNormalPipeline;
             constexpr auto radius { 10 };
             constexpr auto translations { generateTranslations<radius>() };
             surge::forEach<0, translations.size()>([&]<int i>() {
                 constexpr surge::Translation translation { translations.at(i) };
-                constexpr surge::Rotation    rotation {
-                    surge::Quaternion<> { sqrt2o2, -sqrt2o2, 0, 0 }
-                };
+                // constexpr surge::Rotation    rotation {
+                //     surge::Quaternion<> { sqrt2o2, -sqrt2o2, 0, 0 }
+                // };
                 constexpr surge::Scaling scaling {
                     surge::Vector<3> { 4, 4, 4 }
                 };
-                const surge::ModelMatrix matrix { translation * rotation * scaling };
+                const surge::ModelMatrix matrix { translation * scaling * surge::rotate<x>(90) };
                 brickwalls.emplace_back(model, pipeline, engine.storage.createMatrix(matrix), brickwallMaterial);
             });
         }

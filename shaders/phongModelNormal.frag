@@ -26,7 +26,7 @@ layout(set = 1, binding = 2) uniform sampler2D normalSampler;
 layout(location = 0) out vec4 outFragColor;
 
 vec3 computeNormal() {
-    vec3 tangentNormal = normalize(texture(normalSampler, inTexCoord).bgr * 2.0 - 1.0);
+    vec3 tangentNormal = normalize(texture(normalSampler, inTexCoord).rgb * 2.0 - 1.0);
     return normalize(inTBN * tangentNormal);
 }
 

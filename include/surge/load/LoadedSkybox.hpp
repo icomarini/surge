@@ -86,17 +86,17 @@ public:
         const core::geometry::BoundingBox bbox { .min = min, .max = max };
 
         std::vector<asset::Mesh> meshes;
-        auto&                    mesh = meshes.emplace_back(baptize<This::mesh>(0));
-        mesh.primitives.emplace_back(0, defaults.cube.indexCount, defaults.cube.indexCount, material,
-                                     asset::Mesh::Primitive::Attributes {
-                                         { core::geometry::Attribute::position,    true                 },
-                                         { core::geometry::Attribute::color,       false                },
-                                         { core::geometry::Attribute::normal,      false                },
-                                         { core::geometry::Attribute::texCoord,    materials.size() > 0 },
-                                         { core::geometry::Attribute::jointIndex,  false                },
-                                         { core::geometry::Attribute::jointWeight, false                },
-        },
-                                     bbox, asset::Mesh::Primitive::State { false });
+        // auto&                    mesh = meshes.emplace_back(baptize<This::mesh>(0));
+        // mesh.primitives.emplace_back(0, defaults.cube.indexCount, defaults.cube.indexCount, material,
+        //                              asset::Mesh::Primitive::Attributes {
+        //                                  { core::geometry::Attribute::position,    true                 },
+        //                                  { core::geometry::Attribute::color,       false                },
+        //                                  { core::geometry::Attribute::normal,      false                },
+        //                                  { core::geometry::Attribute::texCoord,    materials.size() > 0 },
+        //                                  { core::geometry::Attribute::jointIndex,  false                },
+        //                                  { core::geometry::Attribute::jointWeight, false                },
+        // },
+        //                              bbox, asset::Mesh::Primitive::State { false });
         return meshes;
     }
 
