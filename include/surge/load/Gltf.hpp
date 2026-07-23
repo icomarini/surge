@@ -1002,28 +1002,24 @@ public:
                     asset, asset.accessors.at(primitive.indicesAccessor.value()),
                     [&](std::uint32_t index) { indices.emplace_back(vertexOffset + index); });
 
-                constexpr std::array attributes {
-                    std::pair { "POSITION",   core::geometry::Attribute::position },
-                    std::pair { "NORMAL",     core::geometry::Attribute::normal   },
-                    // std::pair { "TANGENT",    core::geometry::Attribute::tangent  },
-                    std::pair { "TEXCOORD_0", core::geometry::Attribute::texCoord },
-                    // std::pair { "COLOR_0",    core::geometry::Attribute::color    },
-                    // std::pair { "JOINTS_0", core::geometry::Attribute::jointIndex },
-                    // std::pair { "WEIGHTS_0", core::geometry::Attribute::jointWeight },
+                static const std::map<core::geometry::Attribute, std::string_view> attributeNames {
+                    { core::geometry::Attribute::position,    "POSITION"   },
+                    { core::geometry::Attribute::normal,      "NORMAL"     },
+                    { core::geometry::Attribute::tangent,     "TANGENT"    },
+                    { core::geometry::Attribute::texCoord,    "TEXCOORD_0" },
+                    { core::geometry::Attribute::color,       "COLOR_0"    },
+                    { core::geometry::Attribute::jointIndex,  "JOINTS_0"   },
+                    { core::geometry::Attribute::jointWeight, "WEIGHTS_0"  },
                 };
-                core::forEach<0, attributes.size()>([&]<int i>() {
-                    constexpr auto name      = attributes.at(i).first;
-                    constexpr auto attribute = attributes.at(i).second;
-                    using Attribute          = typename V::Attribute<Vertex::attributeIndex<attribute>()>;
-                    // if constexpr (attribute == core::geometry::Attribute::tangent) {
-                    //     static_assert(sizeof(typename Attribute::Value) == 8);
-                    //     static_assert(sizeof(typename Attribute) == 16);
-                    // }
 
-                    if (const auto values = primitive.findAttribute(name); values != primitive.attributes.end()) {
+                core::forEach<0, V::attributeCount>([&]<int i>() {
+                    using Attribute = typename V::Attribute<i>;
+                    if (const auto values = primitive.findAttribute(attributeNames.at(Attribute::attribute));
+                        values != primitive.attributes.end()) {
                         fastgltf::iterateAccessorWithIndex<typename Attribute::Value>(
-                            asset, asset.accessors.at(values->accessorIndex), [&](const auto& value, const auto index) {
-                                vertices.at(vertexOffset + index).template get<attribute>() = value;
+                            asset, asset.accessors.at(values->accessorIndex),
+                            [&](const typename Attribute::Value& value, const auto index) {
+                                vertices.at(vertexOffset + index).template get<Attribute::attribute>() = value;
                             });
                     }
                 });
@@ -1031,10 +1027,6 @@ public:
                 vertexOffset += asset.accessors.at(primitive.findAttribute("POSITION")->accessorIndex).count;
             }
         }
-        // return asset::Model {
-        //     command, core::geometry::Shape { "asset", std::move(vertices), std::move(indices) },
-        //       asset::Model::scene
-        // };
         return models.create(command, core::geometry::Shape { "asset", std::move(vertices), std::move(indices) },
                              asset::Model::scene);
     }

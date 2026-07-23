@@ -319,9 +319,9 @@ int main() {
         const std::filesystem::path cerberusFolder { "/home/ico/projects/extern/Vulkan/assets/models/cerberus" };
         const surge::Entity         cerberus {
             // coordinate system
-                    .model = engine.storage.createAsset<surge::geom::PositionNormalTexture>(
+                    .model = engine.storage.createAsset<surge::geom::PositionNormalTangentTexture>(
                 surge::GltfHandle { cerberusFolder / "cerberus.gltf" }),
-                    .pipeline = pipelines.at(surge::ShaderType::phongModel),
+                    .pipeline = pipelines.at(surge::ShaderType::phongModelNormal),
                     .matrix   = engine.storage.createMatrix(surge::fullMatrix(cerberusMatrix)),
                     .material = engine.storage.createPhongMaterial(
                 engine.storage.createTexture(cerberusFolder / "albedo.ktx", surge::Texture::texture2d),
@@ -338,7 +338,7 @@ int main() {
         const auto crate = surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
             constexpr surge::Translation<> T { 4, 2, 0 };
             constexpr surge::ModelMatrix   matrix { T * cubeFaceMatrices.at(faceId) };
-            face = { planeTexturedNormalsModel, pipelines.at(surge::ShaderType::phongModel),
+            face = { planeTexturedNormalTangentModel, pipelines.at(surge::ShaderType::phongModelNormal),
                      engine.storage.createMatrix(matrix), crateMaterial };
         });
 
