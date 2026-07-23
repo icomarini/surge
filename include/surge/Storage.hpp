@@ -106,7 +106,6 @@ struct Storage {
 
     ~Storage() {
         pipelines.apply([&](Pipeline& pipeline) { pipeline.destroy(command.context); });
-        // command.context.destroy(materialPool);
     }
 
     void updateSceneBuffer(const Camera<false>& camera, const core::math::Vector<4>& lightColor,
