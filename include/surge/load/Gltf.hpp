@@ -505,6 +505,7 @@ public:
                                          std::optional<Index> { static_cast<Index>(gltfNode.skinIndex.value()) }
                                           :
                                          std::optional<Index> {},
+                        .color     = {},
                         .isLight   = 0,
                         .state =
                             asset::Node::State {
@@ -834,7 +835,7 @@ public:
         };
 
         // const auto externalTexturesMap = createExternalTexturesMap(textures);
-        const auto extractTexture = [&](const TextureType textureType, const auto& textureInfo) {
+        const auto extractTexture = [&](const TextureType /*textureType*/, const auto& textureInfo) {
             if (textureInfo) {
                 const auto textureIndex  = textureInfo.value().textureIndex;
                 const auto texCoordIndex = textureInfo.value().texCoordIndex;

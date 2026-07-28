@@ -16,7 +16,7 @@ struct DescriptorLayout {
 
 template<typename Layout>
 struct DescriptorAllocation {
-    DescriptorAllocation(const auto quantity)
+    DescriptorAllocation(const std::size_t quantity)
         : quantity { quantity } {
     }
     std::size_t quantity;

@@ -30,81 +30,81 @@ void slider(const std::string& name, const std::string& nodeName, core::math::Ve
     ImGui::PopItemWidth();
 }
 
-static void overlay(const asset::Node& node, uint32_t& nodeId) {
-    const auto nodeName = idName(nodeId++, "");
-    if (ImGui::TreeNode(nodeName.c_str())) {
-        if (node.meshIndex) {
-            ImGui::Checkbox("active", &node.state.active);
+// static void overlay(const asset::Node& node, uint32_t& nodeId) {
+//     const auto nodeName = idName(nodeId++, "");
+//     if (ImGui::TreeNode(nodeName.c_str())) {
+//         if (node.meshIndex) {
+//             ImGui::Checkbox("active", &node.state.active);
 
-            {
-                std::array<const char*, 3> items { "point", "line", "fill" };
-                const char*                currentItem = items.at(static_cast<core::UInt8>(node.state.polygonMode));
-                if (ImGui::BeginCombo("mode", currentItem)) {
-                    uint32_t itemId = 0;
-                    for (const auto item : items) {
-                        const bool selected = (currentItem == item);
-                        if (ImGui::Selectable(item, selected)) {
-                            node.state.polygonMode = static_cast<core::PolygonMode>(itemId);
-                        }
-                        if (selected) {
-                            ImGui::SetItemDefaultFocus();
-                        }
-                        ++itemId;
-                    }
-                    ImGui::EndCombo();
-                }
-            }
+//             {
+//                 std::array<const char*, 3> items { "point", "line", "fill" };
+//                 const char*                currentItem = items.at(static_cast<core::UInt8>(node.state.polygonMode));
+//                 if (ImGui::BeginCombo("mode", currentItem)) {
+//                     uint32_t itemId = 0;
+//                     for (const auto item : items) {
+//                         const bool selected = (currentItem == item);
+//                         if (ImGui::Selectable(item, selected)) {
+//                             node.state.polygonMode = static_cast<core::PolygonMode>(itemId);
+//                         }
+//                         if (selected) {
+//                             ImGui::SetItemDefaultFocus();
+//                         }
+//                         ++itemId;
+//                     }
+//                     ImGui::EndCombo();
+//                 }
+//             }
 
-            // std::vector<const char*> items { "texCoord", "color", "normal", "none" };
-            // const char*              currentItem = items.at(node.state.fragmentStageFlag);
-            // if (ImGui::BeginCombo((nodeName).c_str(), currentItem))
-            // {
-            //     uint32_t itemId = 0;
-            //     for (const auto item : items)
-            //     {
-            //         const bool selected = (currentItem == item);
-            //         if (ImGui::Selectable(item, selected))
-            //         {
-            //             node.state.fragmentStageFlag = itemId;
-            //         }
-            //         if (selected)
-            //         {
-            //             ImGui::SetItemDefaultFocus();
-            //         }
-            //         ++itemId;
-            //     }
-            //     ImGui::EndCombo();
-            // }
+//             // std::vector<const char*> items { "texCoord", "color", "normal", "none" };
+//             // const char*              currentItem = items.at(node.state.fragmentStageFlag);
+//             // if (ImGui::BeginCombo((nodeName).c_str(), currentItem))
+//             // {
+//             //     uint32_t itemId = 0;
+//             //     for (const auto item : items)
+//             //     {
+//             //         const bool selected = (currentItem == item);
+//             //         if (ImGui::Selectable(item, selected))
+//             //         {
+//             //             node.state.fragmentStageFlag = itemId;
+//             //         }
+//             //         if (selected)
+//             //         {
+//             //             ImGui::SetItemDefaultFocus();
+//             //         }
+//             //         ++itemId;
+//             //     }
+//             //     ImGui::EndCombo();
+//             // }
 
-            // slider("rotation    ", node.name, node.state.rotation, xyzw);
-            // slider("attitude    ", node.name, node.state.attitude, ypr, -180.0f, 180.0f);
+//             // slider("rotation    ", node.name, node.state.rotation, xyzw);
+//             // slider("attitude    ", node.name, node.state.attitude, ypr, -180.0f, 180.0f);
 
-            // slider("t.translation", node.name, node.state.transformation.translation, xyzw);
-            // slider("t.scale      ", node.name, node.state.transformation.scale, xyzw);
-            // slider("t.rotation   ", node.name, node.state.transformation.rotation, ypr);
-            // slider("attitude   ", node.name, node.state.transformation.attitude, ypr);
-        }
+//             // slider("t.translation", node.name, node.state.transformation.translation, xyzw);
+//             // slider("t.scale      ", node.name, node.state.transformation.scale, xyzw);
+//             // slider("t.rotation   ", node.name, node.state.transformation.rotation, ypr);
+//             // slider("attitude   ", node.name, node.state.transformation.attitude, ypr);
+//         }
 
-        // ImGui::Text("index: %d", node.index);
-        slider("translation ", "", node.state.translation, xyzw);
-        slider("rotation    ", "", node.state.rotation, xyzw);
-        slider("scale       ", "", node.state.scale, xyzw);
-        ImGui::Text("mesh:  %s", node.meshIndex ? std::to_string(node.meshIndex.value()).c_str() : "none");
-        ImGui::Text("skin:  %s", node.skinIndex ? std::to_string(node.skinIndex.value()).c_str() : "none");
+//         // ImGui::Text("index: %d", node.index);
+//         slider("translation ", "", node.state.translation, xyzw);
+//         slider("rotation    ", "", node.state.rotation, xyzw);
+//         slider("scale       ", "", node.state.scale, xyzw);
+//         ImGui::Text("mesh:  %s", node.meshIndex ? std::to_string(node.meshIndex.value()).c_str() : "none");
+//         ImGui::Text("skin:  %s", node.skinIndex ? std::to_string(node.skinIndex.value()).c_str() : "none");
 
-        // if (node.children.empty())
-        // {
-        //     ImGui::Text("<no children>");
-        // }
-        // else
-        // {
-        //     for (const auto& child : node.children)
-        //     {
-        //         overlay(child, nodeId);
-        //     }
-        // }
-        ImGui::TreePop();
-    }
-}
+//         // if (node.children.empty())
+//         // {
+//         //     ImGui::Text("<no children>");
+//         // }
+//         // else
+//         // {
+//         //     for (const auto& child : node.children)
+//         //     {
+//         //         overlay(child, nodeId);
+//         //     }
+//         // }
+//         ImGui::TreePop();
+//     }
+// }
 
 };  // namespace surge::overlay
