@@ -7,8 +7,8 @@
 #include <algorithm>
 #include <iomanip>
 
-#include "glm/gtx/quaternion.hpp"
-#include "glm/gtx/euler_angles.hpp"
+// #include "glm/gtx/quaternion.hpp"
+// #include "glm/gtx/euler_angles.hpp"
 // #include "glm/glm.hpp"
 
 namespace surge {

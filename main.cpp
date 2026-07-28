@@ -75,11 +75,11 @@
 template<int radius>
 constexpr auto generateTranslations() {
     constexpr auto                     length = 2 * radius + 1;
-    constexpr auto                     size   = length * length;
+    constexpr auto                     size = length * length;
     std::array<surge::Vector<3>, size> translations;
     surge::forEach<0, length, 0, length>([&]<int i, int j>() {
         constexpr auto index = i * length + j;
-        translations[index]  = surge::Vector<3> { 4 * (i - radius), -3, 4 * (j - radius) };
+        translations[index] = surge::Vector<3> { 4 * (i - radius), -3, 4 * (j - radius) };
     });
     return translations;
 }
@@ -90,72 +90,72 @@ int main() {
 
         // create engine
         const std::string           windowName = "A Surge Of Engine";
-        const std::string           appName    = "aSurgeOfEngine";
+        const std::string           appName = "aSurgeOfEngine";
         constexpr surge::Resolution resolution { .width = 1600, .height = 900 };
         surge::Engine               engine(windowName, appName, resolution);
 
         // create cameras
         surge::Camera<false> playerCamera {
             16.0 / 9.0,
-            { 0.0f, 3.0f,  4.0f  },
+            { 0.0f, 3.0f, 4.0f },
             { 0.0f, -0.5f, -1.0f },
         };
         surge::Camera<true> skyboxCamera {
             16.0 / 9.0,
-            { 0.0f, 0.0f, 0.0f  },
+            { 0.0f, 0.0f, 0.0f },
             { 0.0f, 0.0f, -1.0f },
         };
         surge::Camera<false> lightCamera {
             16.0 / 9.0,
-            { -1.0f, 1.0f,  3.0f  },
+            { -1.0f, 1.0f, 3.0f },
             { -1.0f, -1.0f, -1.0f },
         };
 
         // create scene
-        const auto mainScene    = engine.storage.createScene();
+        const auto mainScene = engine.storage.createScene();
         const auto mainSceneUbo = engine.storage.scenes.at(mainScene).bufferId;
 
         const std::map<surge::ShaderType, surge::PipelineID> pipelines {
             { surge::ShaderType::skybox,
-             engine.storage.createPipeline<surge::geom::Position, surge::ModelMatrix, surge::SceneLayout,
-             surge::SimpleMaterialLayout>(surge::ShaderType::skybox) },
+              engine.storage.createPipeline<surge::geom::Position, surge::ModelMatrix, surge::SceneLayout,
+                                            surge::SimpleMaterialLayout>(surge::ShaderType::skybox) },
             { surge::ShaderType::coordinates,
-             engine.storage.createPipeline<surge::geom::PositionAndColor, surge::ModelMatrix, surge::SceneLayout>(
+              engine.storage.createPipeline<surge::geom::PositionAndColor, surge::ModelMatrix, surge::SceneLayout>(
                   surge::ShaderType::coordinates, mainScene) },
             { surge::ShaderType::primitive,
-             engine.storage.createPipeline<surge::geom::Position, surge::ModelMatrixAndColor, surge::SceneLayout>(
+              engine.storage.createPipeline<surge::geom::Position, surge::ModelMatrixAndColor, surge::SceneLayout>(
                   surge::ShaderType::primitive, mainScene) },
             { surge::ShaderType::primitiveTextured,
-             engine.storage.createPipeline<surge::geom::PositionTexture, surge::ModelMatrix, surge::SceneLayout,
-             surge::SimpleMaterialLayout>(surge::ShaderType::primitiveTextured,
-             mainScene) },
+              engine.storage.createPipeline<surge::geom::PositionTexture, surge::ModelMatrix, surge::SceneLayout,
+                                            surge::SimpleMaterialLayout>(surge::ShaderType::primitiveTextured,
+                                                                         mainScene) },
             { surge::ShaderType::primitiveTexturedNormal,
-             engine.storage.createPipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix, surge::SceneLayout,
-             surge::SimpleMaterialLayout>(surge::ShaderType::primitiveTexturedNormal,
-             mainScene) },
+              engine.storage.createPipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix, surge::SceneLayout,
+                                            surge::SimpleMaterialLayout>(surge::ShaderType::primitiveTexturedNormal,
+                                                                         mainScene) },
             { surge::ShaderType::phongModel,
-             engine.storage.createPipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix, surge::SceneLayout,
-             surge::PhongMaterialLayout>(surge::ShaderType::phongModel, mainScene) },
+              engine.storage.createPipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix, surge::SceneLayout,
+                                            surge::PhongMaterialLayout>(surge::ShaderType::phongModel, mainScene) },
             { surge::ShaderType::phongModelNormal,
-             engine.storage.createPipeline<surge::geom::PositionNormalTangentTexture, surge::ModelMatrix,
-             surge::SceneLayout, surge::PhongMaterialLayout>(
+              engine.storage.createPipeline<surge::geom::PositionNormalTangentTexture, surge::ModelMatrix,
+                                            surge::SceneLayout, surge::PhongMaterialLayout>(
                   surge::ShaderType::phongModelNormal, mainScene) }
         };
 
         // create skybox
         const surge::Entity skybox {
-            .model    = engine.storage.createModel(surge::geom::cube),
+            .model = engine.storage.createModel(surge::geom::cube),
             .pipeline = pipelines.at(surge::ShaderType::skybox),
-            .matrix   = engine.storage.createMatrix(surge::fullMatrix(surge::identity<4>)),
+            .matrix = engine.storage.createMatrix(surge::fullMatrix(surge::identity<4>)),
             .material = engine.storage.createSimpleMaterial(
                 engine.storage.createTexture(home / "surge/textures/skybox.ktx", surge::Texture::cube)),
         };
 
         // create coordinates
         const surge::Entity coordinates {
-            .model    = engine.storage.createModel(surge::geom::coordinates),
+            .model = engine.storage.createModel(surge::geom::coordinates),
             .pipeline = pipelines.at(surge::ShaderType::coordinates),
-            .matrix   = engine.storage.createMatrix(surge::fullMatrix(surge::identity<4>)),
+            .matrix = engine.storage.createMatrix(surge::fullMatrix(surge::identity<4>)),
             .material = {},
         };
 
@@ -288,7 +288,7 @@ int main() {
             engine.storage.blackTextureId,
             engine.storage.createTexture(brickwallFolder / "brickwall_normal.jpg", surge::Texture::texture2dNorm));
         {  // brickwall
-            const auto     model    = planeTexturedNormalTangentModel;
+            const auto     model = planeTexturedNormalTangentModel;
             const auto     pipeline = pipelines.at(surge::ShaderType::phongModelNormal);
             constexpr auto radius { 10 };
             constexpr auto translations { generateTranslations<radius>() };
@@ -322,7 +322,7 @@ int main() {
                     .model = engine.storage.createAsset<surge::geom::PositionNormalTangentTexture>(
                 surge::GltfHandle { cerberusFolder / "cerberus.gltf" }),
                     .pipeline = pipelines.at(surge::ShaderType::phongModelNormal),
-                    .matrix   = engine.storage.createMatrix(surge::fullMatrix(cerberusMatrix)),
+                    .matrix = engine.storage.createMatrix(surge::fullMatrix(cerberusMatrix)),
                     .material = engine.storage.createPhongMaterial(
                 engine.storage.createTexture(cerberusFolder / "albedo.ktx", surge::Texture::texture2d),
                 engine.storage.createTexture(cerberusFolder / "metallic.ktx", surge::Texture::metallic),
@@ -344,14 +344,14 @@ int main() {
 
         constexpr auto      floorMatrix = surge::translate<x>(-2.0);
         const surge::Entity floor {
-            .model    = planeTexturedNormalTangentModel,
+            .model = planeTexturedNormalTangentModel,
             .pipeline = pipelines.at(surge::ShaderType::phongModelNormal),
-            .matrix   = engine.storage.createMatrix(surge::fullMatrix(floorMatrix)),
+            .matrix = engine.storage.createMatrix(surge::fullMatrix(floorMatrix)),
             .material = brickwallMaterial,
         };
 
         double elapsedTime = {};
-        auto   start       = std::chrono::high_resolution_clock::now();
+        auto   start = std::chrono::high_resolution_clock::now();
         while (engine.input.proceed) {
             if (elapsedTime > 1.0 / 144.0) {
                 engine.input.reset();
@@ -381,7 +381,7 @@ int main() {
                     const auto matrix = surge::Translation<> { lightPosition } * surge::Scaling<> { 0.1f, 0.1f, 0.1f } *
                                         cubeFaceMatrices.at(face);
                     engine.storage.matrices[matrixId] = surge::ModelMatrixAndColor {
-                        .matrix    = matrix,
+                        .matrix = matrix,
                         .baseColor = lightColor,
                     };
                 });
@@ -443,8 +443,8 @@ int main() {
                 surge::forEach<0, cubeFaceMatrices.size(), 0, 2>([&]<int face, int triangle>() {
                     using namespace surge::geom;
                     constexpr auto& vertices = planeTexturedNormals.vertices;
-                    constexpr auto& indices  = planeTexturedNormals.indices;
-                    constexpr auto  offset   = triangle * 3;
+                    constexpr auto& indices = planeTexturedNormals.indices;
+                    constexpr auto  offset = triangle * 3;
 
                     constexpr auto a = (vertices.at(indices.at(offset + 0)).get<Attribute::position>() +
                                         vertices.at(indices.at(offset + 1)).get<Attribute::position>() +
@@ -456,8 +456,8 @@ int main() {
                                                3.0f;
                     const auto& matrix = engine.storage.getMatrix(texturedNormalCube.at(face).matrix);
                     engine.renderer.draw(commandBuffer, surge::Line {
-                                                            .a     = transform(a, matrix),
-                                                            .b     = transform(b, matrix),
+                                                            .a = transform(a, matrix),
+                                                            .b = transform(b, matrix),
                                                             .color = surge::RGBA::white,
                                                         });
                 });
@@ -469,9 +469,9 @@ int main() {
                 start = std::chrono::high_resolution_clock::now();
             }
 
-            const auto stop     = std::chrono::high_resolution_clock::now();
+            const auto stop = std::chrono::high_resolution_clock::now();
             const auto duration = std::chrono::duration<double, std::milli>(stop - start).count();
-            elapsedTime         = 1e-3 * duration;
+            elapsedTime = 1e-3 * duration;
         }
 
         vkDeviceWaitIdle(engine.context.device);

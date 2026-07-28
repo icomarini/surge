@@ -16,19 +16,19 @@ public:
         , imageIndex {} {
     }
 
-    static void prepareCommandBuffer(VkCommandBuffer commandBuffer) {
-        vkResetCommandBuffer(commandBuffer, 0);
+    // static void prepareCommandBuffer(VkCommandBuffer commandBuffer) {
+    //     vkResetCommandBuffer(commandBuffer, 0);
 
-        constexpr VkCommandBufferBeginInfo beginInfo {
-            .sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-            .pNext            = nullptr,
-            .flags            = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
-            .pInheritanceInfo = nullptr,
-        };
-        if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to begin recording command buffer");
-        }
-    }
+    //     constexpr VkCommandBufferBeginInfo beginInfo {
+    //         .sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+    //         .pNext            = nullptr,
+    //         .flags            = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
+    //         .pInheritanceInfo = nullptr,
+    //     };
+    //     if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+    //         throw std::runtime_error("Failed to begin recording command buffer");
+    //     }
+    // }
 
     void beginRendering() {
         const auto& frame                 = swapchain->frames.at(imageIndex);
@@ -50,7 +50,7 @@ public:
             .sType              = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
             .pNext              = nullptr,
             .imageView          = swapchain->depthImage.view,
-            .imageLayout        = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL,
+            .imageLayout        = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
             .resolveMode        = {},
             .resolveImageView   = VK_NULL_HANDLE,
             .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
@@ -65,9 +65,9 @@ public:
             .flags = 0,
             .renderArea =
                 VkRect2D {
-                    .offset = { 0, 0 },
-                    .extent = swapchain->extent,
-                },
+                          .offset = { 0, 0 },
+                          .extent = swapchain->extent,
+                          },
             .layerCount           = 1,
             .viewMask             = 0,
             .colorAttachmentCount = 1,
@@ -92,12 +92,14 @@ public:
         };
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-        Extern::beginRendering(commandBuffer, &renderInfo);
+        // Extern::beginRendering(commandBuffer, &renderInfo);
+        vkCmdBeginRendering(commandBuffer, &renderInfo);
     }
 
     void endRendering() {
         const auto [fence, commandBuffer] = frames.current();
-        Extern::endRendering(commandBuffer);
+        vkCmdEndRendering(commandBuffer);
+        // Extern::endRendering(commandBuffer);
     }
 
     VkCommandBuffer acquire() {
@@ -136,28 +138,89 @@ public:
         }
 
         // pipeline barrier
-        const VkImageMemoryBarrier imageMemoryBarrierBegin {
-            .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            .pNext               = nullptr,
-            .srcAccessMask       = 0,
-            .dstAccessMask       = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            .oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED,
-            .newLayout           = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .image               = frame.image,
-            .subresourceRange =
-                VkImageSubresourceRange {
-                    .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-                    .baseMipLevel   = 0,
-                    .levelCount     = 1,
-                    .baseArrayLayer = 0,
-                    .layerCount     = 1,
-                },
+        const std::array imageMemoryBarriers {
+            VkImageMemoryBarrier {
+                                  .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                                  .pNext               = nullptr,
+                                  .srcAccessMask       = 0,
+                                  .dstAccessMask       = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                  .oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED,
+                                  .newLayout           = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                  .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                                  .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                                  .image               = frame.image,
+                                  .subresourceRange =
+                    VkImageSubresourceRange {
+                        .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                        .baseMipLevel   = 0,
+                        .levelCount     = 1,
+                        .baseArrayLayer = 0,
+                        .layerCount     = 1,
+                    }, },
+            VkImageMemoryBarrier {
+                                  .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                                  .pNext               = nullptr,
+                                  .srcAccessMask       = 0,
+                                  .dstAccessMask       = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                  .oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED,
+                                  .newLayout           = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                                  .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                                  .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                                  .image               = swapchain->depthImage.image,
+                                  .subresourceRange =
+                    {
+                        .aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT,
+                        .baseMipLevel   = 0,
+                        .levelCount     = 1,
+                        .baseArrayLayer = 0,
+                        .layerCount     = 1,
+                    }, },
         };
+
+        // const VkImageMemoryBarrier imageMemoryBarrierBegin {
+        //     .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        //     .pNext               = nullptr,
+        //     .srcAccessMask       = 0,
+        //     .dstAccessMask       = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        //     .oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED,
+        //     .newLayout           = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        //     .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+        //     .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+        //     .image               = frame.image,
+        //     .subresourceRange =
+        //         VkImageSubresourceRange {
+        //                                  .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+        //                                  .baseMipLevel   = 0,
+        //                                  .levelCount     = 1,
+        //                                  .baseArrayLayer = 0,
+        //                                  .layerCount     = 1,
+        //                                  },
+        // };
+
+        // const VkImageMemoryBarrier depthBarrier {
+        //     .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        //     .pNext               = nullptr,
+        //     .srcAccessMask       = 0,
+        //     .dstAccessMask       = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+        //     .oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED,
+        //     .newLayout           = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+        //     .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+        //     .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+        //     .image               = swapchain->depthImage.image,
+        //     .subresourceRange = {
+        //         .aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT,
+        //         .baseMipLevel   = 0,
+        //         .levelCount     = 1,
+        //         .baseArrayLayer = 0,
+        //         .layerCount     = 1,
+        //     },
+        // };
+
         vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1,
-                             &imageMemoryBarrierBegin);
+                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                                 VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+                             0, 0, nullptr, 0, nullptr, static_cast<uint32_t>(imageMemoryBarriers.size()),
+                             imageMemoryBarriers.data());
 
         // begin rendering
         // const VkRenderingAttachmentInfo colorAttachmentInfo {
@@ -241,12 +304,12 @@ public:
             .image               = frame.image,
             .subresourceRange =
                 VkImageSubresourceRange {
-                    .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-                    .baseMipLevel   = 0,
-                    .levelCount     = 1,
-                    .baseArrayLayer = 0,
-                    .layerCount     = 1,
-                },
+                                         .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                                         .baseMipLevel   = 0,
+                                         .levelCount     = 1,
+                                         .baseArrayLayer = 0,
+                                         .layerCount     = 1,
+                                         },
         };
 
         vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,

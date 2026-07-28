@@ -34,27 +34,15 @@ constexpr VkPolygonMode translate(const PolygonMode polygonMode) {
 
 struct Extern {
     static PFN_vkCmdSetPolygonModeEXT setPolygonMode;
-    static PFN_vkCmdBeginRenderingKHR beginRendering;
-    static PFN_vkCmdEndRenderingKHR   endRendering;
 
     Extern(VkInstance instance) {
         Extern::setPolygonMode =
             reinterpret_cast<PFN_vkCmdSetPolygonModeEXT>(vkGetInstanceProcAddr(instance, "vkCmdSetPolygonModeEXT"));
         assert(setPolygonMode);
-
-        Extern::beginRendering =
-            reinterpret_cast<PFN_vkCmdBeginRenderingKHR>(vkGetInstanceProcAddr(instance, "vkCmdBeginRenderingKHR"));
-        assert(beginRendering);
-
-        Extern::endRendering =
-            reinterpret_cast<PFN_vkCmdEndRenderingKHR>(vkGetInstanceProcAddr(instance, "vkCmdEndRenderingKHR"));
-        assert(endRendering);
     }
 };
 
 PFN_vkCmdSetPolygonModeEXT surge::core::Extern::setPolygonMode;
-PFN_vkCmdBeginRenderingKHR surge::core::Extern::beginRendering;
-PFN_vkCmdEndRenderingKHR   surge::core::Extern::endRendering;
 
 class Context {
 public:
