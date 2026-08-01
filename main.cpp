@@ -1,4 +1,3 @@
-
 #include "surge/surge.hpp"
 
 // void createRope(surge::physics::Physics& physics, const surge::physics::Position& first,
@@ -86,7 +85,8 @@ constexpr auto generateTranslations() {
 
 int main() {
     try {
-        const std::filesystem::path home { "/home/ico/projects/" };
+        const std::filesystem::path surgeTextureFolder { "/home/ico/projects/surge/textures" };
+        const std::filesystem::path vulkanAssetFolder { "/home/ico/projects/extern/Vulkan/assets" };
 
         // create engine
         const std::string           windowName = "A Surge Of Engine";
@@ -148,7 +148,7 @@ int main() {
             .pipeline = pipelines.at(surge::ShaderType::skybox),
             .matrix   = engine.storage.createMatrix(surge::fullMatrix(surge::identity<4>)),
             .material = engine.storage.createSimpleMaterial(
-                engine.storage.createTexture(home / "surge/textures/skybox.ktx", surge::Texture::cube)),
+                engine.storage.createTexture(surgeTextureFolder / "skybox.ktx", surge::Texture::cube)),
         };
 
         // create coordinates
@@ -281,12 +281,11 @@ int main() {
                          engine.storage.createMatrix(matrix), cubePhongMaterials.at(faceId) };
             });
 
-        std::vector<surge::Entity>  brickwalls;
-        const std::filesystem::path brickwallFolder { "/home/ico/projects/surge/textures" };
-        const auto                  brickwallMaterial = engine.storage.createPhongMaterial(
-            engine.storage.createTexture(brickwallFolder / "brickwall_diffuse.jpg", surge::Texture::texture2d),
+        std::vector<surge::Entity> brickwalls;
+        const auto                 brickwallMaterial = engine.storage.createPhongMaterial(
+            engine.storage.createTexture(surgeTextureFolder / "brickwall_diffuse.jpg", surge::Texture::texture2d),
             engine.storage.blackTextureId,
-            engine.storage.createTexture(brickwallFolder / "brickwall_normal.jpg", surge::Texture::texture2dNorm));
+            engine.storage.createTexture(surgeTextureFolder / "brickwall_normal.jpg", surge::Texture::texture2dNorm));
         {  // brickwall
             const auto     model    = planeTexturedNormalTangentModel;
             const auto     pipeline = pipelines.at(surge::ShaderType::phongModelNormal);
@@ -316,7 +315,7 @@ int main() {
         // };
 
         constexpr auto              cerberusMatrix = surge::rotate<x>(90);
-        const std::filesystem::path cerberusFolder { "/home/ico/projects/extern/Vulkan/assets/models/cerberus" };
+        const std::filesystem::path cerberusFolder { vulkanAssetFolder / "models/cerberus" };
         const surge::Entity         cerberus {
             // coordinate system
                     .model = engine.storage.createAsset<surge::geom::PositionNormalTangentTexture>(
@@ -329,10 +328,12 @@ int main() {
                 engine.storage.createTexture(cerberusFolder / "normal.ktx", surge::Texture::texture2d)),
         };
 
-        const std::filesystem::path crateFolder { "/home/ico/projects/surge/textures" };
-        const auto                  crateMaterial = engine.storage.createPhongMaterial(
-            engine.storage.createTexture(crateFolder / "container_diffuse.png", surge::Texture::texture2d),
-            engine.storage.createTexture(crateFolder / "container_specular.png", surge::Texture::texture2d),
+        const std::filesystem::path cesiumManPath { vulkanAssetFolder /
+                                                    "models/CesiumMan/glTF-Embedded/CesiumMan.gltf" };
+
+        const auto crateMaterial = engine.storage.createPhongMaterial(
+            engine.storage.createTexture(surgeTextureFolder / "container_diffuse.png", surge::Texture::texture2d),
+            engine.storage.createTexture(surgeTextureFolder / "container_specular.png", surge::Texture::texture2d),
             engine.storage.whiteTextureId);
 
         const auto crate = surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
