@@ -75,6 +75,57 @@ public:
         vkCmdDrawIndexed(commandBuffer, storage.models.get(entity.model).indexCount, 1, 0, 0, 0);
     }
 
+    void draw(const VkCommandBuffer commandBuffer, const Entity2& entity) {
+        // bind pipeline
+        // const auto pipelineId     = pipelines.at(surge::ShaderType::primitiveTexturedNormal);
+        const auto pipelineLayout = storage.pipelines.get(entity.pipelineId).layout();
+
+        // bind pipeline and main camera
+        storage.pipelines.apply(entity.pipelineId, [&](const surge::Pipeline& pipeline) {
+            surge::core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+            vkCmdBindPipeline(commandBuffer, surge::Storage::graphicsBindPoint, pipeline.get());
+            if (pipeline.sceneId) {
+                const auto         scene              = storage.scenes.at(pipeline.sceneId);
+                const auto         sceneDescriptorSet = storage.materials.get(scene.materialId);
+                constexpr uint32_t sceneIndex { 0 };
+                vkCmdBindDescriptorSets(commandBuffer, surge::Storage::graphicsBindPoint, pipelineLayout, sceneIndex, 1,
+                                        &sceneDescriptorSet, 0, nullptr);
+            }
+        });
+
+        // bind model
+        storage.models.apply(entity.modelId, [&](const surge::asset::Model& model) {
+            constexpr VkDeviceSize offset { 0 };
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model.vertexBuffer.buffer, &offset);
+            vkCmdBindIndexBuffer(commandBuffer, model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+        });
+
+        // traverse nodes
+        const auto& nodeTree = storage.nodes.at(entity.nodeId);
+        nodeTree.traverse<surge::core::utils::Traversal::linear>([&](const surge::asset::Node2& node) {
+            if (node.meshId) {
+                const auto& mesh = storage.meshes2.at(node.meshId);
+                for (const auto& primitive : mesh.primitives) {
+                    // bind material
+                    if (primitive.materialId) {
+                        storage.materials.apply(primitive.materialId, [&](const VkDescriptorSet& material) {
+                            constexpr uint32_t materialIndex { 1 };
+                            vkCmdBindDescriptorSets(commandBuffer, surge::Storage::graphicsBindPoint, pipelineLayout,
+                                                    materialIndex, 1, &material, 0, nullptr);
+                        });
+                    }
+
+                    // push constants
+                    vkCmdPushConstants(commandBuffer, pipelineLayout, surge::Storage::shaderStages, 0,
+                                       sizeof(surge::ModelMatrix), &entity.modelMatrix);
+
+                    // draw
+                    vkCmdDrawIndexed(commandBuffer, primitive.indexCount, 1, primitive.firstIndex, 0, 0);
+                }
+            }
+        });
+    }
+
     void draw(const VkCommandBuffer commandBuffer, const asset::Line& line) const {
         // bind main camera
         const auto pipelineLayout = storage.pipelines.get(storage.linePipelineId).layout();

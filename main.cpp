@@ -438,6 +438,28 @@ int main() {
         //         engine.storage.createTexture(cerberusFolder / "metallic.ktx", surge::Texture::metallic),
         //         engine.storage.createTexture(cerberusFolder / "normal.ktx", surge::Texture::texture2d)),
         // };
+        constexpr auto              cerberusMatrix = surge::rotate<x>(90);
+        const std::filesystem::path cerberusFolder { vulkanAssetFolder / "models/cerberus" };
+        const auto [cerberusModelId, cerberusNodeTreeId] =
+            engine.loader.load<surge::geom::PositionNormalTangentTexture>(
+                surge::GltfHandle {
+                    cerberusFolder / "cerberus.gltf"
+        },
+                {
+                    { surge::load::Gltf::TextureType::baseColorTexture,
+                      engine.storage.createTexture(cerberusFolder / "albedo.ktx", surge::Texture::texture2d) },
+                    { surge::load::Gltf::TextureType::metallicRoughnessTexture,
+                      engine.storage.createTexture(cerberusFolder / "metallic.ktx", surge::Texture::metallic) },
+                    { surge::load::Gltf::TextureType::normalTexture,
+                      engine.storage.createTexture(cerberusFolder / "normal.ktx", surge::Texture::texture2d) },
+                });
+
+        const surge::Entity2 cerberus {
+            .modelId     = cerberusModelId,
+            .nodeId      = cerberusNodeTreeId,
+            .pipelineId  = pipelines.at(surge::ShaderType::phongModelNormal),
+            .modelMatrix = surge::core::math::fullMatrix(cerberusMatrix),
+        };
 
         // constexpr auto      cesiumManMatrix = surge::translate<x>(-4.0) * surge::rotate<x>(90);
         // const surge::Entity cesiumMan {
@@ -450,10 +472,12 @@ int main() {
         constexpr auto cesiumManMatrix                     = surge::translate<x>(-4.0) * surge::rotate<x>(90);
         const auto [cesiumManModelId, cesiumManNodeTreeId] = engine.loader.load<surge::geom::PositionNormalTexture>(
             surge::GltfHandle { vulkanAssetFolder / "models/CesiumMan/glTF-Embedded/CesiumMan.gltf" });
-        // const surge::ciao::Entity cesiumMan {
-        //     .nodeId         = cesiumManNode,
-        //     .transformation = cesiumManMatrix,
-        // };
+        const surge::Entity2 cesiumMan {
+            .modelId     = cesiumManModelId,
+            .nodeId      = cesiumManNodeTreeId,
+            .pipelineId  = pipelines.at(surge::ShaderType::primitiveTexturedNormal),
+            .modelMatrix = cesiumManMatrix,
+        };
 
         const auto crateMaterial = engine.storage.createPhongMaterial(
             engine.storage.createTexture(surgeTextureFolder / "container_diffuse.png", surge::Texture::texture2d),
@@ -565,63 +589,63 @@ int main() {
                 engine.renderer.draw(commandBuffer, phongCube);
                 engine.renderer.draw(commandBuffer, phongNormalCube);
                 engine.renderer.draw(commandBuffer, brickwalls);
-                // engine.renderer.draw(commandBuffer, cerberus);
+                engine.renderer.draw(commandBuffer, cerberus);
                 engine.renderer.draw(commandBuffer, crate);
                 engine.renderer.draw(commandBuffer, floor);
-                // engine.renderer.draw(commandBuffer, cesiumMan);
-                {
-                    // bind pipeline
-                    const auto pipelineId     = pipelines.at(surge::ShaderType::phongModel);
-                    const auto pipelineLayout = engine.storage.pipelines.get(pipelineId).layout();
+                engine.renderer.draw(commandBuffer, cesiumMan);
+                // {
+                //     // bind pipeline
+                //     const auto pipelineId     = pipelines.at(surge::ShaderType::primitiveTexturedNormal);
+                //     const auto pipelineLayout = engine.storage.pipelines.get(pipelineId).layout();
 
-                    // bind pipeline and main camera
-                    engine.storage.pipelines.apply(pipelineId, [&](const surge::Pipeline& pipeline) {
-                        surge::core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
-                        vkCmdBindPipeline(commandBuffer, surge::Storage::graphicsBindPoint, pipeline.get());
-                        if (pipeline.sceneId) {
-                            const auto         scene              = engine.storage.scenes.at(pipeline.sceneId);
-                            const auto         sceneDescriptorSet = engine.storage.materials.get(scene.materialId);
-                            constexpr uint32_t sceneIndex { 0 };
-                            vkCmdBindDescriptorSets(commandBuffer, surge::Storage::graphicsBindPoint, pipelineLayout,
-                                                    sceneIndex, 1, &sceneDescriptorSet, 0, nullptr);
-                        }
-                    });
+                //     // bind pipeline and main camera
+                //     engine.storage.pipelines.apply(pipelineId, [&](const surge::Pipeline& pipeline) {
+                //         surge::core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+                //         vkCmdBindPipeline(commandBuffer, surge::Storage::graphicsBindPoint, pipeline.get());
+                //         if (pipeline.sceneId) {
+                //             const auto         scene              = engine.storage.scenes.at(pipeline.sceneId);
+                //             const auto         sceneDescriptorSet = engine.storage.materials.get(scene.materialId);
+                //             constexpr uint32_t sceneIndex { 0 };
+                //             vkCmdBindDescriptorSets(commandBuffer, surge::Storage::graphicsBindPoint, pipelineLayout,
+                //                                     sceneIndex, 1, &sceneDescriptorSet, 0, nullptr);
+                //         }
+                //     });
 
-                    // bind model
-                    engine.storage.models.apply(cesiumManModelId, [&](const surge::asset::Model& model) {
-                        constexpr VkDeviceSize offset { 0 };
-                        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model.vertexBuffer.buffer, &offset);
-                        vkCmdBindIndexBuffer(commandBuffer, model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-                    });
+                //     // bind model
+                //     engine.storage.models.apply(cesiumManModelId, [&](const surge::asset::Model& model) {
+                //         constexpr VkDeviceSize offset { 0 };
+                //         vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model.vertexBuffer.buffer, &offset);
+                //         vkCmdBindIndexBuffer(commandBuffer, model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                //     });
 
-                    // traverse nodes
-                    const auto& nodeTree = engine.storage.nodes.at(cesiumManNodeTreeId);
-                    nodeTree.traverse<surge::core::utils::Traversal::linear>([&](const surge::asset::Node2& node) {
-                        if (node.meshId) {
-                            const auto& mesh = engine.storage.meshes2.at(node.meshId);
-                            for (const auto& primitive : mesh.primitives) {
-                                // bind material
-                                if (primitive.materialId) {
-                                    engine.storage.materials.apply(
-                                        primitive.materialId, [&](const VkDescriptorSet& material) {
-                                            constexpr uint32_t materialIndex { 1 };
-                                            vkCmdBindDescriptorSets(commandBuffer, surge::Storage::graphicsBindPoint,
-                                                                    pipelineLayout, materialIndex, 1, &material, 0,
-                                                                    nullptr);
-                                        });
-                                }
+                //     // traverse nodes
+                //     const auto& nodeTree = engine.storage.nodes.at(cesiumManNodeTreeId);
+                //     nodeTree.traverse<surge::core::utils::Traversal::linear>([&](const surge::asset::Node2& node) {
+                //         if (node.meshId) {
+                //             const auto& mesh = engine.storage.meshes2.at(node.meshId);
+                //             for (const auto& primitive : mesh.primitives) {
+                //                 // bind material
+                //                 if (primitive.materialId) {
+                //                     engine.storage.materials.apply(
+                //                         primitive.materialId, [&](const VkDescriptorSet& material) {
+                //                             constexpr uint32_t materialIndex { 1 };
+                //                             vkCmdBindDescriptorSets(commandBuffer, surge::Storage::graphicsBindPoint,
+                //                                                     pipelineLayout, materialIndex, 1, &material, 0,
+                //                                                     nullptr);
+                //                         });
+                //                 }
 
-                                // push constants
-                                const surge::ModelMatrix matrix { cesiumManMatrix };
-                                vkCmdPushConstants(commandBuffer, pipelineLayout, surge::Storage::shaderStages, 0,
-                                                   sizeof(surge::ModelMatrix), &matrix);
+                //                 // push constants
+                //                 const surge::ModelMatrix matrix { cesiumManMatrix };
+                //                 vkCmdPushConstants(commandBuffer, pipelineLayout, surge::Storage::shaderStages, 0,
+                //                                    sizeof(surge::ModelMatrix), &matrix);
 
-                                // draw
-                                vkCmdDrawIndexed(commandBuffer, primitive.indexCount, 1, primitive.firstIndex, 0, 0);
-                            }
-                        }
-                    });
-                }
+                //                 // draw
+                //                 vkCmdDrawIndexed(commandBuffer, primitive.indexCount, 1, primitive.firstIndex, 0, 0);
+                //             }
+                //         }
+                //     });
+                // }
 
                 surge::forEach<0, cubeFaceMatrices.size(), 0, 2>([&]<int face, int triangle>() {
                     using namespace surge::geom;

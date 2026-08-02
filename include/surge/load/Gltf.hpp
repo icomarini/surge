@@ -1019,7 +1019,9 @@ public:
         return materialIds;
     }
 
-    std::vector<MaterialID> createMaterials3(Storage& storage, const std::vector<TextureID> texturesIds) const {
+    std::vector<MaterialID>
+    createMaterials3(Storage& storage, const std::vector<TextureID> texturesIds,
+                     const std::map<load::Gltf::TextureType, TextureID>& externalTextures) const {
         constexpr auto extractAlphaMode = [](const fastgltf::AlphaMode alphaMode) {
             switch (alphaMode) {
             case fastgltf::AlphaMode::Blend:
@@ -1032,13 +1034,12 @@ public:
             throw;
         };
 
-        // const auto externalTexturesMap = createExternalTexturesMap(textures);
         struct TextureData {
             TextureID textureId;
             uint8_t   texCoord;
         };
 
-        auto extractTexture = [&](const TextureType /*textureType*/, const auto& textureInfo) {
+        auto extractTexture = [&](const TextureType textureType, const auto& textureInfo) {
             if (textureInfo) {
                 const auto textureIndex  = textureInfo.value().textureIndex;
                 const auto texCoordIndex = textureInfo.value().texCoordIndex;
@@ -1049,12 +1050,12 @@ public:
                 };
             }
 
-            // if (externalTexturesMap.contains(textureType)) {
-            //     return asset::Material::TextureData {
-            //              .texture  = externalTexturesMap.at(textureType),
-            //              .texCoord = 0,
-            //     };
-            // }
+            if (externalTextures.contains(textureType)) {
+                return TextureData {
+                    .textureId = externalTextures.at(textureType),
+                    .texCoord  = 0,
+                };
+            }
 
             return TextureData {
                 .textureId = storage.whiteTextureId,
@@ -1065,22 +1066,22 @@ public:
         std::vector<MaterialID> materialIds;
         int                     materialId = 0;
         for (const fastgltf::Material& material : asset.materials) {
-            // using Type = TextureType;
+            using Type = TextureType;
 
-            // const auto baseColorTexture = extractTexture(Type::baseColorTexture, material.pbrData.baseColorTexture);
+            const auto baseColorTexture = extractTexture(Type::baseColorTexture, material.pbrData.baseColorTexture);
             // const core::math::Vector<4> baseColorFactor { material.pbrData.baseColorFactor[0],
             //                                               material.pbrData.baseColorFactor[1],
             //                                               material.pbrData.baseColorFactor[2],
             //                                               material.pbrData.baseColorFactor[3] };
 
-            // const auto metallicRoughnessTexture =
-            //     extractTexture(Type::metallicRoughnessTexture, material.pbrData.metallicRoughnessTexture);
+            const auto metallicRoughnessTexture =
+                extractTexture(Type::metallicRoughnessTexture, material.pbrData.metallicRoughnessTexture);
 
             // const auto emissiveTexture = extractTexture(Type::emissiveTexture, material.emissiveTexture);
             // const core::math::Vector<4> emissiveFactor { material.emissiveFactor[0], material.emissiveFactor[1],
             //                                              material.emissiveFactor[2], 1 };
 
-            // const auto normalTexture = extractTexture(Type::normalTexture, material.normalTexture);
+            const auto normalTexture = extractTexture(Type::normalTexture, material.normalTexture);
             // const auto normalScale   = material.normalTexture ? material.normalTexture.value().scale : 1.0f;
 
             // const auto occlusionTexture = extractTexture(Type::occlusionTexture, material.occlusionTexture);
@@ -1108,7 +1109,9 @@ public:
             //     .descriptorSet            = descriptorPool.template allocate<Layout>(
             //         *baseColorTexture.texture, *metallicRoughnessTexture.texture, *normalTexture.texture),
             // });
-            if (material.pbrData.metallicRoughnessTexture || material.normalTexture) {
+
+            if (metallicRoughnessTexture.textureId != storage.whiteTextureId ||
+                normalTexture.textureId != storage.whiteTextureId) {
                 materialIds.push_back(storage.createPhongMaterial(
                     extractTexture(TextureType::baseColorTexture, material.pbrData.baseColorTexture).textureId,
                     extractTexture(TextureType::metallicRoughnessTexture, material.pbrData.metallicRoughnessTexture)

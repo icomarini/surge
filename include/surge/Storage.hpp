@@ -48,6 +48,12 @@ struct ModelMatrixAndColor {
     core::math::Vector<4>    baseColor;
 };
 
+struct Entity2 {
+    ModelID     modelId;
+    NodeID      nodeId;
+    PipelineID  pipelineId;
+    ModelMatrix modelMatrix;
+};
 
 struct Storage {
     static constexpr auto               graphicsBindPoint { VK_PIPELINE_BIND_POINT_GRAPHICS };
