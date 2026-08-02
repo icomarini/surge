@@ -102,8 +102,8 @@ struct Storage {
         , defaults { command }
         , matrices {}
         , descriptorPool { command.context, core::DescriptorAllocation<SceneLayout> { 2 },
-                           core::DescriptorAllocation<SimpleMaterialLayout> { 32 },
-                           core::DescriptorAllocation<PhongMaterialLayout> { 32 } }
+                           core::DescriptorAllocation<SimpleMaterialLayout> { 128 },
+                           core::DescriptorAllocation<PhongMaterialLayout> { 128 } }
         , sceneBufferId { createBuffer(sizeof(SceneBuffer)) }
         , sceneDescriptorSet { descriptorPool.allocate<SceneLayout>(buffers.at(sceneBufferId)) }
         , materials {}

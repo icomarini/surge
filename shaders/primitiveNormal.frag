@@ -9,7 +9,7 @@ layout(location = 1) in vec3 inPosition;
 
 layout(push_constant) uniform PushConstants {
     mat4 model;
-    vec4 baseColor;
+    // vec4 baseColor;
 };
 
 layout(set = 0, binding = 0) uniform Scene {
@@ -28,7 +28,8 @@ void main(void) {
     vec3 normal = normalize(inNormal);
     vec3 light  = normalize(lightPosition - inPosition);
 
-    outFragColor = max(dot(normal, light), 0.0) * baseColor;
+    // outFragColor = max(dot(normal, light), 0.0) * baseColor;
+    outFragColor = max(dot(normal, light), 0.0) * vec4(1.0);
 
     // vec3 N        = normalize(inNormal);
     // vec3 L        = normalize(inLightVec);

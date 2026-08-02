@@ -553,7 +553,7 @@ public:
 
     NodeID createNodes(Storage& storage, const std::vector<MeshID> meshIds) const {
         assert(asset.scenes.size() == 1);
-        assert(asset.scenes.front().nodeIndices.size() == 1);
+        // assert(asset.scenes.front().nodeIndices.size() == 1);
         // assert(asset.nodes.size() == 1);
         // constexpr std::size_t sceneIndex = 0;
 
