@@ -41,4 +41,21 @@ struct Mesh {
     std::string            name;
     std::vector<Primitive> primitives;
 };
+
+
+struct Mesh2 {
+    struct Primitive {
+        uint32_t                    firstIndex;
+        uint32_t                    indexCount;
+        uint32_t                    vertexCount;
+        MaterialID                  materialId;
+        core::geometry::BoundingBox boundingBox;
+    };
+
+    Mesh2(std::vector<Primitive>&& primitives)
+        : primitives { primitives } {
+    }
+
+    std::vector<Primitive> primitives;
+};
 }  // namespace surge::asset

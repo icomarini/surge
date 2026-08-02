@@ -25,8 +25,8 @@ using asset::Line;
 using namespace core::math;
 
 
-using SkyboxHandle = load::LoadedSkybox::Handle;
-using GltfHandle   = load::Gltf::Handle;
+// using SkyboxHandle = load::LoadedSkybox::Handle;
+using GltfHandle = load::Gltf::Handle;
 
 namespace geom {
 using namespace core::geometry;

@@ -3,8 +3,9 @@
 #include "surge/asset/Mesh.hpp"
 #include "surge/asset/Scene.hpp"
 #include "surge/asset/Skin.hpp"
-#include "surge/core/DescriptorPool.hpp"
-#include "surge/load/Defaults.hpp"
+// #include "surge/core/DescriptorPool.hpp"
+// #include "surge/load/Defaults.hpp"
+#include "surge/Storage.hpp"
 
 #include "fastgltf/core.hpp"
 #include "fastgltf/tools.hpp"
@@ -509,11 +510,9 @@ public:
                         .isLight   = 0,
                         .state =
                             asset::Node::State {
-                                                               .active      = true,
-                                                               .polygonMode = core::PolygonMode::fill,
-                                                               // .vertexStageFlag   = 0,
-                                // .fragmentStageFlag = 0,
-                                .translation  = core::math::Vector<3> { trs.translation.x(), trs.translation.y(),
+                                                               .active       = true,
+                                                               .polygonMode  = core::PolygonMode::fill,
+                                                               .translation  = core::math::Vector<3> { trs.translation.x(), trs.translation.y(),
                                                                         trs.translation.z() },
                                                                .rotation     = core::math::Quaternion<> { trs.rotation.x(), trs.rotation.y(),
                                                                            trs.rotation.z(), trs.rotation.w() },
@@ -550,6 +549,56 @@ public:
 
     std::size_t mainSceneIndex() const {
         return asset.defaultScene.value_or(0);
+    }
+
+    NodeID createNodes(Storage& storage, const std::vector<MeshID> meshIds) const {
+        assert(asset.scenes.size() == 1);
+        assert(asset.scenes.front().nodeIndices.size() == 1);
+        // assert(asset.nodes.size() == 1);
+        // constexpr std::size_t sceneIndex = 0;
+
+        // const auto& gltfNode = asset.nodes.front();
+        // assert(std::holds_alternative<fastgltf::TRS>(gltfNode.transform));
+
+        // const auto meshId = gltfNode.meshIndex ? meshIds.at(gltfNode.meshIndex.value()) : MeshID {};
+        // const auto skinId = gltfNode.skinIndex ? SkinID { gltfNode.skinIndex.value() } : SkinID {};
+
+        // const auto&                    trs = std::get<fastgltf::TRS>(gltfNode.transform);
+        // const core::math::Vector<3>    translation { trs.translation.x(), trs.translation.y(), trs.translation.z() };
+        // const core::math::Quaternion<> rotation { trs.rotation.x(), trs.rotation.y(), trs.rotation.z(),
+        //                                           trs.rotation.w() };
+        // const core::math::Vector<3>    scale { trs.scale.x(), trs.scale.y(), trs.scale.z() };
+
+
+        auto createNodes = [&]() {
+            core::utils::Tree<asset::Node2>::Nodes nodes;
+            nodes.reserve(asset.nodes.size());
+            for (const auto& gltfNode : asset.nodes) {
+                assert(std::holds_alternative<fastgltf::TRS>(gltfNode.transform));
+                const auto& trs = std::get<fastgltf::TRS>(gltfNode.transform);
+
+                nodes.emplace_back(
+                    asset::Node2 {
+                        .meshId = gltfNode.meshIndex ? meshIds.at(gltfNode.meshIndex.value()) : MeshID {},
+                        .skinId = {},
+                        .translation =
+                            core::math::Vector<3> { trs.translation.x(), trs.translation.y(), trs.translation.z() },
+                        .rotation = core::math::Quaternion<> { trs.rotation.x(), trs.rotation.y(), trs.rotation.z(),
+                                                                                                        trs.rotation.w() },
+                        .scale    = core::math::Vector<3> { trs.scale.x(), trs.scale.y(), trs.scale.z() },
+                },
+                    std::vector<Index> { gltfNode.children.begin(), gltfNode.children.end() });
+            }
+            return nodes;
+        };
+        auto createRoots = [&]() {
+            return std::vector<Index> { asset.scenes.front().nodeIndices.begin(),
+                                        asset.scenes.front().nodeIndices.end() };
+        };
+        return storage.createNodes(core::utils::Tree<asset::Node2> {
+            .roots = createRoots(),
+            .nodes = createNodes(),
+        });
     }
 
     std::vector<asset::Skin> createSkins() const {
@@ -775,6 +824,63 @@ public:
         return textureIds;
     }
 
+    std::vector<TextureID> createTextures3(Storage& storage) const {
+        std::vector<TextureID> textureIds;
+        Index                  textureId = 0;
+        // internal textures
+        for (const fastgltf::Texture& texture : asset.textures) {
+            assert(texture.imageIndex && texture.imageIndex.value() < asset.images.size());
+
+            const auto& image = asset.images.at(texture.imageIndex.value());
+            const auto  name  = baptize<This::texture>(texture.name, textureId);
+
+            const fastgltf::visitor visitor {
+                [](const auto&) -> LoadedTexture { throw std::runtime_error("Unsupported visitor"); },
+                [&](const fastgltf::sources::URI& uri) -> LoadedTexture {
+                    return LoadedTexture {
+                        LoadedTexture::Handle { load::LoadedTexture::Type::texture2d,
+                                               path.parent_path() / uri.uri.path() }
+                    };
+                },
+                [&](const fastgltf::sources::Vector& vector) -> LoadedTexture {
+                    return LoadedTexture { name, reinterpret_cast<const uint8_t*>(vector.bytes.data()),
+                                           vector.bytes.size() };
+                },
+                [&](const fastgltf::sources::Array& array) -> LoadedTexture {
+                    return LoadedTexture { name, reinterpret_cast<const uint8_t*>(array.bytes.data()),
+                                           array.bytes.size() };
+                },
+                [&](const fastgltf::sources::BufferView& view) -> LoadedTexture {
+                    const auto&     bufferView = asset.bufferViews.at(view.bufferViewIndex);
+                    const auto&     buffer     = asset.buffers.at(bufferView.bufferIndex);
+                    const fastgltf::visitor visitor    = {
+                        [](const auto&) -> LoadedTexture { throw std::runtime_error("Unsupported visitor"); },
+                        [&](const fastgltf::sources::Vector& vector) -> LoadedTexture {
+                            return LoadedTexture { name,
+                                                   reinterpret_cast<const uint8_t*>(vector.bytes.data()) +
+                                                       bufferView.byteOffset,
+                                                   bufferView.byteLength };
+                        },
+                        [&](const fastgltf::sources::Array& array) -> LoadedTexture {
+                            return LoadedTexture { name,
+                                                   reinterpret_cast<const uint8_t*>(array.bytes.data()) +
+                                                       bufferView.byteOffset,
+                                                   bufferView.byteLength };
+                        }
+                    };
+                    return std::visit(visitor, buffer.data);
+                },
+            };
+
+            textureIds.push_back(storage.createTexture(
+                std::visit(visitor, image.data),
+                texture.samplerIndex ? createSampler(texture.samplerIndex.value()) : load::Defaults::sampler,
+                asset::Texture::texture2d));
+            ++textureId;
+        }
+        return textureIds;
+    }
+
     template<typename... Textures>
     VkDescriptorSet createMaterialDescriptorSet2(const core::Context& context, const VkDescriptorPool descriptorPool,
                                                  const VkDescriptorSetLayout descriptorSetLayout,
@@ -913,6 +1019,111 @@ public:
         return materialIds;
     }
 
+    std::vector<MaterialID> createMaterials3(Storage& storage, const std::vector<TextureID> texturesIds) const {
+        constexpr auto extractAlphaMode = [](const fastgltf::AlphaMode alphaMode) {
+            switch (alphaMode) {
+            case fastgltf::AlphaMode::Blend:
+                return asset::Material::AlphaMode::blend;
+            case fastgltf::AlphaMode::Mask:
+                return asset::Material::AlphaMode::mask;
+            case fastgltf::AlphaMode::Opaque:
+                return asset::Material::AlphaMode::opaque;
+            }
+            throw;
+        };
+
+        // const auto externalTexturesMap = createExternalTexturesMap(textures);
+        struct TextureData {
+            TextureID textureId;
+            uint8_t   texCoord;
+        };
+
+        auto extractTexture = [&](const TextureType /*textureType*/, const auto& textureInfo) {
+            if (textureInfo) {
+                const auto textureIndex  = textureInfo.value().textureIndex;
+                const auto texCoordIndex = textureInfo.value().texCoordIndex;
+                assert(0 <= textureIndex && textureIndex < texturesIds.size());
+                return TextureData {
+                    .textureId = texturesIds.at(textureIndex),
+                    .texCoord  = static_cast<uint8_t>(texCoordIndex),
+                };
+            }
+
+            // if (externalTexturesMap.contains(textureType)) {
+            //     return asset::Material::TextureData {
+            //              .texture  = externalTexturesMap.at(textureType),
+            //              .texCoord = 0,
+            //     };
+            // }
+
+            return TextureData {
+                .textureId = storage.whiteTextureId,
+                .texCoord  = 0,
+            };
+        };
+
+        std::vector<MaterialID> materialIds;
+        int                     materialId = 0;
+        for (const fastgltf::Material& material : asset.materials) {
+            // using Type = TextureType;
+
+            // const auto baseColorTexture = extractTexture(Type::baseColorTexture, material.pbrData.baseColorTexture);
+            // const core::math::Vector<4> baseColorFactor { material.pbrData.baseColorFactor[0],
+            //                                               material.pbrData.baseColorFactor[1],
+            //                                               material.pbrData.baseColorFactor[2],
+            //                                               material.pbrData.baseColorFactor[3] };
+
+            // const auto metallicRoughnessTexture =
+            //     extractTexture(Type::metallicRoughnessTexture, material.pbrData.metallicRoughnessTexture);
+
+            // const auto emissiveTexture = extractTexture(Type::emissiveTexture, material.emissiveTexture);
+            // const core::math::Vector<4> emissiveFactor { material.emissiveFactor[0], material.emissiveFactor[1],
+            //                                              material.emissiveFactor[2], 1 };
+
+            // const auto normalTexture = extractTexture(Type::normalTexture, material.normalTexture);
+            // const auto normalScale   = material.normalTexture ? material.normalTexture.value().scale : 1.0f;
+
+            // const auto occlusionTexture = extractTexture(Type::occlusionTexture, material.occlusionTexture);
+            // const auto occlusionStrength =
+            //     material.occlusionTexture ? material.occlusionTexture.value().strength : 1.0f;
+
+            // const auto newMaterial = materials.create(asset::Material {
+            //     .name                     = baptize<This::material>(material.name, materialId),
+            //     .doubleSided              = material.doubleSided,
+            //     .unlit                    = material.unlit,
+            //     .alphaMode                = extractAlphaMode(material.alphaMode),
+            //     .alphaCutoff              = material.alphaCutoff,
+            //     .baseColorTexture         = baseColorTexture,
+            //     .baseColorFactor          = baseColorFactor,
+            //     .metallicRoughnessTexture = metallicRoughnessTexture,
+            //     .metallicFactor           = material.pbrData.metallicFactor,
+            //     .roughnessFactor          = material.pbrData.roughnessFactor,
+            //     .emissiveTexture          = emissiveTexture,
+            //     .emissiveFactor           = emissiveFactor,
+            //     .emissiveStrength         = material.emissiveStrength,
+            //     .normalTexture            = normalTexture,
+            //     .normalScale              = normalScale,
+            //     .occlusionTexture         = occlusionTexture,
+            //     .occlusionStrength        = occlusionStrength,
+            //     .descriptorSet            = descriptorPool.template allocate<Layout>(
+            //         *baseColorTexture.texture, *metallicRoughnessTexture.texture, *normalTexture.texture),
+            // });
+            if (material.pbrData.metallicRoughnessTexture || material.normalTexture) {
+                materialIds.push_back(storage.createPhongMaterial(
+                    extractTexture(TextureType::baseColorTexture, material.pbrData.baseColorTexture).textureId,
+                    extractTexture(TextureType::metallicRoughnessTexture, material.pbrData.metallicRoughnessTexture)
+                        .textureId,
+                    extractTexture(TextureType::normalTexture, material.normalTexture).textureId));
+            } else {
+                materialIds.push_back(storage.createSimpleMaterial(
+                    extractTexture(TextureType::baseColorTexture, material.pbrData.baseColorTexture).textureId));
+            }
+            ++materialId;
+        }
+
+        return materialIds;
+    }
+
     // template<typename EntityID>
     std::map<MeshID, const asset::Mesh*> createMeshes2(const std::map<MaterialID, const asset::Material*> materials,
                                                        std::map<MeshID, asset::Mesh>& meshes) const {
@@ -977,6 +1188,46 @@ public:
         return meshIds;
     }
 
+    std::vector<MeshID> createMeshes3(Storage& storage, const std::vector<MaterialID>& materialIds) const {
+        std::vector<MeshID> meshIds;
+        uint32_t            partialIndexCount { 0 };
+        for (const fastgltf::Mesh& fastgltfMesh : asset.meshes) {
+            std::vector<asset::Mesh2::Primitive> primitives;
+            primitives.reserve(fastgltfMesh.primitives.size());
+            for (const fastgltf::Primitive& primitive : fastgltfMesh.primitives) {
+                const fastgltf::Accessor& positionAccessor =
+                    asset.accessors.at(primitive.findAttribute("POSITION")->accessorIndex);
+
+                const auto indexCount  = asset.accessors.at(primitive.indicesAccessor.value()).count;
+                const auto vertexCount = positionAccessor.count;
+
+                constexpr auto        minValue = std::numeric_limits<core::math::Vector<3>::value_type>::min();
+                constexpr auto        maxValue = std::numeric_limits<core::math::Vector<3>::value_type>::min();
+                core::math::Vector<3> min { maxValue, maxValue, maxValue };
+                core::math::Vector<3> max { minValue, minValue, minValue };
+                using PositionAttribute =
+                    typename Vertex::Attribute<Vertex::attributeIndex<core::geometry::Attribute::position>()>::Value;
+                fastgltf::iterateAccessor<PositionAttribute>(asset, positionAccessor, [&](const auto& value) {
+                    core::forEach<0, 3>([&]<int i> {
+                        get<i>(min) = std::min(get<i>(min), value[i]);
+                        get<i>(max) = std::max(get<i>(max), value[i]);
+                    });
+                });
+                core::forEach<0, 3>([&]<int i> { assert(get<i>(min) <= get<i>(max)); });
+
+                const auto& material = primitive.materialIndex ? materialIds.at(primitive.materialIndex.value()) :
+                                                                 storage.defaultMaterialId;
+
+                primitives.emplace_back(partialIndexCount, indexCount, vertexCount, material,
+                                        core::geometry::BoundingBox { min, max });
+
+                partialIndexCount += indexCount;
+            }
+            meshIds.push_back(storage.createMesh(std::move(primitives)));
+        }
+        return meshIds;
+    }
+
     template<typename V>
     ModelID createModel2(const core::Command& command, const std::map<MeshID, const asset::Mesh*>& meshes,
                          core::LazyAccessContainer<ModelID, asset::Model>& models) const {
@@ -1030,6 +1281,59 @@ public:
         }
         return models.create(command, core::geometry::Shape { "asset", std::move(vertices), std::move(indices) },
                              asset::Model::scene);
+    }
+
+    template<typename V>
+    ModelID createModel3(Storage& storage, const std::vector<MeshID>& meshIds) const {
+        const auto [vertexCount, indexCount] = std::invoke([&] {
+            uint32_t vertexCount { 0 };
+            uint32_t indexCount { 0 };
+            for (const auto& meshId : meshIds) {
+                for (const auto& primitive : storage.meshes2.at(meshId).primitives) {
+                    vertexCount += primitive.vertexCount;
+                    indexCount += primitive.indexCount;
+                }
+            }
+            return std::pair { vertexCount, indexCount };
+        });
+
+        std::vector<V>     vertices(vertexCount);
+        std::vector<Index> indices;
+        indices.reserve(indexCount);
+
+        uint32_t vertexOffset { 0 };
+        for (const fastgltf::Mesh& mesh : asset.meshes) {
+            for (const auto& primitive : mesh.primitives) {
+                fastgltf::iterateAccessor<std::uint32_t>(
+                    asset, asset.accessors.at(primitive.indicesAccessor.value()),
+                    [&](std::uint32_t index) { indices.emplace_back(vertexOffset + index); });
+
+                static const std::map<core::geometry::Attribute, std::string_view> attributeNames {
+                    { core::geometry::Attribute::position,    "POSITION"   },
+                    { core::geometry::Attribute::normal,      "NORMAL"     },
+                    { core::geometry::Attribute::tangent,     "TANGENT"    },
+                    { core::geometry::Attribute::texCoord,    "TEXCOORD_0" },
+                    { core::geometry::Attribute::color,       "COLOR_0"    },
+                    { core::geometry::Attribute::jointIndex,  "JOINTS_0"   },
+                    { core::geometry::Attribute::jointWeight, "WEIGHTS_0"  },
+                };
+
+                core::forEach<0, V::attributeCount>([&]<int i>() {
+                    using Attribute = typename V::Attribute<i>;
+                    if (const auto values = primitive.findAttribute(attributeNames.at(Attribute::attribute));
+                        values != primitive.attributes.end()) {
+                        fastgltf::iterateAccessorWithIndex<typename Attribute::Value>(
+                            asset, asset.accessors.at(values->accessorIndex),
+                            [&](const typename Attribute::Value& value, const auto index) {
+                                vertices.at(vertexOffset + index).template get<Attribute::attribute>() = value;
+                            });
+                    }
+                });
+
+                vertexOffset += asset.accessors.at(primitive.findAttribute("POSITION")->accessorIndex).count;
+            }
+        }
+        return storage.createModel(core::geometry::Shape { "asset", std::move(vertices), std::move(indices) });
     }
 };
 }  // namespace surge::load

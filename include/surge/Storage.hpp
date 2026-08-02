@@ -2,7 +2,7 @@
 
 #include "surge/load/Defaults.hpp"
 #include "surge/core/DescriptorPool.hpp"
-#include "surge/load/AssetHandle.hpp"
+// #include "surge/load/AssetHandle.hpp"
 #include "surge/asset/Line.hpp"
 
 namespace surge {
@@ -48,6 +48,7 @@ struct ModelMatrixAndColor {
     core::math::Vector<4>    baseColor;
 };
 
+
 struct Storage {
     static constexpr auto               graphicsBindPoint { VK_PIPELINE_BIND_POINT_GRAPHICS };
     static constexpr VkShaderStageFlags shaderStages { VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_VERTEX_BIT |
@@ -81,9 +82,13 @@ struct Storage {
     core::LazyAccessContainer<MaterialID, asset::Material> materials2;
     std::map<MeshID, asset::Mesh>                          meshes;
 
+    std::map<MeshID, asset::Mesh2>                    meshes2;
+    std::map<NodeID, core::utils::Tree<asset::Node2>> nodes;
+
     TextureID  defaultTextureId;
     TextureID  whiteTextureId;
     TextureID  blackTextureId;
+    MaterialID defaultMaterialId;
     PipelineID linePipelineId;
 
     Storage(const core::Command& command)
@@ -101,6 +106,7 @@ struct Storage {
         , defaultTextureId { createTexture(load::createDefaultTextureData(core::RGBA::white, core::RGBA::black)) }
         , whiteTextureId { createTexture(load::createFlatTextureData(core::RGBA::white)) }
         , blackTextureId { createTexture(load::createFlatTextureData(core::RGBA::black)) }
+        , defaultMaterialId { createSimpleMaterial(defaultTextureId) }
         , linePipelineId { createLinePipeline() } {
     }
 
@@ -157,6 +163,23 @@ struct Storage {
     template<typename VertexInputState, typename PushConstants, typename... Layouts>
     PipelineID createPipeline(const core::shader::Type shaderType) {
         return createPipeline<VertexInputState, PushConstants, Layouts...>(shaderType, SceneID {});
+    }
+
+
+    MeshID createMesh(std::vector<asset::Mesh2::Primitive>&& primitives) {
+        const auto insertion = meshes2.emplace(meshes2.size(), std::move(primitives));
+        if (!insertion.second) {
+            throw std::runtime_error("Mesh already present");
+        }
+        return insertion.first->first;
+    }
+
+    NodeID createNodes(core::utils::Tree<asset::Node2>&& nodeTree) {
+        const auto insertion = nodes.emplace(nodes.size(), std::move(nodeTree));
+        if (!insertion.second) {
+            throw std::runtime_error("Node tree already present");
+        }
+        return insertion.first->first;
     }
 
     PipelineID createLinePipeline() {
@@ -221,6 +244,17 @@ struct Storage {
     }
 
     template<typename Info>
+    TextureID createTexture(const load::LoadedTexture& loadedTexture, const asset::Texture::Sampler& sampler, Info) {
+        const auto insertion = textures.emplace(std::piecewise_construct,  //
+                                                std::forward_as_tuple(textures.size()),
+                                                std::forward_as_tuple(command, loadedTexture, sampler, Info {}));
+        if (!insertion.second) {
+            throw std::runtime_error("Texture already present");
+        }
+        return insertion.first->first;
+    }
+
+    template<typename Info>
     TextureID createTexture(const std::filesystem::path& path, Info) {
         constexpr asset::Texture::Sampler sampler {
             .magFilter    = VK_FILTER_LINEAR,
@@ -250,14 +284,14 @@ struct Storage {
             textures.at(diffuse), textures.at(specular), textures.at(normal)));
     }
 
-    template<typename Vertex>
-    ModelID createAsset(const load::Gltf::Handle& handle) {
-        const load::Gltf asset { handle, defaults };
-        const auto       newTextures = asset.createTextures2(command, textures);
-        const auto newMaterials = asset.createMaterials2<PhongMaterialLayout>(descriptorPool, newTextures, materials2);
-        const auto newMeshes    = asset.createMeshes2(newMaterials, meshes);
-        return asset.createModel2<Vertex>(command, newMeshes, models);
-    }
+    // template<typename Vertex>
+    // ModelID createAsset(const load::Gltf::Handle& handle) {
+    //     const load::Gltf asset { handle, defaults };
+    //     const auto       newTextures = asset.createTextures2(command, textures);
+    //     const auto newMaterials = asset.createMaterials2<PhongMaterialLayout>(descriptorPool, newTextures,
+    //     materials2); const auto newMeshes    = asset.createMeshes2(newMaterials, meshes); return
+    //     asset.createModel2<Vertex>(command, newMeshes, models);
+    // }
 
     void reset() {
         models.reset();

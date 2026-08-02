@@ -55,7 +55,9 @@ struct Node {
                                     &primitive.material.descriptorSet, 0, nullptr);
 
             const PushConstants pushConstants {
-                .matrix = state.globalMatrix, .baseColorFactor = color, .isLight = isLight,
+                .matrix          = state.globalMatrix,
+                .baseColorFactor = color,
+                .isLight         = isLight,
                 // .fragmentStageFlag = state.fragmentStageFlag,
             };
             vkCmdPushConstants(commandBuffer, pipelineLayout,
@@ -65,5 +67,13 @@ struct Node {
             vkCmdDrawIndexed(commandBuffer, primitive.indexCount, 1, primitive.firstIndex, 0, 0);
         }
     }
+};
+
+struct Node2 {
+    MeshID                   meshId;
+    SkinID                   skinId;
+    core::math::Vector<3>    translation;
+    core::math::Quaternion<> rotation;
+    core::math::Vector<3>    scale;
 };
 }  // namespace surge::asset

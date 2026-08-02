@@ -4,11 +4,13 @@
 #include "surge/core/colors.hpp"
 #include "surge/core/Presenter.hpp"
 #include "surge/Renderer.hpp"
+#include "surge/Loader.hpp"
 
 #include "surge/entity/Skybox.hpp"
 
 #include "surge/Log.hpp"
 
+#include "surge/entity/Entity.hpp"
 
 namespace surge {
 
@@ -38,68 +40,75 @@ public:
         , command { context }
         , presenter { command }
         , storage { command }
+        , loader { storage }
         , renderer { storage }
         , overlay { command, assets } {
         log::checkpoint("The surge of urge to purge started");
     }
 
-    void loadAsset(const std::string& name, const load::AssetHandle& handle) {
-        if (assets.contains(name)) {
-            throw std::runtime_error("Asset [" + name + "] already exits");
-        }
-        const auto start = std::chrono::high_resolution_clock::now();
-        std::visit(
-            core::overload {
-                [&](const load::LoadedTexture::Handle& handle) {
-                    switch (handle.type) {
-                    case load::LoadedTexture::Type::texture2d:
-                        textures.emplace(std::piecewise_construct, std::forward_as_tuple(name),
-                                         std::forward_as_tuple(command, load::LoadedTexture { handle },
-                                                               load::Defaults::sampler, asset::Texture::texture2d));
-                        break;
-                    case load::LoadedTexture::Type::cube:
-                        textures.emplace(std::piecewise_construct, std::forward_as_tuple(name),
-                                         std::forward_as_tuple(command, load::LoadedTexture { handle },
-                                                               load::Defaults::sampler, asset::Texture::cube));
-                        break;
-                    }
-                    log::info(core::math::toString(elapsed(start)) + " Loaded texture asset " + handle.path.string());
-                },
-                [&](const load::LoadedSkybox::Handle& handle) {
-                    const auto [iter, inserted] =
-                        assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
-                                       std::forward_as_tuple(command, load::LoadedSkybox { handle, storage.defaults }));
-                    assert(inserted);
-                    const auto& [_, asset] = *iter;
-                    renderer.createPipeline(name, asset.vertexInputState, asset.shader,
-                                            asset.materialDescriptorSetLayout, asset.jointMatricesDescriptorSetLayout);
-                    log::info(core::math::toString(elapsed(start)) + " Loaded skybox asset " +
-                              handle.texturePath.string());
-                },
-                [&](const load::Gltf::Handle& handle) {
-                    const auto [iter, inserted] =
-                        assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
-                                       std::forward_as_tuple(command, load::Gltf { handle, storage.defaults }));
-                    assert(inserted);
-                    const auto& [_, asset] = *iter;
+    // void loadAsset(const std::string& name, const load::AssetHandle& handle) {
+    //     if (assets.contains(name)) {
+    //         throw std::runtime_error("Asset [" + name + "] already exits");
+    //     }
+    //     const auto start = std::chrono::high_resolution_clock::now();
+    //     std::visit(
+    //         core::overload {
+    //             [&](const load::LoadedTexture::Handle& handle) {
+    //                 switch (handle.type) {
+    //                 case load::LoadedTexture::Type::texture2d:
+    //                     textures.emplace(std::piecewise_construct, std::forward_as_tuple(name),
+    //                                      std::forward_as_tuple(command, load::LoadedTexture { handle },
+    //                                                            load::Defaults::sampler, asset::Texture::texture2d));
+    //                     break;
+    //                 case load::LoadedTexture::Type::cube:
+    //                     textures.emplace(std::piecewise_construct, std::forward_as_tuple(name),
+    //                                      std::forward_as_tuple(command, load::LoadedTexture { handle },
+    //                                                            load::Defaults::sampler, asset::Texture::cube));
+    //                     break;
+    //                 }
+    //                 log::info(core::math::toString(elapsed(start)) + " Loaded texture asset " +
+    //                 handle.path.string());
+    //             },
+    //             [&](const load::LoadedSkybox::Handle& handle) {
+    //                 const auto [iter, inserted] =
+    //                     assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
+    //                                    std::forward_as_tuple(command, load::LoadedSkybox { handle, storage.defaults
+    //                                    }));
+    //                 assert(inserted);
+    //                 const auto& [_, asset] = *iter;
+    //                 renderer.createPipeline(name, asset.vertexInputState, asset.shader,
+    //                                         asset.materialDescriptorSetLayout,
+    //                                         asset.jointMatricesDescriptorSetLayout);
+    //                 log::info(core::math::toString(elapsed(start)) + " Loaded skybox asset " +
+    //                           handle.texturePath.string());
+    //             },
+    //             [&](const load::Gltf::Handle& handle) {
+    //                 const auto [iter, inserted] =
+    //                     assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
+    //                                    std::forward_as_tuple(command, load::Gltf { handle, storage.defaults }));
+    //                 assert(inserted);
+    //                 const auto& [_, asset] = *iter;
 
-                    renderer.createPipeline(name, asset.vertexInputState, asset.shader,
-                                            asset.materialDescriptorSetLayout, asset.jointMatricesDescriptorSetLayout);
-                    log::info(core::math::toString(elapsed(start)) + " Loaded gltf asset " + handle.path.string());
-                },
-                [&](const load::Obj::Handle& handle) {
-                    const auto [iter, inserted] =
-                        assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
-                                       std::forward_as_tuple(command, load::Obj { handle, storage.defaults }));
-                    assert(inserted);
-                    const auto& [_, asset] = *iter;
-                    renderer.createPipeline(name, asset.vertexInputState, asset.shader,
-                                            asset.materialDescriptorSetLayout, asset.jointMatricesDescriptorSetLayout);
-                    log::info(core::math::toString(elapsed(start)) + " Loaded obj asset " + handle.meshPath.string());
-                },
-            },
-            handle);
-    }
+    //                 renderer.createPipeline(name, asset.vertexInputState, asset.shader,
+    //                                         asset.materialDescriptorSetLayout,
+    //                                         asset.jointMatricesDescriptorSetLayout);
+    //                 log::info(core::math::toString(elapsed(start)) + " Loaded gltf asset " + handle.path.string());
+    //             },
+    //             [&](const load::Obj::Handle& handle) {
+    //                 const auto [iter, inserted] =
+    //                     assets.emplace(std::piecewise_construct, std::forward_as_tuple(name),
+    //                                    std::forward_as_tuple(command, load::Obj { handle, storage.defaults }));
+    //                 assert(inserted);
+    //                 const auto& [_, asset] = *iter;
+    //                 renderer.createPipeline(name, asset.vertexInputState, asset.shader,
+    //                                         asset.materialDescriptorSetLayout,
+    //                                         asset.jointMatricesDescriptorSetLayout);
+    //                 log::info(core::math::toString(elapsed(start)) + " Loaded obj asset " +
+    //                 handle.meshPath.string());
+    //             },
+    //         },
+    //         handle);
+    // }
 
     template<typename Data>
     void updateBuffer(const BufferID bufferId, const Data& data) {
@@ -123,6 +132,7 @@ public:
     core::Command   command;
     core::Presenter presenter;
     Storage         storage;
+    Loader          loader;
 
 private:
     std::map<std::string, asset::Asset>   assets;
