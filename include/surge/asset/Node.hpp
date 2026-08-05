@@ -75,5 +75,6 @@ struct Node2 {
     core::math::Vector<3>    translation;
     core::math::Quaternion<> rotation;
     core::math::Vector<3>    scale;
+    core::math::Matrix<4, 4> transformation;
 };
 }  // namespace surge::asset

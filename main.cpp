@@ -303,7 +303,6 @@ int main() {
             });
         }
 
-        constexpr auto dragonMatrix = surge::rotate<x>(-90) * surge::core::math::Scaling<> { 0.1, 0.1, 0.1 };
         const auto [dragonModelId, dragonNodeTreeId] = engine.loader.load<surge::geom::PositionNormal>(
             surge::load::Gltf::Handle { vulkanAssetFolder / "models/chinesedragon.gltf" });
         surge::Entity2 dragon {
@@ -313,7 +312,6 @@ int main() {
             .modelMatrix = {},
         };
 
-        constexpr auto              cerberusMatrix = surge::rotate<x>(90);
         const std::filesystem::path cerberusFolder { vulkanAssetFolder / "models/cerberus" };
         const surge::GltfHandle     cerberusGltfHandle { cerberusFolder / "cerberus.gltf" };
         using TextureType = surge::load::Gltf::TextureType;
@@ -334,26 +332,23 @@ int main() {
             .modelMatrix = {},
         };
 
-        constexpr auto cesiumManMatrix                     = surge::translate<x>(-4.0) * surge::rotate<x>(90);
         const auto [cesiumManModelId, cesiumManNodeTreeId] = engine.loader.load<surge::geom::PositionNormalTexture>(
             surge::GltfHandle { vulkanAssetFolder / "models/CesiumMan/glTF-Embedded/CesiumMan.gltf" });
         const surge::Entity2 cesiumMan {
             .modelId     = cesiumManModelId,
             .nodeId      = cesiumManNodeTreeId,
             .pipelineId  = pipelines.at(surge::ShaderType::primitiveTexturedNormal),
-            .modelMatrix = cesiumManMatrix,
+            .modelMatrix = {},
         };
 
-        constexpr auto buggyMatrix                 = surge::core::math::fullMatrix(surge::translate<x>(-6.0));
-        const auto [buggyModelId, buggyNodeTreeId] = engine.loader.load<surge::geom::PositionNormalTexture>(
+        const auto [buggyModelId, buggyNodeTreeId] = engine.loader.load<surge::geom::PositionNormal>(
             surge::GltfHandle { vulkanAssetFolder / "models/gltf/glTF-Embedded/Buggy.gltf" });
         const surge::Entity2 buggy {
             .modelId     = buggyModelId,
             .nodeId      = buggyNodeTreeId,
             .pipelineId  = pipelines.at(surge::core::shader::Type::primitiveNormal),
-            .modelMatrix = buggyMatrix,
+            .modelMatrix = {},
         };
-        // { nodes.traverse<core::utils::Traversal::depthFirst>(&asset::Node::update, state.modelMatrix); }
 
         const auto crateMaterial = engine.storage.createPhongMaterial(
             engine.storage.createTexture(surgeTextureFolder / "container_diffuse.png", surge::Texture::texture2d),
@@ -410,6 +405,7 @@ int main() {
                         .baseColor = lightColor,
                     };
                 });
+
                 // rotate phongCube
                 surge::forEach<0, phongCube.size()>([&]<int face>() {
                     const auto matrixId = phongCube.at(face).matrix;
@@ -431,10 +427,10 @@ int main() {
                 });
 
                 // rotate dragon
-                dragon.modelMatrix = surge::translate<x>(6.0) * rotationY * dragonMatrix;
+                engine.updateNodeTree(dragon.nodeId, surge::translate<x>(6.0) * surge::scale(0.5) * rotationY);
 
                 // rotate cerberus
-                cerberus.modelMatrix = surge::translate<x>(8.0) * rotationY * cerberusMatrix;
+                engine.updateNodeTree(cerberus.nodeId, surge::translate<x>(8.0) * surge::scale(0.5) * rotationY);
 
                 // rotate crate
                 surge::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
@@ -446,9 +442,11 @@ int main() {
                 // rotate floor
                 engine.storage.matrices.at(floor.matrix) = surge::translate<x>(-2.0) * rotationY * surge::rotate<x>(90);
 
-                // // rotate cesium man
-                // engine.storage.matrices.at(cesiumMan.matrix) = surge::translate<x>(-4.0) * rotationY *
-                // cesiumManMatrix;
+                // rotate cesium man
+                engine.updateNodeTree(cesiumMan.nodeId, surge::translate<x>(-4.0) * rotationY);
+
+                // rotate buggy
+                engine.updateNodeTree(buggy.nodeId, surge::translate<x>(-6.0) * surge::scale(0.01) * rotationY);
 
                 // === rendering ===
                 const auto commandBuffer = engine.presenter.acquire();

@@ -117,7 +117,7 @@ public:
 
                     // push constants
                     vkCmdPushConstants(commandBuffer, pipelineLayout, Storage::shaderStages, 0, sizeof(ModelMatrix),
-                                       &entity.modelMatrix);
+                                       &node.transformation);
 
                     // draw
                     vkCmdDrawIndexed(commandBuffer, primitive.indexCount, 1, primitive.firstIndex, 0, 0);

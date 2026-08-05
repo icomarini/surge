@@ -302,6 +302,11 @@ constexpr auto translate(const float t) {
     }
 };
 
+constexpr auto scale(const float t) {
+    using namespace surge;
+    return core::math::Scaling<> { t, t, t };
+};
+
 template<Coordinate c>
 constexpr auto rotate(const float d) {
     using namespace surge;

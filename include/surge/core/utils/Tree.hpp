@@ -19,7 +19,7 @@ struct Tree {
 
     std::vector<Index> roots;
     using Nodes = std::vector<Node>;
-    Nodes nodes;
+    std::vector<Node> nodes;
 
     const Value& get(const Index index) const {
         return nodes.at(index).value;
