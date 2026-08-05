@@ -370,6 +370,55 @@ int main() {
             .material = brickwallMaterial,
         };
 
+        const std::filesystem::path                   armorFolder { vulkanAssetFolder / "models/armor" };
+        const std::map<TextureType, surge::TextureID> armorTextures1 {
+            { TextureType::baseColorTexture,
+             engine.storage.createTexture(armorFolder / "colormap_rgba.ktx", surge::Texture::texture2d) },
+            { TextureType::metallicRoughnessTexture, engine.storage.whiteTextureId },
+            { TextureType::normalTexture,
+             engine.storage.createTexture(armorFolder / "normalmap_rgba.ktx", surge::Texture::texture2d) },
+        };
+        const auto [armorModelId1, armorNodeTreeId1] = engine.loader.load<surge::geom::PositionNormalTangentTexture>(
+            surge::GltfHandle { armorFolder / "armor.gltf" }, armorTextures1);
+        const surge::Entity2 armor1 {
+            .modelId     = armorModelId1,
+            .nodeId      = armorNodeTreeId1,
+            .pipelineId  = pipelines.at(surge::core::shader::Type::phongModelNormal),
+            .modelMatrix = {},
+        };
+
+        const std::map<TextureType, surge::TextureID> armorTextures2 {
+            { TextureType::baseColorTexture,
+             engine.storage.createTexture(armorFolder / "colormap_rgba.ktx", surge::Texture::texture2d) },
+        };
+        const auto [armorModelId2, armorNodeTreeId2] = engine.loader.load<surge::geom::PositionNormalTexture>(
+            surge::GltfHandle { armorFolder / "armor.gltf" }, armorTextures2);
+        const surge::Entity2 armor2 {
+            .modelId     = armorModelId2,
+            .nodeId      = armorNodeTreeId2,
+            .pipelineId  = pipelines.at(surge::core::shader::Type::primitiveTexturedNormal),
+            .modelMatrix = {},
+        };
+
+        const auto [oaktreeModelId, oaktreeNodeTreeId] = engine.loader.load<surge::geom::PositionNormalTexture>(
+            surge::GltfHandle { vulkanAssetFolder / "models/oaktree.gltf" });
+        const surge::Entity2 oaktree {
+            .modelId     = oaktreeModelId,
+            .nodeId      = oaktreeNodeTreeId,
+            .pipelineId  = pipelines.at(surge::core::shader::Type::primitiveTexturedNormal),
+            .modelMatrix = {},
+        };
+
+        const auto [pathfinderModelId, pathfinderNodeTreeId] =
+            engine.loader.load<surge::geom::PositionNormalTangentTexture>(
+                surge::GltfHandle { "/home/ico/projects/uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" });
+        const surge::Entity2 pathfinder {
+            .modelId     = pathfinderModelId,
+            .nodeId      = pathfinderNodeTreeId,
+            .pipelineId  = pipelines.at(surge::core::shader::Type::phongModelNormal),
+            .modelMatrix = {},
+        };
+
         double elapsedTime = {};
         auto   start       = std::chrono::high_resolution_clock::now();
         while (engine.input.proceed) {
@@ -448,6 +497,17 @@ int main() {
                 // rotate buggy
                 engine.updateNodeTree(buggy.nodeId, surge::translate<x>(-6.0) * surge::scale(0.01) * rotationY);
 
+                // rotate armors
+                engine.updateNodeTree(armor1.nodeId, surge::translate<x>(-8.0) * surge::scale(0.3) * rotationY);
+                engine.updateNodeTree(armor2.nodeId, surge::translate<x>(-8.0) * surge::translate<z>(2.0) *
+                                                         surge::scale(0.3) * rotationY);
+
+                // rotate oaktree
+                engine.updateNodeTree(oaktree.nodeId, surge::translate<x>(-10.0) * rotationY);
+
+                // rotate pathfinder
+                engine.updateNodeTree(pathfinder.nodeId, surge::translate<z>(4.0) * rotationY);
+
                 // === rendering ===
                 const auto commandBuffer = engine.presenter.acquire();
                 engine.presenter.beginRendering();
@@ -469,6 +529,10 @@ int main() {
                 engine.renderer.draw(commandBuffer, floor);
                 engine.renderer.draw(commandBuffer, cesiumMan);
                 engine.renderer.draw(commandBuffer, buggy);
+                engine.renderer.draw(commandBuffer, armor1);
+                engine.renderer.draw(commandBuffer, armor2);
+                engine.renderer.draw(commandBuffer, oaktree);
+                engine.renderer.draw(commandBuffer, pathfinder);
 
                 surge::forEach<0, cubeFaceMatrices.size(), 0, 2>([&]<int face, int triangle>() {
                     using namespace surge::geom;

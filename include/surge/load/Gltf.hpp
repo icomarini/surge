@@ -586,6 +586,7 @@ public:
                         .rotation = core::math::Quaternion<> { trs.rotation.x(), trs.rotation.y(), trs.rotation.z(),
                                                                                                         trs.rotation.w() },
                         .scale    = core::math::Vector<3> { trs.scale.x(), trs.scale.y(), trs.scale.z() },
+                        .transformation = core::math::fullMatrix(core::math::identity<4>)
                 },
                     std::vector<Index> { gltfNode.children.begin(), gltfNode.children.end() });
             }
