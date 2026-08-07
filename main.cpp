@@ -146,85 +146,65 @@ int main() {
                                                cubeNormalTextures.at(z)),
         };
 
-        const auto planeTexturedNodel = engine.storage.createModel(surge::geom::planeTextured);
+        const auto planeTexturedModel = engine.storage.createModel(surge::geom::planeTextured);
+
         const auto texturedCube =
-            surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
-                constexpr surge::Translation<> T { 2, 0, 0 };
-                constexpr surge::ModelMatrix   matrix { T * cubeFaceMatrices.at(faceId) };
-                face = { planeTexturedNodel, engine.storage.getPipeline(surge::ShaderType::primitiveTextured),
-                         engine.storage.createMatrix(matrix), cubeSimpleMaterials.at(faceId) };
+            surge::createArray<surge::Entity2, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
+                face = engine.loader.load(surge::ShaderType::primitiveTextured, planeTexturedModel,
+                                          cubeSimpleMaterials.at(faceId));
+                engine.updateNodeTree(face.nodeTreeId, surge::translate<x>(2.0) * cubeFaceMatrices.at(faceId));
             });
-        const auto texturedCube2 = surge::createArray<surge::Entity2, cubeFaceMatrices.size()>(
-            [&]<int faceId>(auto& face) { face = engine.loader.load(surge::ShaderType::primitive, planeModel); });
 
         const auto planeTexturedNormalsModel = engine.storage.createModel(surge::geom::planeTexturedNormals);
         const auto texturedNormalCube =
-            surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
-                constexpr surge::Translation<> T { 4, 0, 0 };
-                constexpr surge::ModelMatrix   matrix { T * cubeFaceMatrices.at(faceId) };
-                face = { planeTexturedNormalsModel,
-                         engine.storage.getPipeline(surge::ShaderType::primitiveTexturedNormal),
-                         engine.storage.createMatrix(matrix), cubeSimpleMaterials.at(faceId) };
+            surge::createArray<surge::Entity2, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
+                face = engine.loader.load(surge::ShaderType::primitiveTexturedNormal, planeTexturedNormalsModel,
+                                          cubeSimpleMaterials.at(faceId));
             });
 
-        const auto phongCube = surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
-            constexpr surge::Translation<> T { 0, 0, 0 };
-            constexpr surge::ModelMatrix   matrix { T * cubeFaceMatrices.at(faceId) };
-            face = { planeTexturedNormalsModel, engine.storage.getPipeline(surge::ShaderType::phongModel),
-                     engine.storage.createMatrix(matrix), cubePhongMaterials.at(faceId) };
+        const auto phongCube = surge::createArray<surge::Entity2, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
+            face = engine.loader.load(surge::ShaderType::phongModel, planeTexturedNormalsModel,
+                                      cubePhongMaterials.at(faceId));
         });
 
         const auto planeTexturedNormalTangentModel = engine.storage.createModel(surge::geom::planeNormalTangentTexture);
+
         const auto phongNormalCube =
-            surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
-                constexpr surge::Translation<> T { 4, 2, 0 };
-                constexpr surge::ModelMatrix   matrix { T * cubeFaceMatrices.at(faceId) };
-                face = { planeTexturedNormalTangentModel,
-                         engine.storage.getPipeline(surge::ShaderType::phongModelNormal),
-                         engine.storage.createMatrix(matrix), cubePhongMaterials.at(faceId) };
+            surge::createArray<surge::Entity2, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
+                face = engine.loader.load(surge::ShaderType::phongModelNormal, planeTexturedNormalTangentModel,
+                                          cubePhongMaterials.at(faceId));
             });
 
-        std::vector<surge::Entity> brickwalls;
-        const auto                 brickwallMaterial = engine.storage.createPhongMaterial(
+        std::vector<surge::Entity2> brickwalls;
+        const auto                  brickwallMaterial = engine.storage.createPhongMaterial(
             engine.storage.createTexture(surgeTextureFolder / "brickwall_diffuse.jpg", surge::Texture::texture2d),
             engine.storage.blackTextureId,
             engine.storage.createTexture(surgeTextureFolder / "brickwall_normal.jpg", surge::Texture::texture2dNorm));
-        {  // brickwall
-            const auto     model    = planeTexturedNormalTangentModel;
-            const auto     pipeline = engine.storage.getPipeline(surge::ShaderType::phongModelNormal);
-            constexpr auto radius { 10 };
-            constexpr auto translations { generateTranslations<radius>() };
-            surge::forEach<0, translations.size()>([&]<int i>() {
-                constexpr surge::Translation translation { translations.at(i) };
-                constexpr surge::Scaling<>   scaling { 4.0f, 4.0f, 4.0f };
-                const surge::ModelMatrix     matrix { translation * scaling * surge::rotate<x>(90) };
-                brickwalls.emplace_back(model, pipeline, engine.storage.createMatrix(matrix), brickwallMaterial);
-            });
+
+        for (const auto& translation : generateTranslations<10>()) {
+            const auto brickwall = engine.loader.load(surge::ShaderType::phongModelNormal,
+                                                      planeTexturedNormalTangentModel, brickwallMaterial);
+            engine.updateNodeTree(brickwall.nodeTreeId,
+                                  surge::Translation { translation } * surge::scale(4.0) * surge::rotate<x>(90));
+            brickwalls.emplace_back(brickwall);
         }
 
         const auto crateMaterial = engine.storage.createPhongMaterial(
             engine.storage.createTexture(surgeTextureFolder / "container_diffuse.png", surge::Texture::texture2d),
             engine.storage.createTexture(surgeTextureFolder / "container_specular.png", surge::Texture::texture2d),
             engine.storage.whiteTextureId);
-
-        const auto crate = surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
-            constexpr surge::Translation<> T { 4, 2, 0 };
-            constexpr surge::ModelMatrix   matrix { T * cubeFaceMatrices.at(faceId) };
-            face = { planeTexturedNormalTangentModel, engine.storage.getPipeline(surge::ShaderType::phongModelNormal),
-                     engine.storage.createMatrix(matrix), crateMaterial };
+        const auto crate = surge::createArray<surge::Entity2, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
+            face =
+                engine.loader.load(surge::ShaderType::phongModelNormal, planeTexturedNormalTangentModel, crateMaterial);
         });
 
-        constexpr auto      floorMatrix = surge::translate<x>(-2.0);
-        const surge::Entity floor {
-            .model    = planeTexturedNormalTangentModel,
-            .pipeline = engine.storage.getPipeline(surge::ShaderType::phongModelNormal),
-            .matrix   = engine.storage.createMatrix(surge::fullMatrix(floorMatrix)),
-            .material = brickwallMaterial,
-        };
+        const auto floor =
+            engine.loader.load(surge::ShaderType::phongModelNormal, planeTexturedNormalTangentModel, brickwallMaterial);
+
 
         // ===========================================================================================
         const auto dragon = engine.loader.load<surge::geom::PositionNormal>(
-            surge::core::shader::Type::primitiveNormal,
+            surge::ShaderType::primitiveNormal,
             surge::load::Gltf::Handle { vulkanAssetFolder / "models/chinesedragon.gltf" });
 
         const std::filesystem::path cerberusFolder { vulkanAssetFolder / "models/cerberus" };
@@ -239,7 +219,7 @@ int main() {
              engine.storage.createTexture(cerberusFolder / "normal.ktx",   surge::Texture::texture2d) },
         };
         const auto cerberus = engine.loader.load<surge::geom::PositionNormalTangentTexture>(
-            surge::core::shader::Type::phongModelNormal, cerberusGltfHandle, cerberusTextures);
+            surge::ShaderType::phongModelNormal, cerberusGltfHandle, cerberusTextures);
 
         const auto cesiumMan = engine.loader.load<surge::geom::PositionNormalTexture>(
             surge::ShaderType::primitiveTexturedNormal,
@@ -316,57 +296,31 @@ int main() {
                     };
                 });
 
-                // rotate phongCube
-                surge::forEach<0, phongCube.size()>([&]<int face>() {
-                    const auto matrixId = phongCube.at(face).matrix;
-                    engine.storage.matrices[matrixId] =
-                        surge::translate<x>(10.0) * rotationY * cubeFaceMatrices.at(face);
-                });
-
-                // rotate phongNormalCube
-                surge::forEach<0, phongNormalCube.size()>([&]<int face>() {
-                    const auto matrixId = phongNormalCube.at(face).matrix;
-                    engine.storage.matrices[matrixId.get()] =
-                        surge::translate<x>(10.0) * surge::translate<y>(2.0) * rotationY * cubeFaceMatrices.at(face);
-                });
-
-                surge::forEach<0, texturedNormalCube.size()>([&]<int face>() {
-                    const auto matrixId = texturedNormalCube[face].matrix;
-                    engine.storage.matrices[matrixId] =
-                        surge::translate<x>(4.0) * rotationY * cubeFaceMatrices.at(face);
-                });
-
-                // rotate dragon
-                engine.updateNodeTree(dragon.nodeTreeId, surge::translate<x>(6.0) * surge::scale(0.5) * rotationY);
-
-                // rotate cerberus
-                engine.updateNodeTree(cerberus.nodeTreeId, surge::translate<x>(8.0) * surge::scale(0.5) * rotationY);
-
-                // rotate crate
-                surge::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
-                    const auto matrixId = crate.at(face).matrix;
-                    engine.storage.matrices[matrixId.get()] =
-                        surge::translate<x>(12.0) * rotationY * cubeFaceMatrices.at(face);
-                });
-
                 // rotate floor
-                engine.storage.matrices.at(floor.matrix) = surge::translate<x>(-2.0) * rotationY * surge::rotate<x>(90);
+                // engine.storage.matrices.at(floor.matrix) = surge::translate<x>(-2.0) * rotationY *
+                // surge::rotate<x>(90);
 
-                // rotate cesium man
+                // rotate
+                surge::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
+                    engine.updateNodeTree(texturedNormalCube.at(face).nodeTreeId,
+                                          surge::translate<x>(4.0) * rotationY * cubeFaceMatrices.at(face));
+                    engine.updateNodeTree(phongCube.at(face).nodeTreeId,
+                                          surge::translate<x>(10.0) * rotationY * cubeFaceMatrices.at(face));
+                    engine.updateNodeTree(phongNormalCube.at(face).nodeTreeId,
+                                          surge::translate<x>(10.0) * surge::translate<y>(2.0) * rotationY *
+                                              cubeFaceMatrices.at(face));
+                    engine.updateNodeTree(crate.at(face).nodeTreeId,
+                                          surge::translate<x>(12.0) * rotationY * cubeFaceMatrices.at(face));
+                });
+                engine.updateNodeTree(floor.nodeTreeId, surge::translate<x>(-2.0) * rotationY * surge::rotate<x>(90));
+                engine.updateNodeTree(dragon.nodeTreeId, surge::translate<x>(6.0) * surge::scale(0.5) * rotationY);
+                engine.updateNodeTree(cerberus.nodeTreeId, surge::translate<x>(8.0) * surge::scale(0.5) * rotationY);
                 engine.updateNodeTree(cesiumMan.nodeTreeId, surge::translate<x>(-4.0) * rotationY);
-
-                // rotate buggy
                 engine.updateNodeTree(buggy.nodeTreeId, surge::translate<x>(-6.0) * surge::scale(0.01) * rotationY);
-
-                // rotate armors
                 engine.updateNodeTree(armor1.nodeTreeId, surge::translate<x>(-8.0) * surge::scale(0.3) * rotationY);
                 engine.updateNodeTree(armor2.nodeTreeId, surge::translate<x>(-8.0) * surge::translate<z>(2.0) *
                                                              surge::scale(0.3) * rotationY);
-
-                // rotate oaktree
                 engine.updateNodeTree(oaktree.nodeTreeId, surge::translate<x>(-10.0) * rotationY);
-
-                // rotate pathfinder
                 engine.updateNodeTree(pathfinder.nodeTreeId, surge::translate<z>(4.0) * rotationY);
 
                 // === rendering ===
@@ -377,15 +331,19 @@ int main() {
                 engine.storage.reset();
                 engine.renderer.draw(commandBuffer, skybox);
                 engine.renderer.draw(commandBuffer, lightCube);
-                engine.renderer.draw(commandBuffer, coordinates);
                 engine.renderer.draw(commandBuffer, untexturedCube);
-                engine.renderer.draw(commandBuffer, texturedCube);
-                engine.renderer.draw(commandBuffer, texturedNormalCube);
-                engine.renderer.draw(commandBuffer, phongCube);
-                engine.renderer.draw(commandBuffer, phongNormalCube);
-                engine.renderer.draw(commandBuffer, brickwalls);
-                engine.renderer.draw(commandBuffer, crate);
-                engine.renderer.draw(commandBuffer, floor);
+                // engine.renderer.draw(commandBuffer, floor);
+
+                mainScene.entities.push_back(coordinates);
+                mainScene.entities.push_back(floor);
+
+                mainScene.entities.insert(mainScene.entities.end(), texturedCube.begin(), texturedCube.end());
+                mainScene.entities.insert(mainScene.entities.end(), texturedNormalCube.begin(),
+                                          texturedNormalCube.end());
+                mainScene.entities.insert(mainScene.entities.end(), phongCube.begin(), phongCube.end());
+                mainScene.entities.insert(mainScene.entities.end(), phongNormalCube.begin(), phongNormalCube.end());
+                mainScene.entities.insert(mainScene.entities.end(), brickwalls.begin(), brickwalls.end());
+                mainScene.entities.insert(mainScene.entities.end(), crate.begin(), crate.end());
 
                 mainScene.entities.push_back(dragon);
                 mainScene.entities.push_back(cerberus);
@@ -397,7 +355,7 @@ int main() {
                 mainScene.entities.push_back(pathfinder);
                 engine.renderer.draw(commandBuffer, mainScene);
 
-                surge::forEach<0, cubeFaceMatrices.size(), 0, 2>([&]<int face, int triangle>() {
+                surge::forEach<0, texturedNormalCube.size(), 0, 2>([&]<int face, int triangle>() {
                     using namespace surge::geom;
                     constexpr auto& vertices = planeTexturedNormals.vertices;
                     constexpr auto& indices  = planeTexturedNormals.indices;
@@ -411,11 +369,13 @@ int main() {
                                             vertices.at(indices.at(offset + 1)).get<Attribute::normal>() +
                                             vertices.at(indices.at(offset + 2)).get<Attribute::normal>()) /
                                                3.0f;
-                    const auto& matrix = engine.storage.getMatrix(texturedNormalCube.at(face).matrix);
+
+                    const auto  nodeTreeId     = texturedNormalCube.at(face).nodeTreeId;
+                    const auto& transformation = engine.storage.nodeTrees.at(nodeTreeId).get(0).transformation;
                     engine.renderer.draw(commandBuffer, mainScene,
                                          surge::Line {
-                                             .a     = transform(a, matrix),
-                                             .b     = transform(b, matrix),
+                                             .a     = transform(a, transformation),
+                                             .b     = transform(b, transformation),
                                              .color = surge::RGBA::white,
                                          });
                 });

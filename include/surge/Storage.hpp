@@ -190,6 +190,14 @@ struct Storage {
         });
     }
 
+    NodeTreeID createNodeTree(core::utils::Tree<asset::Node2>&& nodeTree) {
+        const auto insertion = nodeTrees.emplace(nodeTrees.size(), std::move(nodeTree));
+        if (!insertion.second) {
+            throw std::runtime_error("Node tree already present");
+        }
+        return insertion.first->first;
+    }
+
     template<typename VertexInputState, typename PushConstants, typename... Layouts>
     PipelineID createPipeline(const core::shader::Type shaderType, const SceneID sceneId) {
         constexpr auto push = core::createPushConstantRange<PushConstants>(shaderStages);
@@ -216,13 +224,6 @@ struct Storage {
         return insertion.first->first;
     }
 
-    NodeTreeID createNodeTree(core::utils::Tree<asset::Node2>&& nodeTree) {
-        const auto insertion = nodeTrees.emplace(nodeTrees.size(), std::move(nodeTree));
-        if (!insertion.second) {
-            throw std::runtime_error("Node tree already present");
-        }
-        return insertion.first->first;
-    }
 
     PipelineID createLinePipeline() {
         const auto pipelineLayout =

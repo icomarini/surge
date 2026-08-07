@@ -37,15 +37,19 @@ public:
 
     template<typename LoadedModel>
     Entity2 load(const core::shader::Type shaderType, const LoadedModel& loadedModel) {
-        return load(shaderType, storage.createModel(loadedModel));
+        return load(shaderType, storage.createModel(loadedModel), MaterialID {});
     }
 
     Entity2 load(const core::shader::Type shaderType, const ModelID modelId) {
+        return load(shaderType, modelId, MaterialID {});
+    }
+
+    Entity2 load(const core::shader::Type shaderType, const ModelID modelId, const MaterialID materialId) {
         const auto meshId = storage.createMesh({
             asset::Mesh2::Primitive { .firstIndex  = 0,
                                      .indexCount  = storage.models.get(modelId).indexCount,
                                      .vertexCount = storage.models.get(modelId).vertexCount,
-                                     .materialId  = {},
+                                     .materialId  = materialId,
                                      .boundingBox = {} }
         });
         return Entity2 {
