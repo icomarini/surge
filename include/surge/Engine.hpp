@@ -115,21 +115,14 @@ public:
         memcpy(storage.buffers.at(bufferId).mapped, &data, sizeof(Data));
     }
 
-    void updateNodeTree(const NodeTreeID nodeId, const surge::core::math::Matrix<4, 4>& transformation) {
-        storage.nodeTrees.at(nodeId).traverse<surge::core::utils::Traversal::depthFirst>(
-            [](surge::asset::Node2& node, const surge::core::math::Matrix<4, 4>& parent) {
-                node.transformation = parent * surge::core::math::Translation { node.translation } *
-                                      surge::core::math::Rotation { node.rotation } *
-                                      surge::core::math::Scaling { node.scale };
+    void updateNodeTree(const NodeTreeID nodeId, const core::math::Matrix<4, 4>& transformation) {
+        storage.nodeTrees.at(nodeId).traverse<core::utils::Traversal::depthFirst>(
+            [](asset::Node2& node, const core::math::Matrix<4, 4>& parent) {
+                node.transformation = parent * core::math::Translation { node.translation } *
+                                      core::math::Rotation { node.rotation } * core::math::Scaling { node.scale };
                 return node.transformation;
             },
             transformation);
-    }
-
-    entity::Skybox createSkybox(const std::string& name) {
-        const auto& asset                     = assets.at(name);
-        const auto [pipelineLayout, pipeline] = renderer.pipelines.at(name);
-        return entity::Skybox { asset, pipelineLayout, pipeline, core::math::identity<4> };
     }
 
     ~Engine() {

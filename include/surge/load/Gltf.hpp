@@ -597,7 +597,7 @@ public:
             return std::vector<Index> { asset.scenes.front().nodeIndices.begin(),
                                         asset.scenes.front().nodeIndices.end() };
         };
-        return storage.createNodes(core::utils::Tree<asset::Node2> {
+        return storage.createNodeTree(core::utils::Tree<asset::Node2> {
             .roots = createRoots(),
             .nodes = createNodes(),
         });
@@ -734,6 +734,9 @@ public:
     }
 
     AnimationSetID createAnimationsSet(Storage& storage) const {
+        if (asset.animations.empty()) {
+            return {};
+        }
         std::vector<asset::Animation> animations;
         animations.reserve(asset.skins.size());
         uint32_t animationId = 0;
@@ -1326,8 +1329,10 @@ public:
                 });
                 core::forEach<0, 3>([&]<int i> { assert(get<i>(min) <= get<i>(max)); });
 
-                const auto& material = primitive.materialIndex ? materialIds.at(primitive.materialIndex.value()) :
-                                                                 storage.defaultMaterialId;
+                // const auto& material = primitive.materialIndex ? materialIds.at(primitive.materialIndex.value()) :
+                //                                                  storage.defaultMaterialId;
+                const auto& material =
+                    primitive.materialIndex ? materialIds.at(primitive.materialIndex.value()) : MaterialID {};
 
                 primitives.emplace_back(partialIndexCount, indexCount, vertexCount, material,
                                         core::geometry::BoundingBox { min, max });
@@ -1400,7 +1405,7 @@ public:
             uint32_t vertexCount { 0 };
             uint32_t indexCount { 0 };
             for (const auto& meshId : meshIds) {
-                for (const auto& primitive : storage.meshes2.at(meshId).primitives) {
+                for (const auto& primitive : storage.meshes.at(meshId).primitives) {
                     vertexCount += primitive.vertexCount;
                     indexCount += primitive.indexCount;
                 }

@@ -85,14 +85,9 @@ struct Storage {
         core::math::Vector<4>    lightColor;
         core::math::Vector<3>    lightPosition;
     };
-    BufferID        sceneBufferId;
-    VkDescriptorSet sceneDescriptorSet;
-
     core::LazyAccessContainer<MaterialID, VkDescriptorSet> materials;
-    core::LazyAccessContainer<MaterialID, asset::Material> materials2;
-    std::map<MeshID, asset::Mesh>                          meshes;
 
-    std::map<MeshID, asset::Mesh2>                        meshes2;
+    std::map<MeshID, asset::Mesh2>                        meshes;
     std::map<NodeTreeID, core::utils::Tree<asset::Node2>> nodeTrees;
 
     std::map<SkinID, asset::Skin>                           skins;
@@ -111,11 +106,6 @@ struct Storage {
         , descriptorPool { command.context, core::DescriptorAllocation<SceneLayout> { 2 },
                            core::DescriptorAllocation<SimpleMaterialLayout> { 128 },
                            core::DescriptorAllocation<PhongMaterialLayout> { 128 } }
-        , sceneBufferId { createBuffer(sizeof(SceneBuffer)) }
-        , sceneDescriptorSet { descriptorPool.allocate<SceneLayout>(buffers.at(sceneBufferId)) }
-        , materials {}
-        , materials2 {}
-        , meshes {}
         , defaultTextureId { createTexture(load::createDefaultTextureData(core::RGBA::white, core::RGBA::black)) }
         , whiteTextureId { createTexture(load::createFlatTextureData(core::RGBA::white)) }
         , blackTextureId { createTexture(load::createFlatTextureData(core::RGBA::black)) }
@@ -126,14 +116,6 @@ struct Storage {
     ~Storage() {
         pipelines.apply([&](Pipeline& pipeline) { pipeline.destroy(command.context); });
     }
-
-    void updateSceneBuffer(const Camera<false>& camera, const core::math::Vector<4>& lightColor,
-                           const core::math::Vector<3> lightPosition) {
-        const SceneBuffer sceneMatrices { core::math::fullMatrix(camera.mats.perspective),
-                                          core::math::fullMatrix(camera.mats.view), lightColor, lightPosition };
-        memcpy(buffers.at(sceneBufferId).mapped, &sceneMatrices, sizeof(SceneBuffer));
-    }
-
 
     void createPipelines(const SceneID sceneId) {
         using ShaderType = core::shader::Type;
@@ -194,6 +176,20 @@ struct Storage {
         return models.create(command, loadedModel, asset::Model::scene);
     }
 
+    NodeTreeID createNodeTree(Storage& storage, const MeshID meshId) {
+        return storage.createNodeTree(core::utils::Tree<asset::Node2> {
+            .roots = { 0 },
+            .nodes = { core::utils::Tree<asset::Node2>::Node {
+                asset::Node2 { .meshId         = meshId,
+                               .skinId         = {},
+                               .translation    = { 0, 0, 0 },
+                               .rotation       = core::math::Quaternion<> { 0, 0, 0, 0 },
+                               .scale          = core::math::Vector<3> { 1, 1, 1 },
+                               .transformation = core::math::fullMatrix(core::math::identity<4>) },
+                {} } },
+        });
+    }
+
     template<typename VertexInputState, typename PushConstants, typename... Layouts>
     PipelineID createPipeline(const core::shader::Type shaderType, const SceneID sceneId) {
         constexpr auto push = core::createPushConstantRange<PushConstants>(shaderStages);
@@ -213,14 +209,14 @@ struct Storage {
 
 
     MeshID createMesh(std::vector<asset::Mesh2::Primitive>&& primitives) {
-        const auto insertion = meshes2.emplace(meshes2.size(), std::move(primitives));
+        const auto insertion = meshes.emplace(meshes.size(), std::move(primitives));
         if (!insertion.second) {
             throw std::runtime_error("Mesh already present");
         }
         return insertion.first->first;
     }
 
-    NodeTreeID createNodes(core::utils::Tree<asset::Node2>&& nodeTree) {
+    NodeTreeID createNodeTree(core::utils::Tree<asset::Node2>&& nodeTree) {
         const auto insertion = nodeTrees.emplace(nodeTrees.size(), std::move(nodeTree));
         if (!insertion.second) {
             throw std::runtime_error("Node tree already present");

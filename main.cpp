@@ -1,76 +1,5 @@
 #include "surge/surge.hpp"
 
-// void createRope(surge::physics::Physics& physics, const surge::physics::Position& first,
-//                 const surge::physics::Position& second, const int size) {
-//     auto& firstAnchor  = physics.addAnchor(first);
-//     auto& secondAnchor = physics.addAnchor(second);
-
-//     const auto trajectory = second - first;
-//     const auto distance   = surge::core::math::norm(trajectory);
-//     const auto direction  = surge::core::math::normalize(trajectory);
-
-//     std::vector<surge::physics::Particle*> particles;
-//     particles.reserve(size - 2);
-//     for (int index = 1; index < size - 1; ++index) {
-//         const auto step     = index * distance / size;
-//         const auto position = first + step * direction;
-//         particles.emplace_back(&physics.addParticle(surge::physics::Mass { 0.01 }, position));
-//     };
-//     constexpr surge::physics::Scalar springConstant = 0.1;
-//     constexpr surge::physics::Scalar restLength     = 0.0;
-//     // const physics::Scalar     restLength     = distance / size;
-//     physics.addAnchoredSpring(firstAnchor, *particles.front(), springConstant, restLength);
-//     physics.addAnchoredSpring(secondAnchor, *particles.back(), springConstant, restLength);
-//     for (int index = 0; index < size - 3; ++index) {
-//         physics.addSpring(*particles.at(index), *particles.at(index + 1), springConstant, restLength);
-//     };
-// }
-
-// void resetPhysics(surge::physics::Physics& physics) {
-//     using namespace surge::physics;
-//     physics.clear();
-
-//     auto& anchor1   = physics.addAnchor(Position { 0, 0.5, 0 });
-//     auto& anchor2   = physics.addAnchor(Position { 0, 0.5, 1 });
-//     auto& anchor3   = physics.addAnchor(Position { 1, 0.5, 0 });
-//     auto& anchor4   = physics.addAnchor(Position { 1, 0.5, 1 });
-//     auto& particle1 = physics.addParticle(Mass { 1 }, Position { 0.4, 1.0, 0.5 });
-
-//     constexpr Scalar springConstant = 0.5;
-//     constexpr Scalar restLength     = 1;
-//     physics.addAnchoredSpring(anchor1, particle1, springConstant, restLength);
-//     physics.addAnchoredSpring(anchor2, particle1, springConstant, restLength);
-//     physics.addAnchoredSpring(anchor3, particle1, springConstant, restLength);
-//     physics.addAnchoredSpring(anchor4, particle1, springConstant, restLength);
-
-//     auto& particle2 = physics.addParticle(Mass { 0.1 }, Position { -1.4, 1.0, 0.5 });
-//     physics.addSpring(particle1, particle2, springConstant, restLength);
-
-//     createRope(physics, Position { -10, 0, 0 }, Position { 0, 0, -10 }, 32);
-//     createRope(physics, Position { -9, 0, 0 }, Position { 0, 0, -9 }, 32);
-// }
-
-// void physicsPlayground() {
-// using Action = core::input::Action;
-// if (!physicsActive && input.mouse.left == Action::press)
-// {
-//     physicsActive = true;
-// }
-
-// if (physicsActive)
-// {
-//     const auto duration = input.elapsedTime;
-
-//     if (input.mouse.right == Action::press)
-//     {
-//         resetPhysics();
-//         physicsActive = false;
-//     }
-
-//     physics.update(duration);
-// }
-// }
-
 template<int radius>
 constexpr auto generateTranslations() {
     constexpr auto                     length = 2 * radius + 1;
@@ -112,41 +41,10 @@ int main() {
         };
 
         // create scene
-        const auto mainScene    = engine.storage.createScene();
-        const auto mainSceneUbo = engine.storage.scenes.at(mainScene).bufferId;
+        const auto mainSceneId = engine.storage.createScene();
+        auto&      mainScene   = engine.storage.scenes.at(mainSceneId);
 
-        engine.storage.createPipelines(mainScene);
-
-        // const std::map<surge::ShaderType, surge::PipelineID> pipelines {
-        //     { surge::ShaderType::skybox,
-        //      engine.storage.createPipeline<surge::geom::Position, surge::ModelMatrix, surge::SceneLayout,
-        //      surge::SimpleMaterialLayout>(surge::ShaderType::skybox) },
-        //     { surge::ShaderType::coordinates,
-        //      engine.storage.createPipeline<surge::geom::PositionAndColor, surge::ModelMatrix, surge::SceneLayout>(
-        //           surge::ShaderType::coordinates, mainScene) },
-        //     { surge::ShaderType::primitive,
-        //      engine.storage.createPipeline<surge::geom::Position, surge::ModelMatrixAndColor, surge::SceneLayout>(
-        //           surge::ShaderType::primitive, mainScene) },
-        //     { surge::ShaderType::primitiveNormal,
-        //      engine.storage.createPipeline<surge::geom::PositionNormal, surge::ModelMatrix, surge::SceneLayout,
-        //      surge::SimpleMaterialLayout>(surge::ShaderType::primitiveNormal,
-        //      mainScene) },
-        //     { surge::ShaderType::primitiveTextured,
-        //      engine.storage.createPipeline<surge::geom::PositionTexture, surge::ModelMatrix, surge::SceneLayout,
-        //      surge::SimpleMaterialLayout>(surge::ShaderType::primitiveTextured,
-        //      mainScene) },
-        //     { surge::ShaderType::primitiveTexturedNormal,
-        //      engine.storage.createPipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix,
-        //      surge::SceneLayout, surge::SimpleMaterialLayout>(surge::ShaderType::primitiveTexturedNormal, mainScene)
-        //      },
-        //     { surge::ShaderType::phongModel,
-        //      engine.storage.createPipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix,
-        //      surge::SceneLayout, surge::PhongMaterialLayout>(surge::ShaderType::phongModel, mainScene) },
-        //     { surge::ShaderType::phongModelNormal,
-        //      engine.storage.createPipeline<surge::geom::PositionNormalTangentTexture, surge::ModelMatrix,
-        //      surge::SceneLayout, surge::PhongMaterialLayout>(
-        //           surge::ShaderType::phongModelNormal, mainScene) }
-        // };
+        engine.storage.createPipelines(mainSceneId);
 
         // create skybox
         const surge::Entity skybox {
@@ -158,12 +56,7 @@ int main() {
         };
 
         // create coordinates
-        const surge::Entity coordinates {
-            .model    = engine.storage.createModel(surge::geom::coordinates),
-            .pipeline = engine.storage.getPipeline(surge::ShaderType::coordinates),
-            .matrix   = engine.storage.createMatrix(surge::fullMatrix(surge::identity<4>)),
-            .material = {},
-        };
+        const surge::Entity2 coordinates = engine.loader.load(surge::ShaderType::coordinates, surge::geom::coordinates);
 
         surge::Vector<3> lightPosition { -2, 2, 1 };
         constexpr auto   lightColor = surge::RGBA::white;
@@ -261,6 +154,8 @@ int main() {
                 face = { planeTexturedNodel, engine.storage.getPipeline(surge::ShaderType::primitiveTextured),
                          engine.storage.createMatrix(matrix), cubeSimpleMaterials.at(faceId) };
             });
+        const auto texturedCube2 = surge::createArray<surge::Entity2, cubeFaceMatrices.size()>(
+            [&]<int faceId>(auto& face) { face = engine.loader.load(surge::ShaderType::primitive, planeModel); });
 
         const auto planeTexturedNormalsModel = engine.storage.createModel(surge::geom::planeTexturedNormals);
         const auto texturedNormalCube =
@@ -307,49 +202,6 @@ int main() {
             });
         }
 
-        const auto [dragonModelId, dragonNodeTreeId] = engine.loader.load<surge::geom::PositionNormal>(
-            surge::load::Gltf::Handle { vulkanAssetFolder / "models/chinesedragon.gltf" });
-        surge::Entity2 dragon {
-            .modelId    = dragonModelId,
-            .nodeTreeId = dragonNodeTreeId,
-            .pipelineId = engine.storage.getPipeline(surge::core::shader::Type::primitiveNormal),
-        };
-
-        const std::filesystem::path cerberusFolder { vulkanAssetFolder / "models/cerberus" };
-        const surge::GltfHandle     cerberusGltfHandle { cerberusFolder / "cerberus.gltf" };
-        using TextureType = surge::load::Gltf::TextureType;
-        const std::map<TextureType, surge::TextureID> cerberusTextures {
-            { TextureType::baseColorTexture,
-             engine.storage.createTexture(cerberusFolder / "albedo.ktx",   surge::Texture::texture2d) },
-            { TextureType::metallicRoughnessTexture,
-             engine.storage.createTexture(cerberusFolder / "metallic.ktx", surge::Texture::metallic)  },
-            { TextureType::normalTexture,
-             engine.storage.createTexture(cerberusFolder / "normal.ktx",   surge::Texture::texture2d) },
-        };
-        const auto [cerberusModelId, cerberusNodeTreeId] =
-            engine.loader.load<surge::geom::PositionNormalTangentTexture>(cerberusGltfHandle, cerberusTextures);
-        surge::Entity2 cerberus {
-            .modelId    = cerberusModelId,
-            .nodeTreeId = cerberusNodeTreeId,
-            .pipelineId = engine.storage.getPipeline(surge::ShaderType::phongModelNormal),
-        };
-
-        const auto [cesiumManModelId, cesiumManNodeTreeId] = engine.loader.load<surge::geom::PositionNormalTexture>(
-            surge::GltfHandle { vulkanAssetFolder / "models/CesiumMan/glTF-Embedded/CesiumMan.gltf" });
-        const surge::Entity2 cesiumMan {
-            .modelId    = cesiumManModelId,
-            .nodeTreeId = cesiumManNodeTreeId,
-            .pipelineId = engine.storage.getPipeline(surge::ShaderType::primitiveTexturedNormal),
-        };
-
-        const auto [buggyModelId, buggyNodeTreeId] = engine.loader.load<surge::geom::PositionNormal>(
-            surge::GltfHandle { vulkanAssetFolder / "models/gltf/glTF-Embedded/Buggy.gltf" });
-        const surge::Entity2 buggy {
-            .modelId    = buggyModelId,
-            .nodeTreeId = buggyNodeTreeId,
-            .pipelineId = engine.storage.getPipeline(surge::core::shader::Type::primitiveNormal),
-        };
-
         const auto crateMaterial = engine.storage.createPhongMaterial(
             engine.storage.createTexture(surgeTextureFolder / "container_diffuse.png", surge::Texture::texture2d),
             engine.storage.createTexture(surgeTextureFolder / "container_specular.png", surge::Texture::texture2d),
@@ -370,6 +222,33 @@ int main() {
             .material = brickwallMaterial,
         };
 
+        // ===========================================================================================
+        const auto dragon = engine.loader.load<surge::geom::PositionNormal>(
+            surge::core::shader::Type::primitiveNormal,
+            surge::load::Gltf::Handle { vulkanAssetFolder / "models/chinesedragon.gltf" });
+
+        const std::filesystem::path cerberusFolder { vulkanAssetFolder / "models/cerberus" };
+        const surge::GltfHandle     cerberusGltfHandle { cerberusFolder / "cerberus.gltf" };
+        using TextureType = surge::load::Gltf::TextureType;
+        const std::map<TextureType, surge::TextureID> cerberusTextures {
+            { TextureType::baseColorTexture,
+             engine.storage.createTexture(cerberusFolder / "albedo.ktx",   surge::Texture::texture2d) },
+            { TextureType::metallicRoughnessTexture,
+             engine.storage.createTexture(cerberusFolder / "metallic.ktx", surge::Texture::metallic)  },
+            { TextureType::normalTexture,
+             engine.storage.createTexture(cerberusFolder / "normal.ktx",   surge::Texture::texture2d) },
+        };
+        const auto cerberus = engine.loader.load<surge::geom::PositionNormalTangentTexture>(
+            surge::core::shader::Type::phongModelNormal, cerberusGltfHandle, cerberusTextures);
+
+        const auto cesiumMan = engine.loader.load<surge::geom::PositionNormalTexture>(
+            surge::ShaderType::primitiveTexturedNormal,
+            surge::GltfHandle { vulkanAssetFolder / "models/CesiumMan/glTF-Embedded/CesiumMan.gltf" });
+
+        const auto buggy = engine.loader.load<surge::geom::PositionNormal>(
+            surge::ShaderType::primitiveNormal,
+            surge::GltfHandle { vulkanAssetFolder / "models/gltf/glTF-Embedded/Buggy.gltf" });
+
         const std::filesystem::path                   armorFolder { vulkanAssetFolder / "models/armor" };
         const std::map<TextureType, surge::TextureID> armorTextures1 {
             { TextureType::baseColorTexture,
@@ -378,42 +257,26 @@ int main() {
             { TextureType::normalTexture,
              engine.storage.createTexture(armorFolder / "normalmap_rgba.ktx", surge::Texture::texture2d) },
         };
-        const auto [armorModelId1, armorNodeTreeId1] = engine.loader.load<surge::geom::PositionNormalTangentTexture>(
-            surge::GltfHandle { armorFolder / "armor.gltf" }, armorTextures1);
-        const surge::Entity2 armor1 {
-            .modelId    = armorModelId1,
-            .nodeTreeId = armorNodeTreeId1,
-            .pipelineId = engine.storage.getPipeline(surge::core::shader::Type::phongModelNormal),
-        };
+        const auto armor1 = engine.loader.load<surge::geom::PositionNormalTangentTexture>(
+            surge::ShaderType::phongModelNormal, surge::load::Gltf::Handle { armorFolder / "armor.gltf" },
+            armorTextures1);
 
         const std::map<TextureType, surge::TextureID> armorTextures2 {
             { TextureType::baseColorTexture,
              engine.storage.createTexture(armorFolder / "colormap_rgba.ktx", surge::Texture::texture2d) },
         };
-        const auto [armorModelId2, armorNodeTreeId2] = engine.loader.load<surge::geom::PositionNormalTexture>(
-            surge::GltfHandle { armorFolder / "armor.gltf" }, armorTextures2);
-        const surge::Entity2 armor2 {
-            .modelId    = armorModelId2,
-            .nodeTreeId = armorNodeTreeId2,
-            .pipelineId = engine.storage.getPipeline(surge::core::shader::Type::primitiveTexturedNormal),
-        };
+        const auto armor2 = engine.loader.load<surge::geom::PositionNormalTexture>(
+            surge::ShaderType::primitiveTexturedNormal, surge::load::Gltf::Handle { armorFolder / "armor.gltf" },
+            armorTextures2);
 
-        const auto [oaktreeModelId, oaktreeNodeTreeId] = engine.loader.load<surge::geom::PositionNormalTexture>(
+        const auto oaktree = engine.loader.load<surge::geom::PositionNormalTexture>(
+            surge::ShaderType::primitiveTexturedNormal,
             surge::GltfHandle { vulkanAssetFolder / "models/oaktree.gltf" });
-        const surge::Entity2 oaktree {
-            .modelId    = oaktreeModelId,
-            .nodeTreeId = oaktreeNodeTreeId,
-            .pipelineId = engine.storage.getPipeline(surge::core::shader::Type::primitiveTexturedNormal),
-        };
 
-        const auto [pathfinderModelId, pathfinderNodeTreeId] =
-            engine.loader.load<surge::geom::PositionNormalTangentTexture>(
-                surge::GltfHandle { "/home/ico/projects/uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" });
-        const surge::Entity2 pathfinder {
-            .modelId    = pathfinderModelId,
-            .nodeTreeId = pathfinderNodeTreeId,
-            .pipelineId = engine.storage.getPipeline(surge::core::shader::Type::phongModelNormal),
-        };
+        const auto pathfinder = engine.loader.load<surge::geom::PositionNormalTangentTexture>(
+            surge::ShaderType::phongModelNormal,
+            surge::GltfHandle { "/home/ico/projects/uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" });
+
 
         double elapsedTime = {};
         auto   start       = std::chrono::high_resolution_clock::now();
@@ -423,12 +286,14 @@ int main() {
                 engine.context.pollEvents();
 
                 // === update ===
+                mainScene.entities.clear();
+
                 playerCamera.update(engine.input, engine.context.window.resolution);
                 skyboxCamera.update(engine.input, engine.context.window.resolution);
 
                 engine.storage.matrices.at(skybox.matrix) = skyboxCamera.mats.perspective * skyboxCamera.mats.view;
 
-                engine.updateBuffer(mainSceneUbo,
+                engine.updateBuffer(mainScene.bufferId,
                                     surge::Storage::SceneBuffer { surge::fullMatrix(playerCamera.mats.perspective),
                                                                   surge::fullMatrix(playerCamera.mats.view), lightColor,
                                                                   lightPosition });
@@ -519,16 +384,18 @@ int main() {
                 engine.renderer.draw(commandBuffer, phongCube);
                 engine.renderer.draw(commandBuffer, phongNormalCube);
                 engine.renderer.draw(commandBuffer, brickwalls);
-                engine.renderer.draw(commandBuffer, dragon);
-                engine.renderer.draw(commandBuffer, cerberus);
                 engine.renderer.draw(commandBuffer, crate);
                 engine.renderer.draw(commandBuffer, floor);
-                engine.renderer.draw(commandBuffer, cesiumMan);
-                engine.renderer.draw(commandBuffer, buggy);
-                engine.renderer.draw(commandBuffer, armor1);
-                engine.renderer.draw(commandBuffer, armor2);
-                engine.renderer.draw(commandBuffer, oaktree);
-                engine.renderer.draw(commandBuffer, pathfinder);
+
+                mainScene.entities.push_back(dragon);
+                mainScene.entities.push_back(cerberus);
+                mainScene.entities.push_back(cesiumMan);
+                mainScene.entities.push_back(buggy);
+                mainScene.entities.push_back(armor1);
+                mainScene.entities.push_back(armor2);
+                mainScene.entities.push_back(oaktree);
+                mainScene.entities.push_back(pathfinder);
+                engine.renderer.draw(commandBuffer, mainScene);
 
                 surge::forEach<0, cubeFaceMatrices.size(), 0, 2>([&]<int face, int triangle>() {
                     using namespace surge::geom;
@@ -545,11 +412,12 @@ int main() {
                                             vertices.at(indices.at(offset + 2)).get<Attribute::normal>()) /
                                                3.0f;
                     const auto& matrix = engine.storage.getMatrix(texturedNormalCube.at(face).matrix);
-                    engine.renderer.draw(commandBuffer, surge::Line {
-                                                            .a     = transform(a, matrix),
-                                                            .b     = transform(b, matrix),
-                                                            .color = surge::RGBA::white,
-                                                        });
+                    engine.renderer.draw(commandBuffer, mainScene,
+                                         surge::Line {
+                                             .a     = transform(a, matrix),
+                                             .b     = transform(b, matrix),
+                                             .color = surge::RGBA::white,
+                                         });
                 });
 
                 engine.presenter.endRendering();

@@ -13,16 +13,11 @@ class Renderer : public core::Contextualized {
 public:
     Renderer(const Storage& storage)
         : Contextualized { storage.command.context }
-        , storage { storage }
-        , pipelines {} {
+        , storage { storage } {
     }
 
-    ~Renderer() {
-        for (const auto& [name, pipeline] : pipelines) {
-            context.destroy(pipeline.first);
-            context.destroy(pipeline.second);
-        }
-    }
+    // ~Renderer() {
+    // }
 
     void draw(const VkCommandBuffer commandBuffer, const Scene& scene) {
         for (const auto& entity : scene.entities) {
@@ -110,7 +105,7 @@ public:
         const auto& nodeTree = storage.nodeTrees.at(entity.nodeTreeId);
         nodeTree.traverse<core::utils::Traversal::linear>([&](const asset::Node2& node) {
             if (node.meshId) {
-                const auto& mesh = storage.meshes2.at(node.meshId);
+                const auto& mesh = storage.meshes.at(node.meshId);
                 for (const auto& primitive : mesh.primitives) {
                     // bind material
                     if (primitive.materialId) {
@@ -159,7 +154,7 @@ public:
         const auto& nodeTree = storage.nodeTrees.at(entity.nodeTreeId);
         nodeTree.traverse<core::utils::Traversal::linear>([&](const asset::Node2& node) {
             if (node.meshId) {
-                const auto& mesh = storage.meshes2.at(node.meshId);
+                const auto& mesh = storage.meshes.at(node.meshId);
                 for (const auto& primitive : mesh.primitives) {
                     // bind material
                     if (primitive.materialId) {
@@ -181,7 +176,7 @@ public:
         });
     }
 
-    void draw(const VkCommandBuffer commandBuffer, const asset::Line& line) const {
+    void draw(const VkCommandBuffer commandBuffer, const Scene& scene, const asset::Line& line) const {
         // bind main camera
         const auto pipelineLayout = storage.pipelines.get(storage.linePipelineId).layout();
 
@@ -190,31 +185,13 @@ public:
             vkCmdBindPipeline(commandBuffer, Storage::graphicsBindPoint, pipeline.get());
             constexpr uint32_t sceneIndex { 0 };
             vkCmdBindDescriptorSets(commandBuffer, Storage::graphicsBindPoint, pipelineLayout, sceneIndex, 1,
-                                    &storage.sceneDescriptorSet, 0, nullptr);
+                                    &storage.materials.get(scene.materialId), 0, nullptr);
         });
         vkCmdPushConstants(commandBuffer, pipelineLayout, Storage::shaderStages, 0, sizeof(asset::Line), &line);
         vkCmdDraw(commandBuffer, 2, 1, 0, 0);
     }
 
-    void createPipeline(const std::string& name, const VkPipelineVertexInputStateCreateInfo& vertexInputState,
-                        const core::shader::Type shader, const VkDescriptorSetLayout materialDescriptorSetLayout,
-                        const std::optional<VkDescriptorSetLayout> jointMatricesDescriptorSetLayout) {
-        constexpr VkPushConstantRange nodePushConstantRange { core::createPushConstantRange<asset::Node::PushConstants>(
-            Storage::shaderStages) };
-        const auto                    sceneDescriptorSetLayout = storage.descriptorPool.layout<SceneLayout>();
-
-        auto& [pipelineLayout, pipeline] = pipelines[name];
-        pipelineLayout =
-            jointMatricesDescriptorSetLayout.has_value() ?
-                core::createPipelineLayout(context, nodePushConstantRange, sceneDescriptorSetLayout,
-                                           materialDescriptorSetLayout, jointMatricesDescriptorSetLayout.value()) :
-                core::createPipelineLayout(context, nodePushConstantRange, sceneDescriptorSetLayout,
-                                           materialDescriptorSetLayout);
-        pipeline = core::createGraphicPipeline(context, vertexInputState, pipelineLayout, shader);
-    }
-
-    const Storage&                                                 storage;
-    std::map<std::string, std::pair<VkPipelineLayout, VkPipeline>> pipelines;
+    const Storage& storage;
 };
 
 }  // namespace surge
