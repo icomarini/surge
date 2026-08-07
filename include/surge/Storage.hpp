@@ -67,6 +67,7 @@ struct Storage {
     load::Defaults                                   defaults;
     core::LazyAccessContainer<ModelID, asset::Model> models;
     core::LazyAccessContainer<PipelineID, Pipeline>  pipelines;
+    std::map<core::shader::Type, PipelineID>         pipelineIds;
 
     using PushConstantsVariants = std::variant<ModelMatrix, ModelMatrixAndColor>;
     std::map<MatrixID, PushConstantsVariants> matrices;
@@ -131,6 +132,39 @@ struct Storage {
         const SceneBuffer sceneMatrices { core::math::fullMatrix(camera.mats.perspective),
                                           core::math::fullMatrix(camera.mats.view), lightColor, lightPosition };
         memcpy(buffers.at(sceneBufferId).mapped, &sceneMatrices, sizeof(SceneBuffer));
+    }
+
+
+    void createPipelines(const SceneID sceneId) {
+        using ShaderType = core::shader::Type;
+        using namespace core::geometry;
+        pipelineIds = {
+            { ShaderType::skybox,
+             createPipeline<Position, ModelMatrix, SceneLayout, SimpleMaterialLayout>(ShaderType::skybox) },
+            { ShaderType::coordinates,
+             createPipeline<PositionAndColor, ModelMatrix, SceneLayout>(ShaderType::coordinates, sceneId) },
+            { ShaderType::primitive,
+             createPipeline<Position, ModelMatrixAndColor, SceneLayout>(ShaderType::primitive, sceneId) },
+            { ShaderType::primitiveNormal,
+             createPipeline<PositionNormal, ModelMatrix, SceneLayout, SimpleMaterialLayout>(
+                  ShaderType::primitiveNormal, sceneId) },
+            { ShaderType::primitiveTextured,
+             createPipeline<PositionTexture, ModelMatrix, SceneLayout, SimpleMaterialLayout>(
+                  ShaderType::primitiveTextured, sceneId) },
+            { ShaderType::primitiveTexturedNormal,
+             createPipeline<PositionNormalTexture, ModelMatrix, SceneLayout, SimpleMaterialLayout>(
+                  ShaderType::primitiveTexturedNormal, sceneId) },
+            { ShaderType::phongModel,
+             createPipeline<PositionNormalTexture, ModelMatrix, SceneLayout, PhongMaterialLayout>(
+                  ShaderType::phongModel, sceneId) },
+            { ShaderType::phongModelNormal,
+             createPipeline<PositionNormalTangentTexture, ModelMatrix, SceneLayout, PhongMaterialLayout>(
+                  ShaderType::phongModelNormal, sceneId) }
+        };
+    }
+
+    const PipelineID getPipeline(const core::shader::Type shaderType) {
+        return pipelineIds.at(shaderType);
     }
 
     BufferID createBuffer(const std::size_t size) {
@@ -328,7 +362,7 @@ struct Storage {
     }
 
     auto& getMatrix(const MatrixID matrixId) {
-        const surge::core::overload visitor {
+        const core::overload visitor {
             [&](const ModelMatrix& m) -> auto& { return m; },
             [&](const ModelMatrixAndColor& m) -> auto& { return m.matrix; },
         };

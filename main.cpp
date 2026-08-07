@@ -115,41 +115,43 @@ int main() {
         const auto mainScene    = engine.storage.createScene();
         const auto mainSceneUbo = engine.storage.scenes.at(mainScene).bufferId;
 
-        const std::map<surge::ShaderType, surge::PipelineID> pipelines {
-            { surge::ShaderType::skybox,
-             engine.storage.createPipeline<surge::geom::Position, surge::ModelMatrix, surge::SceneLayout,
-             surge::SimpleMaterialLayout>(surge::ShaderType::skybox) },
-            { surge::ShaderType::coordinates,
-             engine.storage.createPipeline<surge::geom::PositionAndColor, surge::ModelMatrix, surge::SceneLayout>(
-                  surge::ShaderType::coordinates, mainScene) },
-            { surge::ShaderType::primitive,
-             engine.storage.createPipeline<surge::geom::Position, surge::ModelMatrixAndColor, surge::SceneLayout>(
-                  surge::ShaderType::primitive, mainScene) },
-            { surge::ShaderType::primitiveNormal,
-             engine.storage.createPipeline<surge::geom::PositionNormal, surge::ModelMatrix, surge::SceneLayout,
-             surge::SimpleMaterialLayout>(surge::ShaderType::primitiveNormal,
-             mainScene) },
-            { surge::ShaderType::primitiveTextured,
-             engine.storage.createPipeline<surge::geom::PositionTexture, surge::ModelMatrix, surge::SceneLayout,
-             surge::SimpleMaterialLayout>(surge::ShaderType::primitiveTextured,
-             mainScene) },
-            { surge::ShaderType::primitiveTexturedNormal,
-             engine.storage.createPipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix, surge::SceneLayout,
-             surge::SimpleMaterialLayout>(surge::ShaderType::primitiveTexturedNormal,
-             mainScene) },
-            { surge::ShaderType::phongModel,
-             engine.storage.createPipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix, surge::SceneLayout,
-             surge::PhongMaterialLayout>(surge::ShaderType::phongModel, mainScene) },
-            { surge::ShaderType::phongModelNormal,
-             engine.storage.createPipeline<surge::geom::PositionNormalTangentTexture, surge::ModelMatrix,
-             surge::SceneLayout, surge::PhongMaterialLayout>(
-                  surge::ShaderType::phongModelNormal, mainScene) }
-        };
+        engine.storage.createPipelines(mainScene);
+
+        // const std::map<surge::ShaderType, surge::PipelineID> pipelines {
+        //     { surge::ShaderType::skybox,
+        //      engine.storage.createPipeline<surge::geom::Position, surge::ModelMatrix, surge::SceneLayout,
+        //      surge::SimpleMaterialLayout>(surge::ShaderType::skybox) },
+        //     { surge::ShaderType::coordinates,
+        //      engine.storage.createPipeline<surge::geom::PositionAndColor, surge::ModelMatrix, surge::SceneLayout>(
+        //           surge::ShaderType::coordinates, mainScene) },
+        //     { surge::ShaderType::primitive,
+        //      engine.storage.createPipeline<surge::geom::Position, surge::ModelMatrixAndColor, surge::SceneLayout>(
+        //           surge::ShaderType::primitive, mainScene) },
+        //     { surge::ShaderType::primitiveNormal,
+        //      engine.storage.createPipeline<surge::geom::PositionNormal, surge::ModelMatrix, surge::SceneLayout,
+        //      surge::SimpleMaterialLayout>(surge::ShaderType::primitiveNormal,
+        //      mainScene) },
+        //     { surge::ShaderType::primitiveTextured,
+        //      engine.storage.createPipeline<surge::geom::PositionTexture, surge::ModelMatrix, surge::SceneLayout,
+        //      surge::SimpleMaterialLayout>(surge::ShaderType::primitiveTextured,
+        //      mainScene) },
+        //     { surge::ShaderType::primitiveTexturedNormal,
+        //      engine.storage.createPipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix,
+        //      surge::SceneLayout, surge::SimpleMaterialLayout>(surge::ShaderType::primitiveTexturedNormal, mainScene)
+        //      },
+        //     { surge::ShaderType::phongModel,
+        //      engine.storage.createPipeline<surge::geom::PositionNormalTexture, surge::ModelMatrix,
+        //      surge::SceneLayout, surge::PhongMaterialLayout>(surge::ShaderType::phongModel, mainScene) },
+        //     { surge::ShaderType::phongModelNormal,
+        //      engine.storage.createPipeline<surge::geom::PositionNormalTangentTexture, surge::ModelMatrix,
+        //      surge::SceneLayout, surge::PhongMaterialLayout>(
+        //           surge::ShaderType::phongModelNormal, mainScene) }
+        // };
 
         // create skybox
         const surge::Entity skybox {
             .model    = engine.storage.createModel(surge::geom::cube),
-            .pipeline = pipelines.at(surge::ShaderType::skybox),
+            .pipeline = engine.storage.getPipeline(surge::ShaderType::skybox),
             .matrix   = engine.storage.createMatrix(surge::fullMatrix(surge::identity<4>)),
             .material = engine.storage.createSimpleMaterial(
                 engine.storage.createTexture(surgeTextureFolder / "skybox.ktx", surge::Texture::cube)),
@@ -158,7 +160,7 @@ int main() {
         // create coordinates
         const surge::Entity coordinates {
             .model    = engine.storage.createModel(surge::geom::coordinates),
-            .pipeline = pipelines.at(surge::ShaderType::coordinates),
+            .pipeline = engine.storage.getPipeline(surge::ShaderType::coordinates),
             .matrix   = engine.storage.createMatrix(surge::fullMatrix(surge::identity<4>)),
             .material = {},
         };
@@ -186,8 +188,8 @@ int main() {
             const surge::Translation<>       T { lightPosition };
             constexpr surge::Scaling<>       S { 0.1f, 0.1f, 0.1f };
             const surge::ModelMatrixAndColor matrix { T * S * cubeFaceMatrices.at(faceId), lightColor };
-            face = { planeModel, pipelines.at(surge::ShaderType::primitive), engine.storage.createMatrix(matrix),
-                     surge::MaterialID {} };
+            face = { planeModel, engine.storage.getPipeline(surge::ShaderType::primitive),
+                     engine.storage.createMatrix(matrix), surge::MaterialID {} };
         });
 
         const auto untexturedCube =
@@ -199,8 +201,8 @@ int main() {
                 };
                 constexpr surge::ModelMatrixAndColor matrix { T * cubeFaceMatrices.at(faceId),
                                                               cubeFaceColors.at(faceId) };
-                face = { planeModel, pipelines.at(surge::ShaderType::primitive), engine.storage.createMatrix(matrix),
-                         surge::MaterialID {} };
+                face = { planeModel, engine.storage.getPipeline(surge::ShaderType::primitive),
+                         engine.storage.createMatrix(matrix), surge::MaterialID {} };
             });
 
         const std::array cubeDiffuseTextures {
@@ -256,7 +258,7 @@ int main() {
             surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
                 constexpr surge::Translation<> T { 2, 0, 0 };
                 constexpr surge::ModelMatrix   matrix { T * cubeFaceMatrices.at(faceId) };
-                face = { planeTexturedNodel, pipelines.at(surge::ShaderType::primitiveTextured),
+                face = { planeTexturedNodel, engine.storage.getPipeline(surge::ShaderType::primitiveTextured),
                          engine.storage.createMatrix(matrix), cubeSimpleMaterials.at(faceId) };
             });
 
@@ -265,14 +267,15 @@ int main() {
             surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
                 constexpr surge::Translation<> T { 4, 0, 0 };
                 constexpr surge::ModelMatrix   matrix { T * cubeFaceMatrices.at(faceId) };
-                face = { planeTexturedNormalsModel, pipelines.at(surge::ShaderType::primitiveTexturedNormal),
+                face = { planeTexturedNormalsModel,
+                         engine.storage.getPipeline(surge::ShaderType::primitiveTexturedNormal),
                          engine.storage.createMatrix(matrix), cubeSimpleMaterials.at(faceId) };
             });
 
         const auto phongCube = surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
             constexpr surge::Translation<> T { 0, 0, 0 };
             constexpr surge::ModelMatrix   matrix { T * cubeFaceMatrices.at(faceId) };
-            face = { planeTexturedNormalsModel, pipelines.at(surge::ShaderType::phongModel),
+            face = { planeTexturedNormalsModel, engine.storage.getPipeline(surge::ShaderType::phongModel),
                      engine.storage.createMatrix(matrix), cubePhongMaterials.at(faceId) };
         });
 
@@ -281,7 +284,8 @@ int main() {
             surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
                 constexpr surge::Translation<> T { 4, 2, 0 };
                 constexpr surge::ModelMatrix   matrix { T * cubeFaceMatrices.at(faceId) };
-                face = { planeTexturedNormalTangentModel, pipelines.at(surge::ShaderType::phongModelNormal),
+                face = { planeTexturedNormalTangentModel,
+                         engine.storage.getPipeline(surge::ShaderType::phongModelNormal),
                          engine.storage.createMatrix(matrix), cubePhongMaterials.at(faceId) };
             });
 
@@ -292,7 +296,7 @@ int main() {
             engine.storage.createTexture(surgeTextureFolder / "brickwall_normal.jpg", surge::Texture::texture2dNorm));
         {  // brickwall
             const auto     model    = planeTexturedNormalTangentModel;
-            const auto     pipeline = pipelines.at(surge::ShaderType::phongModelNormal);
+            const auto     pipeline = engine.storage.getPipeline(surge::ShaderType::phongModelNormal);
             constexpr auto radius { 10 };
             constexpr auto translations { generateTranslations<radius>() };
             surge::forEach<0, translations.size()>([&]<int i>() {
@@ -308,7 +312,7 @@ int main() {
         surge::Entity2 dragon {
             .modelId    = dragonModelId,
             .nodeTreeId = dragonNodeTreeId,
-            .pipelineId = pipelines.at(surge::core::shader::Type::primitiveNormal),
+            .pipelineId = engine.storage.getPipeline(surge::core::shader::Type::primitiveNormal),
         };
 
         const std::filesystem::path cerberusFolder { vulkanAssetFolder / "models/cerberus" };
@@ -327,7 +331,7 @@ int main() {
         surge::Entity2 cerberus {
             .modelId    = cerberusModelId,
             .nodeTreeId = cerberusNodeTreeId,
-            .pipelineId = pipelines.at(surge::ShaderType::phongModelNormal),
+            .pipelineId = engine.storage.getPipeline(surge::ShaderType::phongModelNormal),
         };
 
         const auto [cesiumManModelId, cesiumManNodeTreeId] = engine.loader.load<surge::geom::PositionNormalTexture>(
@@ -335,7 +339,7 @@ int main() {
         const surge::Entity2 cesiumMan {
             .modelId    = cesiumManModelId,
             .nodeTreeId = cesiumManNodeTreeId,
-            .pipelineId = pipelines.at(surge::ShaderType::primitiveTexturedNormal),
+            .pipelineId = engine.storage.getPipeline(surge::ShaderType::primitiveTexturedNormal),
         };
 
         const auto [buggyModelId, buggyNodeTreeId] = engine.loader.load<surge::geom::PositionNormal>(
@@ -343,7 +347,7 @@ int main() {
         const surge::Entity2 buggy {
             .modelId    = buggyModelId,
             .nodeTreeId = buggyNodeTreeId,
-            .pipelineId = pipelines.at(surge::core::shader::Type::primitiveNormal),
+            .pipelineId = engine.storage.getPipeline(surge::core::shader::Type::primitiveNormal),
         };
 
         const auto crateMaterial = engine.storage.createPhongMaterial(
@@ -354,14 +358,14 @@ int main() {
         const auto crate = surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
             constexpr surge::Translation<> T { 4, 2, 0 };
             constexpr surge::ModelMatrix   matrix { T * cubeFaceMatrices.at(faceId) };
-            face = { planeTexturedNormalTangentModel, pipelines.at(surge::ShaderType::phongModelNormal),
+            face = { planeTexturedNormalTangentModel, engine.storage.getPipeline(surge::ShaderType::phongModelNormal),
                      engine.storage.createMatrix(matrix), crateMaterial };
         });
 
         constexpr auto      floorMatrix = surge::translate<x>(-2.0);
         const surge::Entity floor {
             .model    = planeTexturedNormalTangentModel,
-            .pipeline = pipelines.at(surge::ShaderType::phongModelNormal),
+            .pipeline = engine.storage.getPipeline(surge::ShaderType::phongModelNormal),
             .matrix   = engine.storage.createMatrix(surge::fullMatrix(floorMatrix)),
             .material = brickwallMaterial,
         };
@@ -379,7 +383,7 @@ int main() {
         const surge::Entity2 armor1 {
             .modelId    = armorModelId1,
             .nodeTreeId = armorNodeTreeId1,
-            .pipelineId = pipelines.at(surge::core::shader::Type::phongModelNormal),
+            .pipelineId = engine.storage.getPipeline(surge::core::shader::Type::phongModelNormal),
         };
 
         const std::map<TextureType, surge::TextureID> armorTextures2 {
@@ -391,7 +395,7 @@ int main() {
         const surge::Entity2 armor2 {
             .modelId    = armorModelId2,
             .nodeTreeId = armorNodeTreeId2,
-            .pipelineId = pipelines.at(surge::core::shader::Type::primitiveTexturedNormal),
+            .pipelineId = engine.storage.getPipeline(surge::core::shader::Type::primitiveTexturedNormal),
         };
 
         const auto [oaktreeModelId, oaktreeNodeTreeId] = engine.loader.load<surge::geom::PositionNormalTexture>(
@@ -399,7 +403,7 @@ int main() {
         const surge::Entity2 oaktree {
             .modelId    = oaktreeModelId,
             .nodeTreeId = oaktreeNodeTreeId,
-            .pipelineId = pipelines.at(surge::core::shader::Type::primitiveTexturedNormal),
+            .pipelineId = engine.storage.getPipeline(surge::core::shader::Type::primitiveTexturedNormal),
         };
 
         const auto [pathfinderModelId, pathfinderNodeTreeId] =
@@ -408,7 +412,7 @@ int main() {
         const surge::Entity2 pathfinder {
             .modelId    = pathfinderModelId,
             .nodeTreeId = pathfinderNodeTreeId,
-            .pipelineId = pipelines.at(surge::core::shader::Type::phongModelNormal),
+            .pipelineId = engine.storage.getPipeline(surge::core::shader::Type::phongModelNormal),
         };
 
         double elapsedTime = {};
