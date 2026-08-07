@@ -85,6 +85,7 @@ public:
         storage.pipelines.apply(entity.pipelineId, [&](const Pipeline& pipeline) {
             core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
             vkCmdBindPipeline(commandBuffer, Storage::graphicsBindPoint, pipeline.get());
+
             if (pipeline.sceneId) {
                 const auto         scene              = storage.scenes.at(pipeline.sceneId);
                 const auto         sceneDescriptorSet = storage.materials.get(scene.materialId);
@@ -134,6 +135,7 @@ public:
         // bind pipeline and main camera
         storage.pipelines.apply(entity.pipelineId, [&](const Pipeline& pipeline) {
             core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+            vkCmdSetLineWidth(commandBuffer, 2.0);
             vkCmdBindPipeline(commandBuffer, Storage::graphicsBindPoint, pipeline.get());
             if (sceneMaterialId) {
                 const auto         sceneDescriptorSet = storage.materials.get(sceneMaterialId);

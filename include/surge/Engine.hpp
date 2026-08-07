@@ -15,22 +15,11 @@
 namespace surge {
 
 
-double elapsed(auto start) {
-    const auto stop = std::chrono::high_resolution_clock::now();
-    return 1e-3 * std::chrono::duration<double, std::milli>(stop - start).count();
-}
+// double elapsed(auto start) {
+//     const auto stop = std::chrono::high_resolution_clock::now();
+//     return 1e-3 * std::chrono::duration<double, std::milli>(stop - start).count();
+// }
 
-template<int radius>
-constexpr auto generateTranslations() {
-    constexpr auto                          length = 2 * radius + 1;
-    constexpr auto                          size   = length * length;
-    std::array<core::math::Vector<3>, size> translations;
-    core::forEach<0, length, 0, length>([&]<int i, int j>() {
-        constexpr auto index = i * length + j;
-        translations[index]  = core::math::Vector<3> { 4 * (i - radius), -3, 4 * (j - radius) };
-    });
-    return translations;
-}
 
 class Engine {
 public:

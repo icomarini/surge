@@ -40,6 +40,11 @@ public:
         return load(shaderType, storage.createModel(loadedModel), MaterialID {});
     }
 
+    template<typename LoadedModel>
+    Entity2 load(const core::shader::Type shaderType, const LoadedModel& loadedModel, const MaterialID materialId) {
+        return load(shaderType, storage.createModel(loadedModel), materialId);
+    }
+
     Entity2 load(const core::shader::Type shaderType, const ModelID modelId) {
         return load(shaderType, modelId, MaterialID {});
     }

@@ -46,17 +46,11 @@ int main() {
 
         engine.storage.createPipelines(mainSceneId);
 
-        // create skybox
-        const surge::Entity skybox {
-            .model    = engine.storage.createModel(surge::geom::cube),
-            .pipeline = engine.storage.getPipeline(surge::ShaderType::skybox),
-            .matrix   = engine.storage.createMatrix(surge::fullMatrix(surge::identity<4>)),
-            .material = engine.storage.createSimpleMaterial(
-                engine.storage.createTexture(surgeTextureFolder / "skybox.ktx", surge::Texture::cube)),
-        };
-
-        // create coordinates
-        const surge::Entity2 coordinates = engine.loader.load(surge::ShaderType::coordinates, surge::geom::coordinates);
+        // load
+        const auto skybox      = engine.loader.load(surge::ShaderType::skybox, surge::geom::cube,
+                                                    engine.storage.createSimpleMaterial(engine.storage.createTexture(
+                                                   surgeTextureFolder / "skybox.ktx", surge::Texture::cube)));
+        const auto coordinates = engine.loader.load(surge::ShaderType::coordinates, surge::geom::coordinates);
 
         surge::Vector<3> lightPosition { -2, 2, 1 };
         constexpr auto   lightColor = surge::RGBA::white;
@@ -75,28 +69,12 @@ int main() {
             surge::fullMatrix(surge::translate<z>(+0.5)),       //
         };
 
-        const auto planeModel = engine.storage.createModel(surge::geom::plane);
+        const auto planeTexturedModel = engine.storage.createModel(surge::geom::planeTextured);
 
-        const auto lightCube = surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
-            const surge::Translation<>       T { lightPosition };
-            constexpr surge::Scaling<>       S { 0.1f, 0.1f, 0.1f };
-            const surge::ModelMatrixAndColor matrix { T * S * cubeFaceMatrices.at(faceId), lightColor };
-            face = { planeModel, engine.storage.getPipeline(surge::ShaderType::primitive),
-                     engine.storage.createMatrix(matrix), surge::MaterialID {} };
+        const auto lightCube = surge::createArray<surge::Entity2, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
+            face = engine.loader.load(surge::ShaderType::primitiveTextured, planeTexturedModel,
+                                      engine.storage.defaultMaterialId);
         });
-
-        const auto untexturedCube =
-            surge::createArray<surge::Entity, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
-                constexpr surge::Translation<> T { 0, 0, 0 };
-                constexpr std::array           cubeFaceColors {
-                    surge::RGBA::darkRed, surge::RGBA::red,      surge::RGBA::darkGreen,
-                    surge::RGBA::green,   surge::RGBA::darkBlue, surge::RGBA::blue,
-                };
-                constexpr surge::ModelMatrixAndColor matrix { T * cubeFaceMatrices.at(faceId),
-                                                              cubeFaceColors.at(faceId) };
-                face = { planeModel, engine.storage.getPipeline(surge::ShaderType::primitive),
-                         engine.storage.createMatrix(matrix), surge::MaterialID {} };
-            });
 
         const std::array cubeDiffuseTextures {
             engine.storage.createTexture(surge::createTextureDataX(surge::RGBA::darkRed, surge::RGBA::black)),    //
@@ -145,8 +123,6 @@ int main() {
             engine.storage.createPhongMaterial(cubeDiffuseTextures.at(zFront), cubeSpecularTextures.at(z),
                                                cubeNormalTextures.at(z)),
         };
-
-        const auto planeTexturedModel = engine.storage.createModel(surge::geom::planeTextured);
 
         const auto texturedCube =
             surge::createArray<surge::Entity2, cubeFaceMatrices.size()>([&]<int faceId>(auto& face) {
@@ -271,7 +247,7 @@ int main() {
                 playerCamera.update(engine.input, engine.context.window.resolution);
                 skyboxCamera.update(engine.input, engine.context.window.resolution);
 
-                engine.storage.matrices.at(skybox.matrix) = skyboxCamera.mats.perspective * skyboxCamera.mats.view;
+                // engine.storage.matrices.at(skybox.matrix) = skyboxCamera.mats.perspective * skyboxCamera.mats.view;
 
                 engine.updateBuffer(mainScene.bufferId,
                                     surge::Storage::SceneBuffer { surge::fullMatrix(playerCamera.mats.perspective),
@@ -286,22 +262,12 @@ int main() {
                 // move light
                 lightPosition[1] = std::sin(engine.input.timer);
 
-                surge::forEach<0, lightCube.size()>([&]<int face>() {
-                    const auto matrixId = lightCube.at(face).matrix;
-                    const auto matrix = surge::Translation<> { lightPosition } * surge::Scaling<> { 0.1f, 0.1f, 0.1f } *
-                                        cubeFaceMatrices.at(face);
-                    engine.storage.matrices[matrixId] = surge::ModelMatrixAndColor {
-                        .matrix    = matrix,
-                        .baseColor = lightColor,
-                    };
-                });
-
-                // rotate floor
-                // engine.storage.matrices.at(floor.matrix) = surge::translate<x>(-2.0) * rotationY *
-                // surge::rotate<x>(90);
-
                 // rotate
+                engine.updateNodeTree(skybox.nodeTreeId, skyboxCamera.mats.perspective * skyboxCamera.mats.view);
                 surge::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
+                    engine.updateNodeTree(lightCube.at(face).nodeTreeId, surge::Translation<> { lightPosition } *
+                                                                             surge::Scaling<> { 0.1f, 0.1f, 0.1f } *
+                                                                             cubeFaceMatrices.at(face));
                     engine.updateNodeTree(texturedNormalCube.at(face).nodeTreeId,
                                           surge::translate<x>(4.0) * rotationY * cubeFaceMatrices.at(face));
                     engine.updateNodeTree(phongCube.at(face).nodeTreeId,
@@ -312,6 +278,7 @@ int main() {
                     engine.updateNodeTree(crate.at(face).nodeTreeId,
                                           surge::translate<x>(12.0) * rotationY * cubeFaceMatrices.at(face));
                 });
+                engine.storage.reset();
                 engine.updateNodeTree(floor.nodeTreeId, surge::translate<x>(-2.0) * rotationY * surge::rotate<x>(90));
                 engine.updateNodeTree(dragon.nodeTreeId, surge::translate<x>(6.0) * surge::scale(0.5) * rotationY);
                 engine.updateNodeTree(cerberus.nodeTreeId, surge::translate<x>(8.0) * surge::scale(0.5) * rotationY);
@@ -323,20 +290,11 @@ int main() {
                 engine.updateNodeTree(oaktree.nodeTreeId, surge::translate<x>(-10.0) * rotationY);
                 engine.updateNodeTree(pathfinder.nodeTreeId, surge::translate<z>(4.0) * rotationY);
 
-                // === rendering ===
-                const auto commandBuffer = engine.presenter.acquire();
-                engine.presenter.beginRendering();
-                // skybox.draw(commandBuffer);
-
-                engine.storage.reset();
-                engine.renderer.draw(commandBuffer, skybox);
-                engine.renderer.draw(commandBuffer, lightCube);
-                engine.renderer.draw(commandBuffer, untexturedCube);
-                // engine.renderer.draw(commandBuffer, floor);
-
+                // create scene
+                mainScene.entities.push_back(skybox);
                 mainScene.entities.push_back(coordinates);
                 mainScene.entities.push_back(floor);
-
+                mainScene.entities.insert(mainScene.entities.end(), lightCube.begin(), lightCube.end());
                 mainScene.entities.insert(mainScene.entities.end(), texturedCube.begin(), texturedCube.end());
                 mainScene.entities.insert(mainScene.entities.end(), texturedNormalCube.begin(),
                                           texturedNormalCube.end());
@@ -353,6 +311,12 @@ int main() {
                 mainScene.entities.push_back(armor2);
                 mainScene.entities.push_back(oaktree);
                 mainScene.entities.push_back(pathfinder);
+
+
+                // render
+                const auto commandBuffer = engine.presenter.acquire();
+                engine.presenter.beginRendering();
+
                 engine.renderer.draw(commandBuffer, mainScene);
 
                 surge::forEach<0, texturedNormalCube.size(), 0, 2>([&]<int face, int triangle>() {
