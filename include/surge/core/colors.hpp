@@ -43,5 +43,6 @@ struct Colors<Type::ansi> {
     static constexpr Format red { 31 };
     static constexpr Format green { 32 };
     static constexpr Format blue { 34 };
+    static constexpr Format yellow { 93 };
 };
 }  // namespace surge::core

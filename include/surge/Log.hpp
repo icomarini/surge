@@ -8,6 +8,7 @@ enum class Type {
     info,
     update,
     error,
+    warning,
 };
 
 enum class Font {
@@ -25,6 +26,8 @@ constexpr std::pair<std::string, core::Colors<core::Type::ansi>::Format> convert
         return { "UPDT", core::Colors<core::Type::ansi>::blue };
     case Type::error:
         return { "PURGE", core::Colors<core::Type::ansi>::red };
+    case Type::warning:
+        return { "WARNING", core::Colors<core::Type::ansi>::yellow };
     default:
         throw;
     }
@@ -67,6 +70,10 @@ void info(const std::string& line) {
 
 void error(const std::string& line) {
     print<Type::error>(line);
+}
+
+void warning(const std::string& line) {
+    print<Type::warning>(line);
 }
 
 void update(const std::string& line) {

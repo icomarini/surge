@@ -24,6 +24,12 @@ public:
         }
     }
 
+    void draw(const VkCommandBuffer commandBuffer, const Scene& scene) {
+        for (const auto& entity : scene.entities) {
+            draw(commandBuffer, entity, scene.materialId);
+        }
+    }
+
     template<Container T>
     void draw(const VkCommandBuffer commandBuffer, const T& entities) const {
         for (const auto& entity : entities) {
@@ -40,7 +46,7 @@ public:
             core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
             vkCmdBindPipeline(commandBuffer, Storage::graphicsBindPoint, pipeline.get());
             if (pipeline.sceneId) {
-                const auto         scene              = storage.scenes.at(pipeline.sceneId);
+                const auto&        scene              = storage.scenes.at(pipeline.sceneId);
                 const auto         sceneDescriptorSet = storage.materials.get(scene.materialId);
                 constexpr uint32_t sceneIndex { 0 };
                 vkCmdBindDescriptorSets(commandBuffer, Storage::graphicsBindPoint, pipelineLayout, sceneIndex, 1,
@@ -101,7 +107,56 @@ public:
         });
 
         // traverse nodes
-        const auto& nodeTree = storage.nodes.at(entity.nodeId);
+        const auto& nodeTree = storage.nodeTrees.at(entity.nodeTreeId);
+        nodeTree.traverse<core::utils::Traversal::linear>([&](const asset::Node2& node) {
+            if (node.meshId) {
+                const auto& mesh = storage.meshes2.at(node.meshId);
+                for (const auto& primitive : mesh.primitives) {
+                    // bind material
+                    if (primitive.materialId) {
+                        storage.materials.apply(primitive.materialId, [&](const VkDescriptorSet& material) {
+                            constexpr uint32_t materialIndex { 1 };
+                            vkCmdBindDescriptorSets(commandBuffer, Storage::graphicsBindPoint, pipelineLayout,
+                                                    materialIndex, 1, &material, 0, nullptr);
+                        });
+                    }
+
+                    // push constants
+                    vkCmdPushConstants(commandBuffer, pipelineLayout, Storage::shaderStages, 0, sizeof(ModelMatrix),
+                                       &node.transformation);
+
+                    // draw
+                    vkCmdDrawIndexed(commandBuffer, primitive.indexCount, 1, primitive.firstIndex, 0, 0);
+                }
+            }
+        });
+    }
+
+    void draw(const VkCommandBuffer commandBuffer, const Entity2& entity, const MaterialID sceneMaterialId) {
+        // bind pipeline
+        const auto pipelineLayout = storage.pipelines.get(entity.pipelineId).layout();
+
+        // bind pipeline and main camera
+        storage.pipelines.apply(entity.pipelineId, [&](const Pipeline& pipeline) {
+            core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+            vkCmdBindPipeline(commandBuffer, Storage::graphicsBindPoint, pipeline.get());
+            if (sceneMaterialId) {
+                const auto         sceneDescriptorSet = storage.materials.get(sceneMaterialId);
+                constexpr uint32_t sceneIndex { 0 };
+                vkCmdBindDescriptorSets(commandBuffer, Storage::graphicsBindPoint, pipelineLayout, sceneIndex, 1,
+                                        &sceneDescriptorSet, 0, nullptr);
+            }
+        });
+
+        // bind model
+        storage.models.apply(entity.modelId, [&](const asset::Model& model) {
+            constexpr VkDeviceSize offset { 0 };
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model.vertexBuffer.buffer, &offset);
+            vkCmdBindIndexBuffer(commandBuffer, model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+        });
+
+        // traverse nodes
+        const auto& nodeTree = storage.nodeTrees.at(entity.nodeTreeId);
         nodeTree.traverse<core::utils::Traversal::linear>([&](const asset::Node2& node) {
             if (node.meshId) {
                 const auto& mesh = storage.meshes2.at(node.meshId);

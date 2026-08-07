@@ -306,10 +306,9 @@ int main() {
         const auto [dragonModelId, dragonNodeTreeId] = engine.loader.load<surge::geom::PositionNormal>(
             surge::load::Gltf::Handle { vulkanAssetFolder / "models/chinesedragon.gltf" });
         surge::Entity2 dragon {
-            .modelId     = dragonModelId,
-            .nodeId      = dragonNodeTreeId,
-            .pipelineId  = pipelines.at(surge::core::shader::Type::primitiveNormal),
-            .modelMatrix = {},
+            .modelId    = dragonModelId,
+            .nodeTreeId = dragonNodeTreeId,
+            .pipelineId = pipelines.at(surge::core::shader::Type::primitiveNormal),
         };
 
         const std::filesystem::path cerberusFolder { vulkanAssetFolder / "models/cerberus" };
@@ -326,28 +325,25 @@ int main() {
         const auto [cerberusModelId, cerberusNodeTreeId] =
             engine.loader.load<surge::geom::PositionNormalTangentTexture>(cerberusGltfHandle, cerberusTextures);
         surge::Entity2 cerberus {
-            .modelId     = cerberusModelId,
-            .nodeId      = cerberusNodeTreeId,
-            .pipelineId  = pipelines.at(surge::ShaderType::phongModelNormal),
-            .modelMatrix = {},
+            .modelId    = cerberusModelId,
+            .nodeTreeId = cerberusNodeTreeId,
+            .pipelineId = pipelines.at(surge::ShaderType::phongModelNormal),
         };
 
         const auto [cesiumManModelId, cesiumManNodeTreeId] = engine.loader.load<surge::geom::PositionNormalTexture>(
             surge::GltfHandle { vulkanAssetFolder / "models/CesiumMan/glTF-Embedded/CesiumMan.gltf" });
         const surge::Entity2 cesiumMan {
-            .modelId     = cesiumManModelId,
-            .nodeId      = cesiumManNodeTreeId,
-            .pipelineId  = pipelines.at(surge::ShaderType::primitiveTexturedNormal),
-            .modelMatrix = {},
+            .modelId    = cesiumManModelId,
+            .nodeTreeId = cesiumManNodeTreeId,
+            .pipelineId = pipelines.at(surge::ShaderType::primitiveTexturedNormal),
         };
 
         const auto [buggyModelId, buggyNodeTreeId] = engine.loader.load<surge::geom::PositionNormal>(
             surge::GltfHandle { vulkanAssetFolder / "models/gltf/glTF-Embedded/Buggy.gltf" });
         const surge::Entity2 buggy {
-            .modelId     = buggyModelId,
-            .nodeId      = buggyNodeTreeId,
-            .pipelineId  = pipelines.at(surge::core::shader::Type::primitiveNormal),
-            .modelMatrix = {},
+            .modelId    = buggyModelId,
+            .nodeTreeId = buggyNodeTreeId,
+            .pipelineId = pipelines.at(surge::core::shader::Type::primitiveNormal),
         };
 
         const auto crateMaterial = engine.storage.createPhongMaterial(
@@ -381,10 +377,9 @@ int main() {
         const auto [armorModelId1, armorNodeTreeId1] = engine.loader.load<surge::geom::PositionNormalTangentTexture>(
             surge::GltfHandle { armorFolder / "armor.gltf" }, armorTextures1);
         const surge::Entity2 armor1 {
-            .modelId     = armorModelId1,
-            .nodeId      = armorNodeTreeId1,
-            .pipelineId  = pipelines.at(surge::core::shader::Type::phongModelNormal),
-            .modelMatrix = {},
+            .modelId    = armorModelId1,
+            .nodeTreeId = armorNodeTreeId1,
+            .pipelineId = pipelines.at(surge::core::shader::Type::phongModelNormal),
         };
 
         const std::map<TextureType, surge::TextureID> armorTextures2 {
@@ -394,29 +389,26 @@ int main() {
         const auto [armorModelId2, armorNodeTreeId2] = engine.loader.load<surge::geom::PositionNormalTexture>(
             surge::GltfHandle { armorFolder / "armor.gltf" }, armorTextures2);
         const surge::Entity2 armor2 {
-            .modelId     = armorModelId2,
-            .nodeId      = armorNodeTreeId2,
-            .pipelineId  = pipelines.at(surge::core::shader::Type::primitiveTexturedNormal),
-            .modelMatrix = {},
+            .modelId    = armorModelId2,
+            .nodeTreeId = armorNodeTreeId2,
+            .pipelineId = pipelines.at(surge::core::shader::Type::primitiveTexturedNormal),
         };
 
         const auto [oaktreeModelId, oaktreeNodeTreeId] = engine.loader.load<surge::geom::PositionNormalTexture>(
             surge::GltfHandle { vulkanAssetFolder / "models/oaktree.gltf" });
         const surge::Entity2 oaktree {
-            .modelId     = oaktreeModelId,
-            .nodeId      = oaktreeNodeTreeId,
-            .pipelineId  = pipelines.at(surge::core::shader::Type::primitiveTexturedNormal),
-            .modelMatrix = {},
+            .modelId    = oaktreeModelId,
+            .nodeTreeId = oaktreeNodeTreeId,
+            .pipelineId = pipelines.at(surge::core::shader::Type::primitiveTexturedNormal),
         };
 
         const auto [pathfinderModelId, pathfinderNodeTreeId] =
             engine.loader.load<surge::geom::PositionNormalTangentTexture>(
                 surge::GltfHandle { "/home/ico/projects/uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" });
         const surge::Entity2 pathfinder {
-            .modelId     = pathfinderModelId,
-            .nodeId      = pathfinderNodeTreeId,
-            .pipelineId  = pipelines.at(surge::core::shader::Type::phongModelNormal),
-            .modelMatrix = {},
+            .modelId    = pathfinderModelId,
+            .nodeTreeId = pathfinderNodeTreeId,
+            .pipelineId = pipelines.at(surge::core::shader::Type::phongModelNormal),
         };
 
         double elapsedTime = {};
@@ -476,10 +468,10 @@ int main() {
                 });
 
                 // rotate dragon
-                engine.updateNodeTree(dragon.nodeId, surge::translate<x>(6.0) * surge::scale(0.5) * rotationY);
+                engine.updateNodeTree(dragon.nodeTreeId, surge::translate<x>(6.0) * surge::scale(0.5) * rotationY);
 
                 // rotate cerberus
-                engine.updateNodeTree(cerberus.nodeId, surge::translate<x>(8.0) * surge::scale(0.5) * rotationY);
+                engine.updateNodeTree(cerberus.nodeTreeId, surge::translate<x>(8.0) * surge::scale(0.5) * rotationY);
 
                 // rotate crate
                 surge::forEach<0, cubeFaceMatrices.size()>([&]<int face>() {
@@ -492,21 +484,21 @@ int main() {
                 engine.storage.matrices.at(floor.matrix) = surge::translate<x>(-2.0) * rotationY * surge::rotate<x>(90);
 
                 // rotate cesium man
-                engine.updateNodeTree(cesiumMan.nodeId, surge::translate<x>(-4.0) * rotationY);
+                engine.updateNodeTree(cesiumMan.nodeTreeId, surge::translate<x>(-4.0) * rotationY);
 
                 // rotate buggy
-                engine.updateNodeTree(buggy.nodeId, surge::translate<x>(-6.0) * surge::scale(0.01) * rotationY);
+                engine.updateNodeTree(buggy.nodeTreeId, surge::translate<x>(-6.0) * surge::scale(0.01) * rotationY);
 
                 // rotate armors
-                engine.updateNodeTree(armor1.nodeId, surge::translate<x>(-8.0) * surge::scale(0.3) * rotationY);
-                engine.updateNodeTree(armor2.nodeId, surge::translate<x>(-8.0) * surge::translate<z>(2.0) *
-                                                         surge::scale(0.3) * rotationY);
+                engine.updateNodeTree(armor1.nodeTreeId, surge::translate<x>(-8.0) * surge::scale(0.3) * rotationY);
+                engine.updateNodeTree(armor2.nodeTreeId, surge::translate<x>(-8.0) * surge::translate<z>(2.0) *
+                                                             surge::scale(0.3) * rotationY);
 
                 // rotate oaktree
-                engine.updateNodeTree(oaktree.nodeId, surge::translate<x>(-10.0) * rotationY);
+                engine.updateNodeTree(oaktree.nodeTreeId, surge::translate<x>(-10.0) * rotationY);
 
                 // rotate pathfinder
-                engine.updateNodeTree(pathfinder.nodeId, surge::translate<z>(4.0) * rotationY);
+                engine.updateNodeTree(pathfinder.nodeTreeId, surge::translate<z>(4.0) * rotationY);
 
                 // === rendering ===
                 const auto commandBuffer = engine.presenter.acquire();

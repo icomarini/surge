@@ -115,8 +115,8 @@ public:
         memcpy(storage.buffers.at(bufferId).mapped, &data, sizeof(Data));
     }
 
-    void updateNodeTree(const NodeID nodeId, const surge::core::math::Matrix<4, 4>& transformation) {
-        storage.nodes.at(nodeId).traverse<surge::core::utils::Traversal::depthFirst>(
+    void updateNodeTree(const NodeTreeID nodeId, const surge::core::math::Matrix<4, 4>& transformation) {
+        storage.nodeTrees.at(nodeId).traverse<surge::core::utils::Traversal::depthFirst>(
             [](surge::asset::Node2& node, const surge::core::math::Matrix<4, 4>& parent) {
                 node.transformation = parent * surge::core::math::Translation { node.translation } *
                                       surge::core::math::Rotation { node.rotation } *

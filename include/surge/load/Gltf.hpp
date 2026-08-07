@@ -551,7 +551,8 @@ public:
         return asset.defaultScene.value_or(0);
     }
 
-    NodeID createNodes(Storage& storage, const std::vector<MeshID> meshIds) const {
+    NodeTreeID createNodeTree(Storage& storage, const std::vector<MeshID>& meshIds,
+                              const std::vector<SkinID>& skinIds) const {
         assert(asset.scenes.size() == 1);
         // assert(asset.scenes.front().nodeIndices.size() == 1);
         // assert(asset.nodes.size() == 1);
@@ -580,7 +581,7 @@ public:
                 nodes.emplace_back(
                     asset::Node2 {
                         .meshId = gltfNode.meshIndex ? meshIds.at(gltfNode.meshIndex.value()) : MeshID {},
-                        .skinId = {},
+                        .skinId = gltfNode.skinIndex ? skinIds.at(gltfNode.skinIndex.value()) : SkinID {},
                         .translation =
                             core::math::Vector<3> { trs.translation.x(), trs.translation.y(), trs.translation.z() },
                         .rotation = core::math::Quaternion<> { trs.rotation.x(), trs.rotation.y(), trs.rotation.z(),
@@ -623,6 +624,33 @@ public:
             }
         }
 
+        return skins;
+    }
+
+    std::vector<SkinID> createSkins2(Storage& storage) const {
+        std::vector<SkinID> skins;
+        uint32_t            skinId = 0;
+        for (const fastgltf::Skin& fastgltfSkin : asset.skins) {
+            skins.push_back(storage.createSkin(asset::Skin {
+                .name          = baptize<This::skin>(fastgltfSkin.name, skinId++),
+                .skeletonIndex = fastgltfSkin.skeleton ?
+                                     std::optional<Index> { static_cast<Index>(fastgltfSkin.skeleton.value()) } :
+                                     std::optional<Index> {},
+                .joints        = std::invoke([&] {
+                    std::vector<asset::Skin::Joint> joints;
+                    joints.reserve(fastgltfSkin.joints.size());
+                    std::size_t jointId { 0 };
+                    for (const auto joint : fastgltfSkin.joints) {
+                        assert(fastgltfSkin.inverseBindMatrices);
+                        const auto& accessor = asset.accessors.at(fastgltfSkin.inverseBindMatrices.value());
+                        joints.emplace_back(
+                            joint, core::math::transpose(fastgltf::getAccessorElement<core::math::Matrix<4, 4>>(
+                                       asset, accessor, jointId++)));
+                    }
+                    return joints;
+                }),
+            }));
+        }
         return skins;
     }
 
@@ -703,6 +731,85 @@ public:
                                     std::move(samplers), std::move(channels));
         }
         return animations;
+    }
+
+    AnimationSetID createAnimationsSet(Storage& storage) const {
+        std::vector<asset::Animation> animations;
+        animations.reserve(asset.skins.size());
+        uint32_t animationId = 0;
+        for (const fastgltf::Animation& fastgltfAnimation : asset.animations) {
+            // samplers
+            std::vector<asset::Animation::Sampler> samplers;
+            samplers.reserve(fastgltfAnimation.samplers.size());
+            float start = std::numeric_limits<float>::max();
+            float end   = std::numeric_limits<float>::min();
+            for (const fastgltf::AnimationSampler& fastgltfSampler : fastgltfAnimation.samplers) {
+                // inputs
+                const auto&        inputAccessor = asset.accessors.at(fastgltfSampler.inputAccessor);
+                std::vector<float> inputs;
+                inputs.reserve(inputAccessor.count);
+                fastgltf::iterateAccessor<float>(asset, inputAccessor,
+                                                 [&](const auto& value) { inputs.emplace_back(value); });
+                const auto [min, max] = std::minmax_element(inputs.begin(), inputs.end());
+                start                 = std::min(start, *min);
+                end                   = std::max(end, *max);
+
+                // outputs
+                const auto&                        outputAccessor = asset.accessors.at(fastgltfSampler.outputAccessor);
+                std::vector<core::math::Vector<4>> outputs;
+                outputs.reserve(outputAccessor.count);
+
+                switch (outputAccessor.type) {
+                case fastgltf::AccessorType::Vec3: {
+                    fastgltf::iterateAccessor<core::math::Vector<3>>(asset, outputAccessor, [&](const auto& value) {
+                        outputs.emplace_back(core::math::Vector<4> { value[0], value[1], value[2], 0.0f });
+                    });
+                    break;
+                }
+                case fastgltf::AccessorType::Vec4: {
+                    fastgltf::iterateAccessor<core::math::Vector<4>>(
+                        asset, outputAccessor, [&](const auto& value) { outputs.emplace_back(value); });
+                    break;
+                }
+                case fastgltf::AccessorType::Invalid:
+                case fastgltf::AccessorType::Scalar:
+                case fastgltf::AccessorType::Vec2:
+                case fastgltf::AccessorType::Mat2:
+                case fastgltf::AccessorType::Mat3:
+                case fastgltf::AccessorType::Mat4:
+                    throw std::runtime_error("Wrong accessor type in " + path.string());
+                }
+
+                const std::map<fastgltf::AnimationInterpolation, asset::Animation::Sampler::Interpolation> convert {
+                    { fastgltf::AnimationInterpolation::Linear,      asset::Animation::Sampler::Interpolation::linear },
+                    { fastgltf::AnimationInterpolation::Step,        asset::Animation::Sampler::Interpolation::step   },
+                    { fastgltf::AnimationInterpolation::CubicSpline,
+                     asset::Animation::Sampler::Interpolation::cubicspline                                            },
+                };
+                samplers.emplace_back(convert.at(fastgltfSampler.interpolation), std::move(inputs), std::move(outputs));
+            }
+
+            // channels
+            std::vector<asset::Animation::Channel> channels;
+            channels.reserve(fastgltfAnimation.channels.size());
+            for (const auto& fastgltfChannel : fastgltfAnimation.channels) {
+                const std::map<fastgltf::AnimationPath, asset::Animation::Channel::Path> convert {
+                    { fastgltf::AnimationPath::Translation, asset::Animation::Channel::Path::translation },
+                    { fastgltf::AnimationPath::Rotation,    asset::Animation::Channel::Path::rotation    },
+                    { fastgltf::AnimationPath::Scale,       asset::Animation::Channel::Path::scale       },
+                    { fastgltf::AnimationPath::Weights,     asset::Animation::Channel::Path::weights     },
+                };
+                channels.emplace_back(convert.at(fastgltfChannel.path),
+                                      fastgltfChannel.nodeIndex ? std::optional<Index> { static_cast<Index>(
+                                                                      fastgltfChannel.nodeIndex.value()) } :
+                                                                  std::optional<Index> {},
+                                      fastgltfChannel.samplerIndex);
+            }
+
+            animations.emplace_back(baptize<This::animation>(fastgltfAnimation.name, animationId++), start, end,
+                                    std::move(samplers), std::move(channels));
+        }
+        return storage.createAnimationSet(std::move(animations));
     }
 
 private:
@@ -1323,14 +1430,21 @@ public:
                 };
 
                 core::forEach<0, V::attributeCount>([&]<int i>() {
-                    using Attribute = typename V::Attribute<i>;
-                    if (const auto values = primitive.findAttribute(attributeNames.at(Attribute::attribute));
+                    using Attribute          = typename V::Attribute<i>;
+                    const auto attributeName = attributeNames.at(Attribute::attribute);
+                    if (const auto values = primitive.findAttribute(attributeName);
                         values != primitive.attributes.end()) {
                         fastgltf::iterateAccessorWithIndex<typename Attribute::Value>(
                             asset, asset.accessors.at(values->accessorIndex),
                             [&](const typename Attribute::Value& value, const auto index) {
                                 vertices.at(vertexOffset + index).template get<Attribute::attribute>() = value;
                             });
+                    } else {
+                        // throw std::runtime_error("In file '" + std::string(path) +
+                        //                          "':\n                 Missing attribute " +
+                        //                          std::string(attributeName));
+                        log::warning("In file '" + std::string(path) + "':\n                 Missing attribute " +
+                                     std::string(attributeName));
                     }
                 });
 

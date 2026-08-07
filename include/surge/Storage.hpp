@@ -14,9 +14,18 @@ struct Entity {
     MaterialID material;
 };
 
+
+struct Entity2 {
+    ModelID        modelId;
+    NodeTreeID     nodeTreeId;
+    PipelineID     pipelineId;
+    AnimationSetID animationSetId;
+};
+
 struct Scene {
-    BufferID   bufferId;
-    MaterialID materialId;
+    BufferID             bufferId;
+    MaterialID           materialId;
+    std::vector<Entity2> entities;
 };
 
 struct Pipeline {
@@ -48,12 +57,6 @@ struct ModelMatrixAndColor {
     core::math::Vector<4>    baseColor;
 };
 
-struct Entity2 {
-    ModelID     modelId;
-    NodeID      nodeId;
-    PipelineID  pipelineId;
-    ModelMatrix modelMatrix;
-};
 
 struct Storage {
     static constexpr auto               graphicsBindPoint { VK_PIPELINE_BIND_POINT_GRAPHICS };
@@ -88,8 +91,11 @@ struct Storage {
     core::LazyAccessContainer<MaterialID, asset::Material> materials2;
     std::map<MeshID, asset::Mesh>                          meshes;
 
-    std::map<MeshID, asset::Mesh2>                    meshes2;
-    std::map<NodeID, core::utils::Tree<asset::Node2>> nodes;
+    std::map<MeshID, asset::Mesh2>                        meshes2;
+    std::map<NodeTreeID, core::utils::Tree<asset::Node2>> nodeTrees;
+
+    std::map<SkinID, asset::Skin>                           skins;
+    std::map<AnimationSetID, std::vector<asset::Animation>> animationSets;
 
     TextureID  defaultTextureId;
     TextureID  whiteTextureId;
@@ -180,8 +186,8 @@ struct Storage {
         return insertion.first->first;
     }
 
-    NodeID createNodes(core::utils::Tree<asset::Node2>&& nodeTree) {
-        const auto insertion = nodes.emplace(nodes.size(), std::move(nodeTree));
+    NodeTreeID createNodes(core::utils::Tree<asset::Node2>&& nodeTree) {
+        const auto insertion = nodeTrees.emplace(nodeTrees.size(), std::move(nodeTree));
         if (!insertion.second) {
             throw std::runtime_error("Node tree already present");
         }
@@ -298,6 +304,22 @@ struct Storage {
     //     materials2); const auto newMeshes    = asset.createMeshes2(newMaterials, meshes); return
     //     asset.createModel2<Vertex>(command, newMeshes, models);
     // }
+
+    SkinID createSkin(asset::Skin&& skin) {
+        const auto insertion = skins.emplace(skins.size(), std::move(skin));
+        if (!insertion.second) {
+            throw std::runtime_error("Skin already present");
+        }
+        return insertion.first->first;
+    }
+
+    AnimationSetID createAnimationSet(std::vector<asset::Animation>&& animationSet) {
+        const auto insertion = animationSets.emplace(animationSets.size(), std::move(animationSet));
+        if (!insertion.second) {
+            throw std::runtime_error("Animation set already present");
+        }
+        return insertion.first->first;
+    }
 
     void reset() {
         models.reset();

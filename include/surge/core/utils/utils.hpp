@@ -169,18 +169,21 @@ private:
     Underyling id;
 };
 
-using BufferID       = ID<>;
-using BufferObjectID = ID<>;
-using ModelID        = ID<>;
-using PipelineID     = ID<>;
-using MatrixID       = ID<>;
-using SceneID        = ID<>;
-using MaterialID     = ID<>;
-using TextureID      = ID<>;
-using MeshID         = ID<>;
-using SkinID         = ID<>;
-using AssetID        = ID<>;
-using NodeID         = ID<>;
+using BufferID           = ID<>;
+using BufferObjectID     = ID<>;
+using ModelID            = ID<>;
+using PipelineID         = ID<>;
+using MatrixID           = ID<>;
+using SceneID            = ID<>;
+using MaterialID         = ID<>;
+using TextureID          = ID<>;
+using MeshID             = ID<>;
+using SkinID             = ID<>;
+using AssetID            = ID<>;
+using NodeTreeID         = ID<>;
+using NodeID             = ID<>;
+using AnimationSetID     = ID<>;
+using AnimationSamplerID = ID<>;
 
 // Source - https://stackoverflow.com/a/60450396
 // Posted by Caleth, modified by community. See post 'Timeline' for change history
