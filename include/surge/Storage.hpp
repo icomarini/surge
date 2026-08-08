@@ -2,20 +2,18 @@
 
 #include "surge/load/Defaults.hpp"
 #include "surge/core/DescriptorPool.hpp"
-// #include "surge/load/AssetHandle.hpp"
 #include "surge/asset/Line.hpp"
 
 namespace surge {
 
+// struct Entity {
+//     ModelID    model;
+//     PipelineID pipeline;
+//     MatrixID   matrix;
+//     MaterialID material;
+// };
+
 struct Entity {
-    ModelID    model;
-    PipelineID pipeline;
-    MatrixID   matrix;
-    MaterialID material;
-};
-
-
-struct Entity2 {
     ModelID        modelId;
     NodeTreeID     nodeTreeId;
     PipelineID     pipelineId;
@@ -23,9 +21,9 @@ struct Entity2 {
 };
 
 struct Scene {
-    BufferID             bufferId;
-    MaterialID           materialId;
-    std::vector<Entity2> entities;
+    BufferID            bufferId;
+    MaterialID          materialId;
+    std::vector<Entity> entities;
 };
 
 struct Pipeline {
@@ -326,15 +324,6 @@ struct Storage {
         return materials.create(descriptorPool.allocate<PhongMaterialLayout>(
             textures.at(diffuse), textures.at(specular), textures.at(normal)));
     }
-
-    // template<typename Vertex>
-    // ModelID createAsset(const load::Gltf::Handle& handle) {
-    //     const load::Gltf asset { handle, defaults };
-    //     const auto       newTextures = asset.createTextures2(command, textures);
-    //     const auto newMaterials = asset.createMaterials2<PhongMaterialLayout>(descriptorPool, newTextures,
-    //     materials2); const auto newMeshes    = asset.createMeshes2(newMaterials, meshes); return
-    //     asset.createModel2<Vertex>(command, newMeshes, models);
-    // }
 
     SkinID createSkin(asset::Skin&& skin) {
         const auto insertion = skins.emplace(skins.size(), std::move(skin));

@@ -91,7 +91,6 @@ public:
         return asset.skins.empty() ? core::shader::Type::gltfStatic : core::shader::Type::gltfAnimated;
     }
 
-
     asset::Texture::Sampler createSampler(const uint32_t samplerIndex) const {
         constexpr auto extractFilter = [](const fastgltf::Filter filter) {
             switch (filter) {
@@ -850,92 +849,7 @@ private:
     }
 
 public:
-    template<typename EntityID>
-    std::map<EntityID, const asset::Texture*> createTextures2(const core::Command&                command,
-                                                              std::map<EntityID, asset::Texture>& textures) const {
-        std::map<EntityID, const asset::Texture*> textureIds;
-        // texturesIds.reserve(asset.images.size() + externalTextures.size());
-        Index textureId = 0;
-
-        // internal textures
-        for (const fastgltf::Texture& texture : asset.textures) {
-            assert(texture.imageIndex && texture.imageIndex.value() < asset.images.size());
-
-            const auto& image = asset.images.at(texture.imageIndex.value());
-            const auto  name  = baptize<This::texture>(texture.name, textureId);
-
-            const fastgltf::visitor visitor {
-                [](const auto&) -> LoadedTexture { throw std::runtime_error("Unsupported visitor"); },
-                [&](const fastgltf::sources::URI& uri) -> LoadedTexture {
-                    return LoadedTexture {
-                        LoadedTexture::Handle { load::LoadedTexture::Type::texture2d,
-                                               path.parent_path() / uri.uri.path() }
-                    };
-                },
-                [&](const fastgltf::sources::Vector& vector) -> LoadedTexture {
-                    return LoadedTexture { name, reinterpret_cast<const uint8_t*>(vector.bytes.data()),
-                                           vector.bytes.size() };
-                },
-                [&](const fastgltf::sources::Array& array) -> LoadedTexture {
-                    return LoadedTexture { name, reinterpret_cast<const uint8_t*>(array.bytes.data()),
-                                           array.bytes.size() };
-                },
-                [&](const fastgltf::sources::BufferView& view) -> LoadedTexture {
-                    const auto&     bufferView = asset.bufferViews.at(view.bufferViewIndex);
-                    const auto&     buffer     = asset.buffers.at(bufferView.bufferIndex);
-                    const fastgltf::visitor visitor    = {
-                        [](const auto&) -> LoadedTexture { throw std::runtime_error("Unsupported visitor"); },
-                        [&](const fastgltf::sources::Vector& vector) -> LoadedTexture {
-                            return LoadedTexture { name,
-                                                   reinterpret_cast<const uint8_t*>(vector.bytes.data()) +
-                                                       bufferView.byteOffset,
-                                                   bufferView.byteLength };
-                        },
-                        [&](const fastgltf::sources::Array& array) -> LoadedTexture {
-                            return LoadedTexture { name,
-                                                   reinterpret_cast<const uint8_t*>(array.bytes.data()) +
-                                                       bufferView.byteOffset,
-                                                   bufferView.byteLength };
-                        }
-                    };
-                    return std::visit(visitor, buffer.data);
-                },
-            };
-
-            const auto sampler =
-                texture.samplerIndex ? createSampler(texture.samplerIndex.value()) : load::Defaults::sampler;
-
-            // textures.emplace(command, std::visit(visitor, image.data), sampler, asset::Texture::texture2d);
-
-            const auto [newTexture, inserted] = textures.emplace(
-                std::piecewise_construct, std::forward_as_tuple(textures.size()),
-                std::forward_as_tuple(command, std::visit(visitor, image.data), sampler, asset::Texture::texture2d));
-            if (!inserted) {
-                throw std::runtime_error("Texture already present");
-            }
-            textureIds.emplace(textureId, &newTexture->second);
-            ++textureId;
-        }
-
-        // external textures
-        // for (const auto& [textureType, path] : externalTextures) {
-        //     const auto insertion = textures.emplace(
-        //         std::piecewise_construct, std::forward_as_tuple(textures.size()),
-        //         std::forward_as_tuple(
-        //             command, LoadedTexture(LoadedTexture::Handle { load::LoadedTexture::Type::texture2d, path }),
-        //             load::Defaults::sampler, asset::Texture::texture2d));
-
-        //     // textures.emplace(textures.size() command,
-        //     //                  LoadedTexture(LoadedTexture::Handle { load::LoadedTexture::Type::texture2d, path }),
-        //     //                  load::Defaults::sampler, asset::Texture::texture2d);
-        //     texturesIds.emplace(textureId.first->first);
-        //     ++textureId;
-        // }
-
-        return textureIds;
-    }
-
-    std::vector<TextureID> createTextures3(Storage& storage) const {
+    std::vector<TextureID> createTextures(Storage& storage) const {
         std::vector<TextureID> textureIds;
         Index                  textureId = 0;
         // internal textures
@@ -992,147 +906,9 @@ public:
         return textureIds;
     }
 
-    template<typename... Textures>
-    VkDescriptorSet createMaterialDescriptorSet2(const core::Context& context, const VkDescriptorPool descriptorPool,
-                                                 const VkDescriptorSetLayout descriptorSetLayout,
-                                                 const Textures&... textures) const {
-        // allocate descriptor sets
-        const VkDescriptorSetAllocateInfo allocInfo {
-            .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-            .pNext              = nullptr,
-            .descriptorPool     = descriptorPool,
-            .descriptorSetCount = 1,
-            .pSetLayouts        = &descriptorSetLayout,
-        };
-        VkDescriptorSet descriptorSet;
-        if (vkAllocateDescriptorSets(context.device, &allocInfo, &descriptorSet) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to allocate descriptor sets");
-        }
-
-        // write descriptor sets
-        constexpr auto bindingCount = sizeof...(Textures);
-        const auto     descriptorWrites =
-            core::createArray<VkWriteDescriptorSet, bindingCount>([&]<int binding>(auto& descriptorWrite) {
-                const auto& texture = std::get<binding>(std::forward_as_tuple(textures...));
-                descriptorWrite     = {
-                        .sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                        .pNext            = nullptr,
-                        .dstSet           = descriptorSet,
-                        .dstBinding       = binding,
-                        .dstArrayElement  = 0,
-                        .descriptorCount  = 1,
-                        .descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                        .pImageInfo       = texture.imageInfo(),
-                        .pBufferInfo      = texture.bufferInfo(),
-                        .pTexelBufferView = nullptr,
-                };
-            });
-        vkUpdateDescriptorSets(context.device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),
-                               0, nullptr);
-
-        return descriptorSet;
-    }
-
-    template<typename Layout, typename DescriptorPool>
-    std::map<MaterialID, const asset::Material*>
-    createMaterials2(const DescriptorPool&                                   descriptorPool,
-                     const std::map<TextureID, const asset::Texture*>&       textures,  //
-                     core::LazyAccessContainer<MaterialID, asset::Material>& materials  //
-    ) const {
-        constexpr auto extractAlphaMode = [](const fastgltf::AlphaMode alphaMode) {
-            switch (alphaMode) {
-            case fastgltf::AlphaMode::Blend:
-                return asset::Material::AlphaMode::blend;
-            case fastgltf::AlphaMode::Mask:
-                return asset::Material::AlphaMode::mask;
-            case fastgltf::AlphaMode::Opaque:
-                return asset::Material::AlphaMode::opaque;
-            }
-            throw;
-        };
-
-        // const auto externalTexturesMap = createExternalTexturesMap(textures);
-        const auto extractTexture = [&](const TextureType /*textureType*/, const auto& textureInfo) {
-            if (textureInfo) {
-                const auto textureIndex  = textureInfo.value().textureIndex;
-                const auto texCoordIndex = textureInfo.value().texCoordIndex;
-                assert(0 <= textureIndex && textureIndex < textures.size());
-                return asset::Material::TextureData {
-                    .texture  = textures.at(textureIndex),
-                    .texCoord = static_cast<uint8_t>(texCoordIndex),
-                };
-            }
-
-            // if (externalTexturesMap.contains(textureType)) {
-            //     return asset::Material::TextureData {
-            //              .texture  = externalTexturesMap.at(textureType),
-            //              .texCoord = 0,
-            //     };
-            // }
-
-            return asset::Material::TextureData {
-                .texture  = &defaults.texture,
-                .texCoord = 0,
-            };
-        };
-
-        std::map<MaterialID, const asset::Material*> materialIds;
-        // materialIds.reserve(asset.materials.size());
-        int materialId = 0;
-        for (const fastgltf::Material& material : asset.materials) {
-            using Type = TextureType;
-
-            const auto baseColorTexture = extractTexture(Type::baseColorTexture, material.pbrData.baseColorTexture);
-            const core::math::Vector<4> baseColorFactor { material.pbrData.baseColorFactor[0],
-                                                          material.pbrData.baseColorFactor[1],
-                                                          material.pbrData.baseColorFactor[2],
-                                                          material.pbrData.baseColorFactor[3] };
-
-            const auto metallicRoughnessTexture =
-                extractTexture(Type::metallicRoughnessTexture, material.pbrData.metallicRoughnessTexture);
-
-            const auto emissiveTexture = extractTexture(Type::emissiveTexture, material.emissiveTexture);
-            const core::math::Vector<4> emissiveFactor { material.emissiveFactor[0], material.emissiveFactor[1],
-                                                         material.emissiveFactor[2], 1 };
-
-            const auto normalTexture = extractTexture(Type::normalTexture, material.normalTexture);
-            const auto normalScale   = material.normalTexture ? material.normalTexture.value().scale : 1.0f;
-
-            const auto occlusionTexture = extractTexture(Type::occlusionTexture, material.occlusionTexture);
-            const auto occlusionStrength =
-                material.occlusionTexture ? material.occlusionTexture.value().strength : 1.0f;
-
-            const auto newMaterial = materials.create(asset::Material {
-                .name                     = baptize<This::material>(material.name, materialId),
-                .doubleSided              = material.doubleSided,
-                .unlit                    = material.unlit,
-                .alphaMode                = extractAlphaMode(material.alphaMode),
-                .alphaCutoff              = material.alphaCutoff,
-                .baseColorTexture         = baseColorTexture,
-                .baseColorFactor          = baseColorFactor,
-                .metallicRoughnessTexture = metallicRoughnessTexture,
-                .metallicFactor           = material.pbrData.metallicFactor,
-                .roughnessFactor          = material.pbrData.roughnessFactor,
-                .emissiveTexture          = emissiveTexture,
-                .emissiveFactor           = emissiveFactor,
-                .emissiveStrength         = material.emissiveStrength,
-                .normalTexture            = normalTexture,
-                .normalScale              = normalScale,
-                .occlusionTexture         = occlusionTexture,
-                .occlusionStrength        = occlusionStrength,
-                .descriptorSet            = descriptorPool.template allocate<Layout>(
-                    *baseColorTexture.texture, *metallicRoughnessTexture.texture, *normalTexture.texture),
-            });
-            materialIds.emplace(materialId, &materials.get(newMaterial));
-            ++materialId;
-        }
-
-        return materialIds;
-    }
-
     std::vector<MaterialID>
-    createMaterials3(Storage& storage, const std::vector<TextureID> texturesIds,
-                     const std::map<load::Gltf::TextureType, TextureID>& externalTextures) const {
+    createMaterials(Storage& storage, const std::vector<TextureID> texturesIds,
+                    const std::map<load::Gltf::TextureType, TextureID>& externalTextures) const {
         constexpr auto extractAlphaMode = [](const fastgltf::AlphaMode alphaMode) {
             switch (alphaMode) {
             case fastgltf::AlphaMode::Blend:
@@ -1238,71 +1014,7 @@ public:
         return materialIds;
     }
 
-    // template<typename EntityID>
-    std::map<MeshID, const asset::Mesh*> createMeshes2(const std::map<MaterialID, const asset::Material*> materials,
-                                                       std::map<MeshID, asset::Mesh>& meshes) const {
-        uint32_t partialIndexCount { 0 };
-
-        // std::vector<asset::Mesh> meshes;
-        // meshes.reserve(asset.meshes.size());
-        std::map<MeshID, const asset::Mesh*> meshIds;
-        uint32_t                             meshId = 0;
-        for (const fastgltf::Mesh& fastgltfMesh : asset.meshes) {
-            auto [mesh, inserted] = meshes.emplace(meshes.size(), baptize<This::mesh>(fastgltfMesh.name, meshId));
-            if (!inserted) {
-                throw std::runtime_error("Mesh already present");
-            }
-            meshIds.emplace(meshId, &mesh->second);
-            ++meshId;
-
-            mesh->second.primitives.reserve(fastgltfMesh.primitives.size());
-            for (const fastgltf::Primitive& primitive : fastgltfMesh.primitives) {
-                const fastgltf::Accessor& positionAccessor =
-                    asset.accessors.at(primitive.findAttribute("POSITION")->accessorIndex);
-
-                const auto indexCount  = asset.accessors.at(primitive.indicesAccessor.value()).count;
-                const auto vertexCount = positionAccessor.count;
-
-                // constexpr auto cast = [](auto t) { return static_cast<Float32>(t); };
-
-                constexpr auto        minValue = std::numeric_limits<core::math::Vector<3>::value_type>::min();
-                constexpr auto        maxValue = std::numeric_limits<core::math::Vector<3>::value_type>::min();
-                core::math::Vector<3> min { maxValue, maxValue, maxValue };
-                core::math::Vector<3> max { minValue, minValue, minValue };
-                using PositionAttribute =
-                    typename Vertex::Attribute<Vertex::attributeIndex<core::geometry::Attribute::position>()>::Value;
-                fastgltf::iterateAccessor<PositionAttribute>(asset, positionAccessor, [&](const auto& value) {
-                    core::forEach<0, 3>([&]<int i> {
-                        get<i>(min) = std::min(get<i>(min), value[i]);
-                        get<i>(max) = std::max(get<i>(max), value[i]);
-                    });
-                });
-                core::forEach<0, 3>([&]<int i> { assert(get<i>(min) <= get<i>(max)); });
-
-                const auto& material =
-                    primitive.materialIndex ? *materials.at(primitive.materialIndex.value()) : defaults.material;
-
-                const auto end = primitive.attributes.end();
-                mesh->second.primitives.emplace_back(
-                    partialIndexCount, indexCount, vertexCount, material,
-                    asset::Mesh::Primitive::Attributes {
-                        { core::geometry::Attribute::position,    primitive.findAttribute("POSITION") != end   },
-                        { core::geometry::Attribute::color,       primitive.findAttribute("COLOR_0") != end    },
-                        { core::geometry::Attribute::normal,      primitive.findAttribute("NORMAL") != end     },
-                        { core::geometry::Attribute::tangent,     primitive.findAttribute("TANGENT") != end    },
-                        { core::geometry::Attribute::texCoord,    primitive.findAttribute("TEXCOORD_0") != end },
-                        { core::geometry::Attribute::jointIndex,  primitive.findAttribute("JOINTS_0") != end   },
-                        { core::geometry::Attribute::jointWeight, primitive.findAttribute("WEIGHTS_0") != end  },
-                },
-                    core::geometry::BoundingBox { min, max }, asset::Mesh::Primitive::State { false });
-
-                partialIndexCount += indexCount;
-            }
-        }
-        return meshIds;
-    }
-
-    std::vector<MeshID> createMeshes3(Storage& storage, const std::vector<MaterialID>& materialIds) const {
+    std::vector<MeshID> createMeshes(Storage& storage, const std::vector<MaterialID>& materialIds) const {
         std::vector<MeshID> meshIds;
         uint32_t            partialIndexCount { 0 };
         for (const fastgltf::Mesh& fastgltfMesh : asset.meshes) {
@@ -1329,8 +1041,6 @@ public:
                 });
                 core::forEach<0, 3>([&]<int i> { assert(get<i>(min) <= get<i>(max)); });
 
-                // const auto& material = primitive.materialIndex ? materialIds.at(primitive.materialIndex.value()) :
-                //                                                  storage.defaultMaterialId;
                 const auto& material =
                     primitive.materialIndex ? materialIds.at(primitive.materialIndex.value()) : MaterialID {};
 
@@ -1345,62 +1055,7 @@ public:
     }
 
     template<typename V>
-    ModelID createModel2(const core::Command& command, const std::map<MeshID, const asset::Mesh*>& meshes,
-                         core::LazyAccessContainer<ModelID, asset::Model>& models) const {
-        const auto [vertexCount, indexCount] = [&] {
-            uint32_t vertexCount { 0 };
-            uint32_t indexCount { 0 };
-            for (const auto& [_, mesh] : meshes) {
-                for (const auto& primitive : mesh->primitives) {
-                    vertexCount += primitive.vertexCount;
-                    indexCount += primitive.indexCount;
-                }
-            }
-            return std::pair { vertexCount, indexCount };
-        }();
-
-        std::vector<V>     vertices(vertexCount);
-        std::vector<Index> indices;
-        indices.reserve(indexCount);
-
-        uint32_t vertexOffset { 0 };
-        for (const fastgltf::Mesh& mesh : asset.meshes) {
-            for (const auto& primitive : mesh.primitives) {
-                fastgltf::iterateAccessor<std::uint32_t>(
-                    asset, asset.accessors.at(primitive.indicesAccessor.value()),
-                    [&](std::uint32_t index) { indices.emplace_back(vertexOffset + index); });
-
-                static const std::map<core::geometry::Attribute, std::string_view> attributeNames {
-                    { core::geometry::Attribute::position,    "POSITION"   },
-                    { core::geometry::Attribute::normal,      "NORMAL"     },
-                    { core::geometry::Attribute::tangent,     "TANGENT"    },
-                    { core::geometry::Attribute::texCoord,    "TEXCOORD_0" },
-                    { core::geometry::Attribute::color,       "COLOR_0"    },
-                    { core::geometry::Attribute::jointIndex,  "JOINTS_0"   },
-                    { core::geometry::Attribute::jointWeight, "WEIGHTS_0"  },
-                };
-
-                core::forEach<0, V::attributeCount>([&]<int i>() {
-                    using Attribute = typename V::Attribute<i>;
-                    if (const auto values = primitive.findAttribute(attributeNames.at(Attribute::attribute));
-                        values != primitive.attributes.end()) {
-                        fastgltf::iterateAccessorWithIndex<typename Attribute::Value>(
-                            asset, asset.accessors.at(values->accessorIndex),
-                            [&](const typename Attribute::Value& value, const auto index) {
-                                vertices.at(vertexOffset + index).template get<Attribute::attribute>() = value;
-                            });
-                    }
-                });
-
-                vertexOffset += asset.accessors.at(primitive.findAttribute("POSITION")->accessorIndex).count;
-            }
-        }
-        return models.create(command, core::geometry::Shape { "asset", std::move(vertices), std::move(indices) },
-                             asset::Model::scene);
-    }
-
-    template<typename V>
-    ModelID createModel3(Storage& storage, const std::vector<MeshID>& meshIds) const {
+    ModelID createModel(Storage& storage, const std::vector<MeshID>& meshIds) const {
         const auto [vertexCount, indexCount] = std::invoke([&] {
             uint32_t vertexCount { 0 };
             uint32_t indexCount { 0 };
@@ -1445,9 +1100,6 @@ public:
                                 vertices.at(vertexOffset + index).template get<Attribute::attribute>() = value;
                             });
                     } else {
-                        // throw std::runtime_error("In file '" + std::string(path) +
-                        //                          "':\n                 Missing attribute " +
-                        //                          std::string(attributeName));
                         log::warning("In file '" + std::string(path) + "':\n                 Missing attribute " +
                                      std::string(attributeName));
                     }

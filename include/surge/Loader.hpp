@@ -12,17 +12,17 @@ public:
     }
 
     template<typename Vertex>
-    Entity2 load(const core::shader::Type shaderType, const load::Gltf::Handle& handle,
-                 const std::map<load::Gltf::TextureType, TextureID>& externalTextureIds) {
+    Entity load(const core::shader::Type shaderType, const load::Gltf::Handle& handle,
+                const std::map<load::Gltf::TextureType, TextureID>& externalTextureIds) {
         const load::Gltf gltf { handle, storage.defaults };
-        const auto       textureIds        = gltf.createTextures3(storage);
-        const auto       materialIds       = gltf.createMaterials3(storage, textureIds, externalTextureIds);
-        const auto       meshIds           = gltf.createMeshes3(storage, materialIds);
-        const auto       newModelId        = gltf.createModel3<Vertex>(storage, meshIds);
+        const auto       textureIds        = gltf.createTextures(storage);
+        const auto       materialIds       = gltf.createMaterials(storage, textureIds, externalTextureIds);
+        const auto       meshIds           = gltf.createMeshes(storage, materialIds);
+        const auto       newModelId        = gltf.createModel<Vertex>(storage, meshIds);
         const auto       newSkinIds        = gltf.createSkins2(storage);
         const auto       newNodeTreeId     = gltf.createNodeTree(storage, meshIds, newSkinIds);
         const auto       newAnimationSetId = gltf.createAnimationsSet(storage);
-        return Entity2 {
+        return Entity {
             .modelId        = newModelId,
             .nodeTreeId     = newNodeTreeId,
             .pipelineId     = storage.getPipeline(shaderType),
@@ -31,25 +31,25 @@ public:
     }
 
     template<typename Vertex>
-    Entity2 load(const core::shader::Type shaderType, const load::Gltf::Handle& handle) {
+    Entity load(const core::shader::Type shaderType, const load::Gltf::Handle& handle) {
         return load<Vertex>(shaderType, handle, {});
     }
 
     template<typename LoadedModel>
-    Entity2 load(const core::shader::Type shaderType, const LoadedModel& loadedModel) {
+    Entity load(const core::shader::Type shaderType, const LoadedModel& loadedModel) {
         return load(shaderType, storage.createModel(loadedModel), MaterialID {});
     }
 
     template<typename LoadedModel>
-    Entity2 load(const core::shader::Type shaderType, const LoadedModel& loadedModel, const MaterialID materialId) {
+    Entity load(const core::shader::Type shaderType, const LoadedModel& loadedModel, const MaterialID materialId) {
         return load(shaderType, storage.createModel(loadedModel), materialId);
     }
 
-    Entity2 load(const core::shader::Type shaderType, const ModelID modelId) {
+    Entity load(const core::shader::Type shaderType, const ModelID modelId) {
         return load(shaderType, modelId, MaterialID {});
     }
 
-    Entity2 load(const core::shader::Type shaderType, const ModelID modelId, const MaterialID materialId) {
+    Entity load(const core::shader::Type shaderType, const ModelID modelId, const MaterialID materialId) {
         const auto meshId = storage.createMesh({
             asset::Mesh2::Primitive { .firstIndex  = 0,
                                      .indexCount  = storage.models.get(modelId).indexCount,
@@ -57,7 +57,7 @@ public:
                                      .materialId  = materialId,
                                      .boundingBox = {} }
         });
-        return Entity2 {
+        return Entity {
             .modelId        = modelId,
             .nodeTreeId     = storage.createNodeTree(storage, meshId),
             .pipelineId     = storage.getPipeline(shaderType),
