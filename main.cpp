@@ -44,13 +44,12 @@ int main() {
         const auto mainSceneId = engine.storage.createScene();
         auto&      mainScene   = engine.storage.scenes.at(mainSceneId);
 
-        engine.storage.createPipelines(mainSceneId);
-
         // load
-        const auto skybox      = engine.loader.load(surge::ShaderType::skybox, surge::geom::cube,
-                                                    engine.storage.createSimpleMaterial(engine.storage.createTexture(
+        const auto skybox = engine.loader.load(surge::ShaderType::skybox, engine.storage.createModel(surge::geom::cube),
+                                               engine.storage.createSimpleMaterial(engine.storage.createTexture(
                                                    surgeTextureFolder / "skybox.ktx", surge::Texture::cube)));
-        const auto coordinates = engine.loader.load(surge::ShaderType::coordinates, surge::geom::coordinates);
+        const auto coordinates =
+            engine.loader.load(surge::ShaderType::coordinates, engine.storage.createModel(surge::geom::coordinates));
 
         surge::Vector<3> lightPosition { -2, 2, 1 };
         constexpr auto   lightColor = surge::RGBA::white;
@@ -127,7 +126,7 @@ int main() {
         const auto texturedCube = surge::createArray<surge::Entity, cubeFaces.size()>([&]<int faceId>(auto& face) {
             face = engine.loader.load(surge::ShaderType::primitiveTextured, planeTexturedModel,
                                       cubeSimpleMaterials.at(faceId));
-            engine.updateNodeTree(face.nodeTreeId, surge::translate<x>(2.0) * cubeFaces.at(faceId));
+            engine.update(face, surge::translate<x>(2.0) * cubeFaces.at(faceId));
         });
 
         const auto planeTexturedNormalsModel = engine.storage.createModel(surge::geom::planeTexturedNormals);
@@ -158,8 +157,7 @@ int main() {
         for (const auto& translation : generateTranslations<10>()) {
             const auto brickwall = engine.loader.load(surge::ShaderType::phongModelNormal,
                                                       planeTexturedNormalTangentModel, brickwallMaterial);
-            engine.updateNodeTree(brickwall.nodeTreeId,
-                                  surge::Translation { translation } * surge::scale(4.0) * surge::rotate<x>(90));
+            engine.update(brickwall, surge::Translation { translation } * surge::scale(4.0) * surge::rotate<x>(90));
             brickwalls.emplace_back(brickwall);
         }
 
@@ -249,7 +247,6 @@ int main() {
                                     surge::Storage::SceneBuffer { surge::fullMatrix(playerCamera.mats.perspective),
                                                                   surge::fullMatrix(playerCamera.mats.view), lightColor,
                                                                   lightPosition });
-                // overlay.update(input, playerCamera);
 
                 // channels
                 const surge::Rotation rotationY { surge::toQuaternion(0.0f, 1.0f * engine.input.timer, 0.0f) };
@@ -259,32 +256,28 @@ int main() {
                 lightPosition[1] = std::sin(engine.input.timer);
 
                 // rotate
-                engine.updateNodeTree(skybox.nodeTreeId, skyboxCamera.mats.perspective * skyboxCamera.mats.view);
+                engine.update(skybox, skyboxCamera.mats.perspective * skyboxCamera.mats.view);
                 surge::forEach<0, cubeFaces.size()>([&]<int face>() {
-                    engine.updateNodeTree(lightCube.at(face).nodeTreeId, surge::Translation<> { lightPosition } *
-                                                                             surge::Scaling<> { 0.1f, 0.1f, 0.1f } *
-                                                                             cubeFaces.at(face));
-                    engine.updateNodeTree(texturedNormalCube.at(face).nodeTreeId,
-                                          surge::translate<x>(4.0) * rotationY * cubeFaces.at(face));
-                    engine.updateNodeTree(phongCube.at(face).nodeTreeId,
-                                          surge::translate<x>(10.0) * rotationY * cubeFaces.at(face));
-                    engine.updateNodeTree(phongNormalCube.at(face).nodeTreeId, surge::translate<x>(10.0) *
-                                                                                   surge::translate<y>(2.0) *
-                                                                                   rotationY * cubeFaces.at(face));
-                    engine.updateNodeTree(crate.at(face).nodeTreeId,
-                                          surge::translate<x>(12.0) * rotationY * cubeFaces.at(face));
+                    engine.update(lightCube.at(face), surge::Translation<> { lightPosition } *
+                                                          surge::Scaling<> { 0.1f, 0.1f, 0.1f } * cubeFaces.at(face));
+                    engine.update(texturedNormalCube.at(face),
+                                  surge::translate<x>(4.0) * rotationY * cubeFaces.at(face));
+                    engine.update(phongCube.at(face), surge::translate<x>(10.0) * rotationY * cubeFaces.at(face));
+                    engine.update(phongNormalCube.at(face), surge::translate<x>(10.0) * surge::translate<y>(2.0) *
+                                                                rotationY * cubeFaces.at(face));
+                    engine.update(crate.at(face), surge::translate<x>(12.0) * rotationY * cubeFaces.at(face));
                 });
                 engine.storage.reset();
-                engine.updateNodeTree(floor.nodeTreeId, surge::translate<x>(-2.0) * rotationY * surge::rotate<x>(90));
-                engine.updateNodeTree(dragon.nodeTreeId, surge::translate<x>(6.0) * surge::scale(0.5) * rotationY);
-                engine.updateNodeTree(cerberus.nodeTreeId, surge::translate<x>(8.0) * surge::scale(0.5) * rotationY);
-                engine.updateNodeTree(cesiumMan.nodeTreeId, surge::translate<x>(-4.0) * rotationY);
-                engine.updateNodeTree(buggy.nodeTreeId, surge::translate<x>(-6.0) * surge::scale(0.01) * rotationY);
-                engine.updateNodeTree(armor1.nodeTreeId, surge::translate<x>(-8.0) * surge::scale(0.3) * rotationY);
-                engine.updateNodeTree(armor2.nodeTreeId, surge::translate<x>(-8.0) * surge::translate<z>(2.0) *
-                                                             surge::scale(0.3) * rotationY);
-                engine.updateNodeTree(oaktree.nodeTreeId, surge::translate<x>(-10.0) * rotationY);
-                engine.updateNodeTree(pathfinder.nodeTreeId, surge::translate<z>(4.0) * rotationY);
+                engine.update(floor, surge::translate<x>(-2.0) * rotationY * surge::rotate<x>(90));
+                engine.update(dragon, surge::translate<x>(6.0) * surge::scale(0.5) * rotationY);
+                engine.update(cerberus, surge::translate<x>(8.0) * surge::scale(0.5) * rotationY);
+                engine.update(cesiumMan, surge::translate<x>(-4.0) * rotationY);
+                engine.update(buggy, surge::translate<x>(-6.0) * surge::scale(0.01) * rotationY);
+                engine.update(armor1, surge::translate<x>(-8.0) * surge::scale(0.3) * rotationY);
+                engine.update(armor2,
+                              surge::translate<x>(-8.0) * surge::translate<z>(2.0) * surge::scale(0.3) * rotationY);
+                engine.update(oaktree, surge::translate<x>(-10.0) * rotationY);
+                engine.update(pathfinder, surge::translate<z>(4.0) * rotationY);
 
                 // create scene
                 mainScene.entities.push_back(skybox);

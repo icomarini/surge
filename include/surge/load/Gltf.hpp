@@ -626,7 +626,7 @@ public:
         return skins;
     }
 
-    std::vector<SkinID> createSkins2(Storage& storage) const {
+    std::vector<SkinID> createSkins(Storage& storage) const {
         std::vector<SkinID> skins;
         uint32_t            skinId = 0;
         for (const fastgltf::Skin& fastgltfSkin : asset.skins) {
@@ -909,17 +909,17 @@ public:
     std::vector<MaterialID>
     createMaterials(Storage& storage, const std::vector<TextureID> texturesIds,
                     const std::map<load::Gltf::TextureType, TextureID>& externalTextures) const {
-        constexpr auto extractAlphaMode = [](const fastgltf::AlphaMode alphaMode) {
-            switch (alphaMode) {
-            case fastgltf::AlphaMode::Blend:
-                return asset::Material::AlphaMode::blend;
-            case fastgltf::AlphaMode::Mask:
-                return asset::Material::AlphaMode::mask;
-            case fastgltf::AlphaMode::Opaque:
-                return asset::Material::AlphaMode::opaque;
-            }
-            throw;
-        };
+        // constexpr auto extractAlphaMode = [](const fastgltf::AlphaMode alphaMode) {
+        //     switch (alphaMode) {
+        //     case fastgltf::AlphaMode::Blend:
+        //         return asset::Material::AlphaMode::blend;
+        //     case fastgltf::AlphaMode::Mask:
+        //         return asset::Material::AlphaMode::mask;
+        //     case fastgltf::AlphaMode::Opaque:
+        //         return asset::Material::AlphaMode::opaque;
+        //     }
+        //     throw;
+        // };
 
         struct TextureData {
             TextureID textureId;
@@ -955,7 +955,7 @@ public:
         for (const fastgltf::Material& material : asset.materials) {
             using Type = TextureType;
 
-            const auto baseColorTexture = extractTexture(Type::baseColorTexture, material.pbrData.baseColorTexture);
+            // const auto baseColorTexture = extractTexture(Type::baseColorTexture, material.pbrData.baseColorTexture);
             // const core::math::Vector<4> baseColorFactor { material.pbrData.baseColorFactor[0],
             //                                               material.pbrData.baseColorFactor[1],
             //                                               material.pbrData.baseColorFactor[2],
@@ -1100,7 +1100,7 @@ public:
                                 vertices.at(vertexOffset + index).template get<Attribute::attribute>() = value;
                             });
                     } else {
-                        log::warning("In file '" + std::string(path) + "':\n                 Missing attribute " +
+                        log::warning("In file '" + std::string(path) + "': missing attribute " +
                                      std::string(attributeName));
                     }
                 });

@@ -19,7 +19,7 @@ public:
         const auto       materialIds       = gltf.createMaterials(storage, textureIds, externalTextureIds);
         const auto       meshIds           = gltf.createMeshes(storage, materialIds);
         const auto       newModelId        = gltf.createModel<Vertex>(storage, meshIds);
-        const auto       newSkinIds        = gltf.createSkins2(storage);
+        const auto       newSkinIds        = gltf.createSkins(storage);
         const auto       newNodeTreeId     = gltf.createNodeTree(storage, meshIds, newSkinIds);
         const auto       newAnimationSetId = gltf.createAnimationsSet(storage);
         return Entity {
@@ -33,16 +33,6 @@ public:
     template<typename Vertex>
     Entity load(const core::shader::Type shaderType, const load::Gltf::Handle& handle) {
         return load<Vertex>(shaderType, handle, {});
-    }
-
-    template<typename LoadedModel>
-    Entity load(const core::shader::Type shaderType, const LoadedModel& loadedModel) {
-        return load(shaderType, storage.createModel(loadedModel), MaterialID {});
-    }
-
-    template<typename LoadedModel>
-    Entity load(const core::shader::Type shaderType, const LoadedModel& loadedModel, const MaterialID materialId) {
-        return load(shaderType, storage.createModel(loadedModel), materialId);
     }
 
     Entity load(const core::shader::Type shaderType, const ModelID modelId) {

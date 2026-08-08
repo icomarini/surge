@@ -6,13 +6,6 @@
 
 namespace surge {
 
-// struct Entity {
-//     ModelID    model;
-//     PipelineID pipeline;
-//     MatrixID   matrix;
-//     MaterialID material;
-// };
-
 struct Entity {
     ModelID        modelId;
     NodeTreeID     nodeTreeId;
@@ -29,7 +22,6 @@ struct Scene {
 struct Pipeline {
     VkPipelineLayout pipelineLayout;
     VkPipeline       pipeline;
-    SceneID          sceneId;
 
     const VkPipelineLayout& layout() const {
         return pipelineLayout;
@@ -95,7 +87,6 @@ struct Storage {
     TextureID  whiteTextureId;
     TextureID  blackTextureId;
     MaterialID defaultMaterialId;
-    PipelineID linePipelineId;
 
     Storage(const core::Command& command)
         : command { command }
@@ -107,39 +98,40 @@ struct Storage {
         , defaultTextureId { createTexture(load::createDefaultTextureData(core::RGBA::white, core::RGBA::black)) }
         , whiteTextureId { createTexture(load::createFlatTextureData(core::RGBA::white)) }
         , blackTextureId { createTexture(load::createFlatTextureData(core::RGBA::black)) }
-        , defaultMaterialId { createSimpleMaterial(defaultTextureId) }
-        , linePipelineId { createLinePipeline() } {
+        , defaultMaterialId { createSimpleMaterial(defaultTextureId) } {
+        createPipelines();
     }
 
     ~Storage() {
         pipelines.apply([&](Pipeline& pipeline) { pipeline.destroy(command.context); });
     }
 
-    void createPipelines(const SceneID sceneId) {
+    void createPipelines() {
         using ShaderType = core::shader::Type;
         using namespace core::geometry;
         pipelineIds = {
+            { ShaderType::line, createLinePipeline() },
             { ShaderType::skybox,
              createPipeline<Position, ModelMatrix, SceneLayout, SimpleMaterialLayout>(ShaderType::skybox) },
             { ShaderType::coordinates,
-             createPipeline<PositionAndColor, ModelMatrix, SceneLayout>(ShaderType::coordinates, sceneId) },
+             createPipeline<PositionAndColor, ModelMatrix, SceneLayout>(ShaderType::coordinates) },
             { ShaderType::primitive,
-             createPipeline<Position, ModelMatrixAndColor, SceneLayout>(ShaderType::primitive, sceneId) },
+             createPipeline<Position, ModelMatrixAndColor, SceneLayout>(ShaderType::primitive) },
             { ShaderType::primitiveNormal,
              createPipeline<PositionNormal, ModelMatrix, SceneLayout, SimpleMaterialLayout>(
-                  ShaderType::primitiveNormal, sceneId) },
+                  ShaderType::primitiveNormal) },
             { ShaderType::primitiveTextured,
              createPipeline<PositionTexture, ModelMatrix, SceneLayout, SimpleMaterialLayout>(
-                  ShaderType::primitiveTextured, sceneId) },
+                  ShaderType::primitiveTextured) },
             { ShaderType::primitiveTexturedNormal,
              createPipeline<PositionNormalTexture, ModelMatrix, SceneLayout, SimpleMaterialLayout>(
-                  ShaderType::primitiveTexturedNormal, sceneId) },
+                  ShaderType::primitiveTexturedNormal) },
             { ShaderType::phongModel,
              createPipeline<PositionNormalTexture, ModelMatrix, SceneLayout, PhongMaterialLayout>(
-                  ShaderType::phongModel, sceneId) },
+                  ShaderType::phongModel) },
             { ShaderType::phongModelNormal,
              createPipeline<PositionNormalTangentTexture, ModelMatrix, SceneLayout, PhongMaterialLayout>(
-                  ShaderType::phongModelNormal, sceneId) }
+                  ShaderType::phongModelNormal) }
         };
     }
 
@@ -197,7 +189,7 @@ struct Storage {
     }
 
     template<typename VertexInputState, typename PushConstants, typename... Layouts>
-    PipelineID createPipeline(const core::shader::Type shaderType, const SceneID sceneId) {
+    PipelineID createPipeline(const core::shader::Type shaderType) {
         constexpr auto push = core::createPushConstantRange<PushConstants>(shaderStages);
         const auto     pipelineLayout =
             core::createPipelineLayout(command.context, push, descriptorPool.layout<Layouts>()...);
@@ -205,14 +197,8 @@ struct Storage {
         const auto     pipeline =
             core::createGraphicPipeline(command.context, vertexInputState, pipelineLayout, shaderType);
 
-        return pipelines.create(pipelineLayout, pipeline, sceneId);
+        return pipelines.create(pipelineLayout, pipeline);
     }
-
-    template<typename VertexInputState, typename PushConstants, typename... Layouts>
-    PipelineID createPipeline(const core::shader::Type shaderType) {
-        return createPipeline<VertexInputState, PushConstants, Layouts...>(shaderType, SceneID {});
-    }
-
 
     MeshID createMesh(std::vector<asset::Mesh2::Primitive>&& primitives) {
         const auto insertion = meshes.emplace(meshes.size(), std::move(primitives));
@@ -221,7 +207,6 @@ struct Storage {
         }
         return insertion.first->first;
     }
-
 
     PipelineID createLinePipeline() {
         const auto pipelineLayout =

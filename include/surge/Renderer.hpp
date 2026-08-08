@@ -50,8 +50,7 @@ public:
         const auto& nodeTree = storage.nodeTrees.at(entity.nodeTreeId);
         nodeTree.traverse<core::utils::Traversal::linear>([&](const asset::Node2& node) {
             if (node.meshId) {
-                const auto& mesh = storage.meshes.at(node.meshId);
-                for (const auto& primitive : mesh.primitives) {
+                for (const auto& primitive : storage.meshes.at(node.meshId).primitives) {
                     // bind material
                     if (primitive.materialId) {
                         storage.materials.apply(primitive.materialId, [&](const VkDescriptorSet& material) {
@@ -74,9 +73,10 @@ public:
 
     void draw(const VkCommandBuffer commandBuffer, const Scene& scene, const asset::Line& line) const {
         // bind main camera
-        const auto pipelineLayout = storage.pipelines.get(storage.linePipelineId).layout();
+        const auto linePipelineId = storage.pipelineIds.at(core::shader::Type::line);
+        const auto pipelineLayout = storage.pipelines.get(linePipelineId).layout();
 
-        storage.pipelines.apply(storage.linePipelineId, [&](const Pipeline& pipeline) {
+        storage.pipelines.apply(linePipelineId, [&](const Pipeline& pipeline) {
             core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
             vkCmdBindPipeline(commandBuffer, Storage::graphicsBindPoint, pipeline.get());
             constexpr uint32_t sceneIndex { 0 };
