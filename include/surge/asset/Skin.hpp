@@ -15,4 +15,5 @@ struct Skin {
     std::optional<core::Index> skeletonIndex;
     std::vector<Joint>         joints;
 };
+
 }  // namespace surge::asset

@@ -7,10 +7,10 @@
 namespace surge {
 
 struct Entity {
-    ModelID        modelId;
-    NodeTreeID     nodeTreeId;
-    PipelineID     pipelineId;
-    AnimationSetID animationSetId;
+    ModelID            modelId;
+    NodeTreeID         nodeTreeId;
+    PipelineID         pipelineId;
+    AnimationChannelID animationChannelId;
 };
 
 struct Scene {
@@ -35,11 +35,23 @@ struct Pipeline {
     }
 };
 
-using SceneLayout          = core::DescriptorLayout<VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER>;
-using SimpleMaterialLayout = core::DescriptorLayout<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER>;
-using PhongMaterialLayout  = core::DescriptorLayout<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,  //
-                                                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,  //
+struct AnimationChannel {
+    AnimationSetID                        animationSetId;
+    AnimationID                           animationId;
+    float                                 progress { 0 };
+    core::utils::Tree<asset::Node2>       nodeTree;
+    std::vector<core::math::Matrix<4, 4>> jointMatrices;
+    BufferID                              jointMatricesBufferId;
+    MaterialID                            jointMatricesMaterialId;
+};
+
+using SceneLayout          = core::DescriptorLayout<0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER>;
+using SimpleMaterialLayout = core::DescriptorLayout<1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER>;
+using PhongMaterialLayout  = core::DescriptorLayout<1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,  //
+                                                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,     //
                                                     VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER>;
+using AnimationLayout      = core::DescriptorLayout<2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER>;
+
 
 using ModelMatrix = core::math::Matrix<4, 4>;
 struct ModelMatrixAndColor {
@@ -59,14 +71,15 @@ struct Storage {
     core::LazyAccessContainer<PipelineID, Pipeline>  pipelines;
     std::map<core::shader::Type, PipelineID>         pipelineIds;
 
-    using PushConstantsVariants = std::variant<ModelMatrix, ModelMatrixAndColor>;
-    std::map<MatrixID, PushConstantsVariants> matrices;
+    // using PushConstantsVariants = std::variant<ModelMatrix, ModelMatrixAndColor>;
+    // std::map<MatrixID, PushConstantsVariants> matrices;
 
     std::map<BufferID, core::Buffer>    buffers;
     std::map<TextureID, asset::Texture> textures;
     std::map<SceneID, Scene>            scenes;
 
-    using DescriptorPool = core::DescriptorPool<SceneLayout, SimpleMaterialLayout, PhongMaterialLayout>;
+    using DescriptorPool =
+        core::DescriptorPool<SceneLayout, SimpleMaterialLayout, PhongMaterialLayout, AnimationLayout>;
     DescriptorPool descriptorPool;
 
     struct SceneBuffer {
@@ -80,8 +93,11 @@ struct Storage {
     std::map<MeshID, asset::Mesh2>                        meshes;
     std::map<NodeTreeID, core::utils::Tree<asset::Node2>> nodeTrees;
 
-    std::map<SkinID, asset::Skin>                           skins;
-    std::map<AnimationSetID, std::vector<asset::Animation>> animationSets;
+    // std::map<ChannelID, animation::Sampler>              animationSamplers;
+    // std::map<ChannelID, animation::Channel>              animationChannels;
+    std::map<SkinID, asset::Skin>                               skins;
+    std::map<AnimationSetID, std::vector<animation::Animation>> animationSets;
+    std::map<AnimationChannelID, AnimationChannel>              animationChannels;
 
     TextureID  defaultTextureId;
     TextureID  whiteTextureId;
@@ -90,11 +106,11 @@ struct Storage {
 
     Storage(const core::Command& command)
         : command { command }
-        , defaults { command }
-        , matrices {}
+        , defaults { command }  // , matrices {}
         , descriptorPool { command.context, core::DescriptorAllocation<SceneLayout> { 2 },
                            core::DescriptorAllocation<SimpleMaterialLayout> { 128 },
-                           core::DescriptorAllocation<PhongMaterialLayout> { 128 } }
+                           core::DescriptorAllocation<PhongMaterialLayout> { 128 },
+                           core::DescriptorAllocation<AnimationLayout> { 16 } }
         , defaultTextureId { createTexture(load::createDefaultTextureData(core::RGBA::white, core::RGBA::black)) }
         , whiteTextureId { createTexture(load::createFlatTextureData(core::RGBA::white)) }
         , blackTextureId { createTexture(load::createFlatTextureData(core::RGBA::black)) }
@@ -126,6 +142,9 @@ struct Storage {
             { ShaderType::primitiveTexturedNormal,
              createPipeline<PositionNormalTexture, ModelMatrix, SceneLayout, SimpleMaterialLayout>(
                   ShaderType::primitiveTexturedNormal) },
+            { ShaderType::primitiveTexturedNormalAnimated,
+             createPipeline<PositionNormalTextureJoint, ModelMatrix, SceneLayout, SimpleMaterialLayout,
+             AnimationLayout>(ShaderType::primitiveTexturedNormalAnimated) },
             { ShaderType::phongModel,
              createPipeline<PositionNormalTexture, ModelMatrix, SceneLayout, PhongMaterialLayout>(
                   ShaderType::phongModel) },
@@ -139,10 +158,11 @@ struct Storage {
         return pipelineIds.at(shaderType);
     }
 
-    BufferID createBuffer(const std::size_t size) {
+    template<typename BufferInfo>
+    BufferID createBuffer(const std::size_t size, const BufferInfo& bufferInfo) {
         const auto insertion = buffers.emplace(std::piecewise_construct,  //
                                                std::forward_as_tuple(buffers.size()),
-                                               std::forward_as_tuple(command.context, size, core::Buffer::uniform));
+                                               std::forward_as_tuple(command.context, size, bufferInfo));
         if (!insertion.second) {
             throw std::runtime_error("Buffer already present");
         }
@@ -150,7 +170,7 @@ struct Storage {
     };
 
     SceneID createScene() {
-        const auto bufferId   = createBuffer(sizeof(SceneBuffer));
+        const auto bufferId   = createBuffer(sizeof(SceneBuffer), core::Buffer::uniform);
         const auto materialId = materials.create(descriptorPool.allocate<SceneLayout>(buffers.at(bufferId)));
         const auto insertion  = scenes.emplace(std::piecewise_construct,              //
                                                std::forward_as_tuple(scenes.size()),  //
@@ -191,7 +211,10 @@ struct Storage {
     template<typename VertexInputState, typename PushConstants, typename... Layouts>
     PipelineID createPipeline(const core::shader::Type shaderType) {
         constexpr auto push = core::createPushConstantRange<PushConstants>(shaderStages);
-        const auto     pipelineLayout =
+        if constexpr (sizeof...(Layouts) == 4) {
+            static_assert(false);
+        }
+        const auto pipelineLayout =
             core::createPipelineLayout(command.context, push, descriptorPool.layout<Layouts>()...);
         constexpr auto vertexInputState = core::createVertexInputState<VertexInputState>();
         const auto     pipeline =
@@ -227,15 +250,6 @@ struct Storage {
                 .primitiveRestartEnable = VK_FALSE,
             });
         return pipelines.create(pipelineLayout, pipeline);
-    }
-
-    template<typename T>
-    MatrixID createMatrix(const T& matrix) {
-        const auto insertion = matrices.emplace(matrices.size(), matrix);
-        if (!insertion.second) {
-            throw std::runtime_error("Matrix already present");
-        }
-        return insertion.first->first;
     }
 
     template<typename TextureData>
@@ -318,7 +332,7 @@ struct Storage {
         return insertion.first->first;
     }
 
-    AnimationSetID createAnimationSet(std::vector<asset::Animation>&& animationSet) {
+    AnimationSetID createAnimationSet(std::vector<animation::Animation>&& animationSet) {
         const auto insertion = animationSets.emplace(animationSets.size(), std::move(animationSet));
         if (!insertion.second) {
             throw std::runtime_error("Animation set already present");
@@ -326,18 +340,39 @@ struct Storage {
         return insertion.first->first;
     }
 
+    AnimationChannelID createAnimationChannel(AnimationChannel&& animationChannel) {
+        const auto insertion = animationChannels.emplace(animationChannels.size(), std::move(animationChannel));
+        if (!insertion.second) {
+            throw std::runtime_error("Animation channel already present");
+        }
+        return insertion.first->first;
+    }
+
+    AnimationChannelID createAnimationChannel(const core::utils::Tree<asset::Node2>& nodes,
+                                              const AnimationSetID animationSetId, const AnimationID animationId) {
+        std::size_t bufferSize {};
+        nodes.traverse<core::utils::Traversal::linear>([&](const asset::Node2& node) {
+            if (node.skinId) {
+                bufferSize += sizeof(core::math::Matrix<4, 4>) * skins.at(node.skinId).joints.size();
+            }
+        });
+        const auto bufferId   = createBuffer(bufferSize, core::Buffer::ssbo);
+        const auto materialId = materials.create(descriptorPool.allocate<AnimationLayout>(buffers.at(bufferId)));
+        return createAnimationChannel(AnimationChannel {
+            .animationSetId          = animationSetId,
+            .animationId             = animationId,
+            .progress                = 0,
+            .nodeTree                = nodes,
+            .jointMatrices           = {},
+            .jointMatricesBufferId   = bufferId,
+            .jointMatricesMaterialId = materialId,
+        });
+    }
+
     void reset() {
         models.reset();
         pipelines.reset();
         materials.reset();
-    }
-
-    auto& getMatrix(const MatrixID matrixId) {
-        const core::overload visitor {
-            [&](const ModelMatrix& m) -> auto& { return m; },
-            [&](const ModelMatrixAndColor& m) -> auto& { return m.matrix; },
-        };
-        return std::visit(visitor, matrices.at(matrixId));
     }
 };
 

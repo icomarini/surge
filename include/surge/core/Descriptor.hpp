@@ -33,10 +33,13 @@ public:
 public:
     template<VkDescriptorType... types>
     static VkDescriptorPool createDescriptorPool(const Context& context, const uint32_t descriptorCount) {
-        const std::array<VkDescriptorPoolSize, sizeof...(types)> poolSizes { VkDescriptorPoolSize {
-            .type            = types,
-            .descriptorCount = descriptorCount,
-        }... };
+        const std::array<VkDescriptorPoolSize, sizeof...(types)> poolSizes {
+            VkDescriptorPoolSize {
+                                  .type            = types,
+                                  .descriptorCount = descriptorCount,
+                                  }
+             ...
+        };
         return context.create(VkDescriptorPoolCreateInfo {
             .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
             .pNext         = nullptr,
@@ -50,10 +53,13 @@ public:
     template<typename... Pairs>
     static VkDescriptorPool createDescriptorPool(const Context& context, const uint32_t maxSets,
                                                  const Pairs... descriptorTypeAndCount) {
-        const std::array poolSizes { VkDescriptorPoolSize {
-            .type            = descriptorTypeAndCount.first,
-            .descriptorCount = descriptorTypeAndCount.second,
-        }... };
+        const std::array poolSizes {
+            VkDescriptorPoolSize {
+                                  .type            = descriptorTypeAndCount.first,
+                                  .descriptorCount = descriptorTypeAndCount.second,
+                                  }
+             ...
+        };
         return context.create(VkDescriptorPoolCreateInfo {
             .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
             .pNext         = nullptr,

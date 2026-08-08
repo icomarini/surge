@@ -193,8 +193,8 @@ int main() {
         const auto cerberus = engine.loader.load<surge::geom::PositionNormalTangentTexture>(
             surge::ShaderType::phongModelNormal, cerberusGltfHandle, cerberusTextures);
 
-        const auto cesiumMan = engine.loader.load<surge::geom::PositionNormalTexture>(
-            surge::ShaderType::primitiveTexturedNormal,
+        const auto cesiumMan = engine.loader.load<surge::geom::PositionNormalTextureJoint>(
+            surge::ShaderType::primitiveTexturedNormalAnimated,
             surge::GltfHandle { vulkanAssetFolder / "models/CesiumMan/glTF-Embedded/CesiumMan.gltf" });
 
         const auto buggy = engine.loader.load<surge::geom::PositionNormal>(
@@ -225,9 +225,9 @@ int main() {
             surge::ShaderType::primitiveTexturedNormal,
             surge::GltfHandle { vulkanAssetFolder / "models/oaktree.gltf" });
 
-        const auto pathfinder = engine.loader.load<surge::geom::PositionNormalTangentTexture>(
-            surge::ShaderType::phongModelNormal,
-            surge::GltfHandle { "/home/ico/projects/uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" });
+        // const auto pathfinder = engine.loader.load<surge::geom::PositionNormalTangentTexture>(
+        //     surge::ShaderType::phongModelNormal,
+        //     surge::GltfHandle { "/home/ico/projects/uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" });
 
 
         double elapsedTime = {};
@@ -247,6 +247,8 @@ int main() {
                                     surge::Storage::SceneBuffer { surge::fullMatrix(playerCamera.mats.perspective),
                                                                   surge::fullMatrix(playerCamera.mats.view), lightColor,
                                                                   lightPosition });
+
+                engine.update(cesiumMan.animationChannelId, elapsedTime);
 
                 // channels
                 const surge::Rotation rotationY { surge::toQuaternion(0.0f, 1.0f * engine.input.timer, 0.0f) };
@@ -277,7 +279,7 @@ int main() {
                 engine.update(armor2,
                               surge::translate<x>(-8.0) * surge::translate<z>(2.0) * surge::scale(0.3) * rotationY);
                 engine.update(oaktree, surge::translate<x>(-10.0) * rotationY);
-                engine.update(pathfinder, surge::translate<z>(4.0) * rotationY);
+                // engine.update(pathfinder, surge::translate<z>(4.0) * rotationY);
 
                 // create scene
                 mainScene.entities.push_back(skybox);
@@ -298,7 +300,7 @@ int main() {
                 mainScene.entities.push_back(armor1);
                 mainScene.entities.push_back(armor2);
                 mainScene.entities.push_back(oaktree);
-                mainScene.entities.push_back(pathfinder);
+                // mainScene.entities.push_back(pathfinder);
 
 
                 // render

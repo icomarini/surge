@@ -732,16 +732,16 @@ public:
         return animations;
     }
 
-    AnimationSetID createAnimationsSet(Storage& storage) const {
+    AnimationSetID createAnimationSet(Storage& storage) const {
         if (asset.animations.empty()) {
             return {};
         }
-        std::vector<asset::Animation> animations;
+        std::vector<animation::Animation> animations;
         animations.reserve(asset.skins.size());
         uint32_t animationId = 0;
         for (const fastgltf::Animation& fastgltfAnimation : asset.animations) {
             // samplers
-            std::vector<asset::Animation::Sampler> samplers;
+            std::vector<animation::Sampler> samplers;
             samplers.reserve(fastgltfAnimation.samplers.size());
             float start = std::numeric_limits<float>::max();
             float end   = std::numeric_limits<float>::min();
@@ -782,32 +782,27 @@ public:
                     throw std::runtime_error("Wrong accessor type in " + path.string());
                 }
 
-                const std::map<fastgltf::AnimationInterpolation, asset::Animation::Sampler::Interpolation> convert {
-                    { fastgltf::AnimationInterpolation::Linear,      asset::Animation::Sampler::Interpolation::linear },
-                    { fastgltf::AnimationInterpolation::Step,        asset::Animation::Sampler::Interpolation::step   },
-                    { fastgltf::AnimationInterpolation::CubicSpline,
-                     asset::Animation::Sampler::Interpolation::cubicspline                                            },
+                const std::map<fastgltf::AnimationInterpolation, animation::Sampler::Interpolation> convert {
+                    { fastgltf::AnimationInterpolation::Linear,      animation::Sampler::Interpolation::linear      },
+                    { fastgltf::AnimationInterpolation::Step,        animation::Sampler::Interpolation::step        },
+                    { fastgltf::AnimationInterpolation::CubicSpline, animation::Sampler::Interpolation::cubicspline },
                 };
                 samplers.emplace_back(convert.at(fastgltfSampler.interpolation), std::move(inputs), std::move(outputs));
             }
-
             // channels
-            std::vector<asset::Animation::Channel> channels;
+            std::vector<animation::Channel> channels;
             channels.reserve(fastgltfAnimation.channels.size());
             for (const auto& fastgltfChannel : fastgltfAnimation.channels) {
-                const std::map<fastgltf::AnimationPath, asset::Animation::Channel::Path> convert {
-                    { fastgltf::AnimationPath::Translation, asset::Animation::Channel::Path::translation },
-                    { fastgltf::AnimationPath::Rotation,    asset::Animation::Channel::Path::rotation    },
-                    { fastgltf::AnimationPath::Scale,       asset::Animation::Channel::Path::scale       },
-                    { fastgltf::AnimationPath::Weights,     asset::Animation::Channel::Path::weights     },
+                assert(fastgltfChannel.nodeIndex);
+                const std::map<fastgltf::AnimationPath, animation::Channel::Path> convert {
+                    { fastgltf::AnimationPath::Translation, animation::Channel::Path::translation },
+                    { fastgltf::AnimationPath::Rotation,    animation::Channel::Path::rotation    },
+                    { fastgltf::AnimationPath::Scale,       animation::Channel::Path::scale       },
+                    { fastgltf::AnimationPath::Weights,     animation::Channel::Path::weights     },
                 };
-                channels.emplace_back(convert.at(fastgltfChannel.path),
-                                      fastgltfChannel.nodeIndex ? std::optional<Index> { static_cast<Index>(
-                                                                      fastgltfChannel.nodeIndex.value()) } :
-                                                                  std::optional<Index> {},
-                                      fastgltfChannel.samplerIndex);
+                channels.emplace_back(convert.at(fastgltfChannel.path), NodeID { fastgltfChannel.nodeIndex.value() },
+                                      AnimationSamplerID { fastgltfChannel.samplerIndex });
             }
-
             animations.emplace_back(baptize<This::animation>(fastgltfAnimation.name, animationId++), start, end,
                                     std::move(samplers), std::move(channels));
         }

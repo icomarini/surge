@@ -32,7 +32,6 @@ struct Entity {
         } state;
     };
 
-
     struct State {
         bool                     active { true };
         core::math::Matrix<4, 4> modelMatrix;

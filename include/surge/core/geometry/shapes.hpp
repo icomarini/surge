@@ -18,6 +18,13 @@ using PositionNormalTexture = Vertex<AttributeSlot<Attribute::position, math::Ve
                                      AttributeSlot<Attribute::normal, core::math::Vector<3>, 3, Format::sfloat>,
                                      AttributeSlot<Attribute::texCoord, core::math::Vector<2>, 2, Format::sfloat>>;
 
+using PositionNormalTextureJoint =
+    Vertex<AttributeSlot<Attribute::position, math::Vector<3>, 3, Format::sfloat>,
+           AttributeSlot<Attribute::normal, core::math::Vector<3>, 3, Format::sfloat>,
+           AttributeSlot<Attribute::texCoord, core::math::Vector<2>, 2, Format::sfloat>,
+           AttributeSlot<Attribute::jointIndex, core::math::Vector<4>, 4, Format::sfloat>,
+           AttributeSlot<Attribute::jointWeight, core::math::Vector<4>, 4, Format::sfloat>>;
+
 using PositionNormalTangentTexture =
     Vertex<AttributeSlot<Attribute::position, math::Vector<3>, 3, Format::sfloat>,
            AttributeSlot<Attribute::normal, core::math::Vector<3>, 3, Format::sfloat>,

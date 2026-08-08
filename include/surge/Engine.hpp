@@ -34,14 +34,44 @@ public:
     }
 
     void update(const Entity& entity, const core::math::Matrix<4, 4>& transformation) {
-        storage.nodeTrees.at(entity.nodeTreeId)
-            .traverse<core::utils::Traversal::depthFirst>(
-                [](asset::Node2& node, const core::math::Matrix<4, 4>& parent) {
-                    node.transformation = parent * core::math::Translation { node.translation } *
-                                          core::math::Rotation { node.rotation } * core::math::Scaling { node.scale };
-                    return node.transformation;
-                },
-                transformation);
+        auto& nodeTree = storage.nodeTrees.at(entity.nodeTreeId);
+        nodeTree.traverse<core::utils::Traversal::depthFirst>(
+            [](asset::Node2& node, const core::math::Matrix<4, 4>& parent) {
+                node.transformation = parent * core::math::Translation { node.translation } *
+                                      core::math::Rotation { node.rotation } * core::math::Scaling { node.scale };
+                return node.transformation;
+            },
+            transformation);
+    }
+
+    void update(const AnimationChannelID animationChannelId, const float progress) {
+        auto&       animationChannel = storage.animationChannels.at(animationChannelId);
+        const auto& animation =
+            storage.animationSets.at(animationChannel.animationSetId).at(animationChannel.animationId.get());
+
+        for (const auto& channel : animation.channels) {
+            const auto& sampler = animation.samplers.at(channel.samplerId);
+            auto&       node    = animationChannel.nodeTree.get(channel.nodeId);
+            channel.update(node, sampler, progress);
+        }
+        auto& jointMatrices = animationChannel.jointMatrices;
+        jointMatrices.clear();
+        animationChannel.nodeTree.traverse<core::utils::Traversal::linear>([&](const asset::Node2& node) {
+            if (node.skinId) {
+                // assert(animation);
+                const auto& skin = storage.skins.at(node.skinId);
+                // auto        jointMatrices = animationChannel.jointMatrices;
+                // jointMatrices.clear();
+                // jointMatrices.reserve(skin.joints.size());
+                // const auto inverse = core::math::inverse(transformation);
+                for (const auto& [jointNodeIndex, inverseBindMatrix] : skin.joints) {
+                    jointMatrices.emplace_back(animationChannel.nodeTree.get(jointNodeIndex).transformation *
+                                               inverseBindMatrix);
+                }
+            }
+        });
+        const auto& buffer = storage.buffers.at(animationChannel.jointMatricesBufferId);
+        memcpy(buffer.mapped, jointMatrices.data(), jointMatrices.size() * sizeof(core::math::Matrix<4, 4>));
     }
 
     ~Engine() {

@@ -164,6 +164,8 @@ set(SHADERS
     primitiveTextured.frag
     primitiveTexturedNormal.vert
     primitiveTexturedNormal.frag
+    primitiveTexturedNormalAnimated.vert
+    primitiveTexturedNormalAnimated.frag
     phongModel.vert
     phongModel.frag
     phongModelNormal.vert

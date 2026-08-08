@@ -9,18 +9,21 @@ enum class DescriptorType {
     uniform,
 };
 
-template<VkDescriptorType... types>
+template<uint32_t idx, VkDescriptorType... types>
 struct DescriptorLayout {
+    static constexpr auto       index { idx };
     static constexpr std::array descriptorTypes { types... };
 };
 
 template<typename Layout>
 struct DescriptorAllocation {
-    DescriptorAllocation(const std::size_t quantity)
+    DescriptorAllocation(const uint32_t quantity)
         : quantity { quantity } {
     }
-    std::size_t quantity;
+    uint32_t quantity;
 };
+
+// struct Descriptor { };
 
 template<typename... Layouts>
 class DescriptorPool : public Contextualized {
@@ -117,13 +120,13 @@ private:
         });
     }
 
-    // template<std::uint32_t simpleBindingCount, std::uint32_t pbrBindingCount>
     static VkDescriptorPool createDescriptorPool(const Context& context,
                                                  const DescriptorAllocation<Layouts>&... allocations) {
-        uint32_t                            maxSets {};
-        std::array<VkDescriptorPoolSize, 2> descriptorPoolSizes {
+        uint32_t   maxSets {};
+        std::array descriptorPoolSizes {
             VkDescriptorPoolSize { .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = {} },
-            VkDescriptorPoolSize { .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         .descriptorCount = {} }
+            VkDescriptorPoolSize { .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         .descriptorCount = {} },
+            VkDescriptorPoolSize { .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,         .descriptorCount = {} }
         };
         core::forEach<0, layoutCount>([&]<int layoutIdx>() {
             const auto& allocation = std::get<layoutIdx>(std::forward_as_tuple(allocations...));
@@ -137,6 +140,8 @@ private:
                         return 0;
                     } else if constexpr (type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
                         return 1;
+                    } else if constexpr (type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER) {
+                        return 2;
                     } else {
                         throw;
                     }

@@ -15,18 +15,23 @@ public:
     Entity load(const core::shader::Type shaderType, const load::Gltf::Handle& handle,
                 const std::map<load::Gltf::TextureType, TextureID>& externalTextureIds) {
         const load::Gltf gltf { handle, storage.defaults };
-        const auto       textureIds        = gltf.createTextures(storage);
-        const auto       materialIds       = gltf.createMaterials(storage, textureIds, externalTextureIds);
-        const auto       meshIds           = gltf.createMeshes(storage, materialIds);
-        const auto       newModelId        = gltf.createModel<Vertex>(storage, meshIds);
-        const auto       newSkinIds        = gltf.createSkins(storage);
-        const auto       newNodeTreeId     = gltf.createNodeTree(storage, meshIds, newSkinIds);
-        const auto       newAnimationSetId = gltf.createAnimationsSet(storage);
+        const auto       textureIds     = gltf.createTextures(storage);
+        const auto       materialIds    = gltf.createMaterials(storage, textureIds, externalTextureIds);
+        const auto       meshIds        = gltf.createMeshes(storage, materialIds);
+        const auto       modelId        = gltf.createModel<Vertex>(storage, meshIds);
+        const auto       skinIds        = gltf.createSkins(storage);
+        const auto       nodeTreeId     = gltf.createNodeTree(storage, meshIds, skinIds);
+        const auto       animationSetId = gltf.createAnimationSet(storage);
+
+        const auto animationChannelId =
+            animationSetId ? storage.createAnimationChannel(storage.nodeTrees.at(nodeTreeId), animationSetId, 0) :
+                             AnimationChannelID {};
+        // const auto
         return Entity {
-            .modelId        = newModelId,
-            .nodeTreeId     = newNodeTreeId,
-            .pipelineId     = storage.getPipeline(shaderType),
-            .animationSetId = newAnimationSetId,
+            .modelId            = modelId,
+            .nodeTreeId         = nodeTreeId,
+            .pipelineId         = storage.getPipeline(shaderType),
+            .animationChannelId = animationChannelId,
         };
     }
 
@@ -48,10 +53,10 @@ public:
                                      .boundingBox = {} }
         });
         return Entity {
-            .modelId        = modelId,
-            .nodeTreeId     = storage.createNodeTree(storage, meshId),
-            .pipelineId     = storage.getPipeline(shaderType),
-            .animationSetId = {},
+            .modelId            = modelId,
+            .nodeTreeId         = storage.createNodeTree(storage, meshId),
+            .pipelineId         = storage.getPipeline(shaderType),
+            .animationChannelId = {},
         };
     }
 

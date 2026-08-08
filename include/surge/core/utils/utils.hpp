@@ -180,10 +180,16 @@ using TextureID          = ID<>;
 using MeshID             = ID<>;
 using SkinID             = ID<>;
 using AssetID            = ID<>;
+using PositioningID      = ID<>;
 using NodeTreeID         = ID<>;
 using NodeID             = ID<>;
-using AnimationSetID     = ID<>;
+using AnimationID        = ID<>;
 using AnimationSamplerID = ID<>;
+using AnimationSetID     = ID<>;
+using AnimationChannelID = ID<>;
+
+// using AnimationID        = ID<>;
+// using AnimationSamplerID = ID<>;
 
 // Source - https://stackoverflow.com/a/60450396
 // Posted by Caleth, modified by community. See post 'Timeline' for change history

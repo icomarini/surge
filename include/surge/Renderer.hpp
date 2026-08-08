@@ -46,6 +46,16 @@ public:
             vkCmdBindIndexBuffer(commandBuffer, model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
         });
 
+        // bind animation
+        if (entity.animationChannelId) {
+            const auto& animationChannel = storage.animationChannels.at(entity.animationChannelId);
+            storage.materials.apply(animationChannel.jointMatricesMaterialId, [&](const VkDescriptorSet& material) {
+                constexpr uint32_t jointMatricesIndex { 2 };
+                vkCmdBindDescriptorSets(commandBuffer, Storage::graphicsBindPoint, pipelineLayout, jointMatricesIndex,
+                                        1, &material, 0, nullptr);
+            });
+        }
+
         // traverse nodes
         const auto& nodeTree = storage.nodeTrees.at(entity.nodeTreeId);
         nodeTree.traverse<core::utils::Traversal::linear>([&](const asset::Node2& node) {

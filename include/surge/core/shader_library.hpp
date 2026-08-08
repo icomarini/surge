@@ -27,6 +27,7 @@ enum class Type {
     primitiveNormal,
     primitiveTextured,
     primitiveTexturedNormal,
+    primitiveTexturedNormalAnimated,
     phongModel,
     phongModelNormal,
 };
@@ -161,6 +162,14 @@ constexpr unsigned char primitiveTexturedNormalFrag[] {
 #embed "/home/ico/projects/surge/build/debug/shaders/primitiveTexturedNormal.frag.spv"
 };
 
+constexpr unsigned char primitiveTexturedNormalAnimatedVert[] {
+#embed "/home/ico/projects/surge/build/debug/shaders/primitiveTexturedNormalAnimated.vert.spv"
+};
+
+constexpr unsigned char primitiveTexturedNormalAnimatedFrag[] {
+#embed "/home/ico/projects/surge/build/debug/shaders/primitiveTexturedNormalAnimated.frag.spv"
+};
+
 constexpr unsigned char phongModelVert[] {
 #embed "/home/ico/projects/surge/build/debug/shaders/phongModel.vert.spv"
 };
@@ -176,6 +185,7 @@ constexpr unsigned char phongModelNormalVert[] {
 constexpr unsigned char phongModelNormalFrag[] {
 #embed "/home/ico/projects/surge/build/debug/shaders/phongModelNormal.frag.spv"
 };
+
 // clang-format on
 
 
@@ -209,6 +219,8 @@ constexpr std::array library {
     entry(Type::primitiveTextured, Stage::fragment, primitiveTexturedFrag),
     entry(Type::primitiveTexturedNormal, Stage::vertex, primitiveTexturedNormalVert),
     entry(Type::primitiveTexturedNormal, Stage::fragment, primitiveTexturedNormalFrag),
+    entry(Type::primitiveTexturedNormalAnimated, Stage::vertex, primitiveTexturedNormalAnimatedVert),
+    entry(Type::primitiveTexturedNormalAnimated, Stage::fragment, primitiveTexturedNormalAnimatedFrag),
     entry(Type::phongModel, Stage::vertex, phongModelVert),
     entry(Type::phongModel, Stage::fragment, phongModelFrag),
     entry(Type::phongModelNormal, Stage::vertex, phongModelNormalVert),
