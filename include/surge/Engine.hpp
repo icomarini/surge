@@ -34,7 +34,21 @@ public:
     }
 
     void update(const Entity& entity, const core::math::Matrix<4, 4>& transformation) {
-        auto& nodeTree = storage.nodeTrees.at(entity.nodeTreeId);
+        if (entity.animationChannelId) {
+            auto&       entityNodeTree    = storage.nodeTrees.at(entity.nodeTreeId);
+            const auto& animationNodeTree = storage.animationChannels.at(entity.animationChannelId).nodeTree;
+            std::size_t nodeIdx           = 0;
+            for (const auto& node : animationNodeTree.nodes) {
+                entityNodeTree.nodes[nodeIdx].value.translation = node.value.translation;
+                entityNodeTree.nodes[nodeIdx].value.scale       = node.value.scale;
+                entityNodeTree.nodes[nodeIdx].value.rotation    = node.value.rotation;
+                ++nodeIdx;
+            }
+        }
+        update(storage.nodeTrees.at(entity.nodeTreeId), transformation);
+    }
+
+    void update(core::utils::Tree<asset::Node2>& nodeTree, const core::math::Matrix<4, 4>& transformation) {
         nodeTree.traverse<core::utils::Traversal::depthFirst>(
             [](asset::Node2& node, const core::math::Matrix<4, 4>& parent) {
                 node.transformation = parent * core::math::Translation { node.translation } *
@@ -44,16 +58,24 @@ public:
             transformation);
     }
 
-    void update(const AnimationChannelID animationChannelId, const float progress) {
+    void update(const AnimationChannelID animationChannelId, const float elapsedTime) {
         auto&       animationChannel = storage.animationChannels.at(animationChannelId);
         const auto& animation =
             storage.animationSets.at(animationChannel.animationSetId).at(animationChannel.animationId.get());
 
+        animationChannel.progress += elapsedTime;
+        if (animationChannel.progress > animation.end) {
+            animationChannel.progress -= animation.end;
+        }
+
         for (const auto& channel : animation.channels) {
             const auto& sampler = animation.samplers.at(channel.samplerId);
             auto&       node    = animationChannel.nodeTree.get(channel.nodeId);
-            channel.update(node, sampler, progress);
+            channel.update(node, sampler, animationChannel.progress);
         }
+
+        update(animationChannel.nodeTree, core::math::fullMatrix(core::math::identity<4>));
+
         auto& jointMatrices = animationChannel.jointMatrices;
         jointMatrices.clear();
         animationChannel.nodeTree.traverse<core::utils::Traversal::linear>([&](const asset::Node2& node) {
