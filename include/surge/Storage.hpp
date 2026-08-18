@@ -7,7 +7,8 @@
 namespace surge {
 
 struct Asset {
-    ModelID modelId;  // vertex/index buffers
+    core::shader::Type shaderType;
+    ModelID            modelId;  // vertex/index buffers
 
     // Rest-pose hierarchy, built once. Also used as the template that every
     // AnimationChannel clones from. For STATIC (unanimated) use, traverse
@@ -30,6 +31,7 @@ struct Entity {
     core::shader::Type shader;
     AnimationChannelID animationChannelId;
 };
+
 
 struct Scene {
     BufferID            bufferId;
@@ -243,6 +245,20 @@ struct Storage {
     //     return pipelines;
     // }
 
+    Entity createEntity(const Asset& asset, const AnimationChannelID animationChannelId) {
+        return Entity {
+            .modelId            = asset.modelId,
+            .nodeTreeId         = createNodeTree(asset.nodeTree),
+            .pipelineId         = getPipeline(asset.shaderType),
+            .shader             = asset.shaderType,
+            .animationChannelId = animationChannelId,
+        };
+    }
+
+    Entity createEntity(const Asset& asset) {
+        return createEntity(asset, {});
+    }
+
     void createPipelines() {
         using Shader = core::shader::Type;
         using namespace core::geometry;
@@ -364,6 +380,14 @@ struct Storage {
 
     NodeTreeID createNodeTree(core::utils::Tree<asset::Node2>&& nodeTree) {
         const auto insertion = nodeTrees.emplace(nodeTrees.size(), std::move(nodeTree));
+        if (!insertion.second) {
+            throw std::runtime_error("Node tree already present");
+        }
+        return insertion.first->first;
+    }
+
+    NodeTreeID createNodeTree(const core::utils::Tree<asset::Node2>& nodeTree) {
+        const auto insertion = nodeTrees.emplace(nodeTrees.size(), nodeTree);
         if (!insertion.second) {
             throw std::runtime_error("Node tree already present");
         }
@@ -533,6 +557,10 @@ struct Storage {
             .jointMatricesBufferId   = bufferId,
             .jointMatricesMaterialId = materialId,
         });
+    }
+
+    AnimationChannelID createAnimationChannel(const Asset& asset, const AnimationID animationId) {
+        return createAnimationChannel(asset.nodeTree, asset.animationSetId, animationId);
     }
 
     void reset() {
