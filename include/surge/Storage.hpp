@@ -6,10 +6,28 @@
 
 namespace surge {
 
+struct Asset {
+    ModelID modelId;  // vertex/index buffers
+
+    // Rest-pose hierarchy, built once. Also used as the template that every
+    // AnimationChannel clones from. For STATIC (unanimated) use, traverse
+    // this ONCE at load time with an identity root and bake final
+    // transforms directly into it — never recomputed again.
+    core::utils::Tree<asset::Node2> nodeTree;
+
+    // Flat list for draw-time iteration -- NO runtime tree walk needed at
+    // draw time, ever.
+    std::vector<std::pair<NodeID, MeshID>> meshNodes;
+
+    std::map<SkinID, asset::Skin> skinsUsed;       // or index into a global skins map
+    AnimationSetID                animationSetId;  // empty/invalid for static assets
+};
+
 struct Entity {
     ModelID            modelId;
     NodeTreeID         nodeTreeId;
     PipelineID         pipelineId;
+    core::shader::Type shader;
     AnimationChannelID animationChannelId;
 };
 
@@ -65,11 +83,12 @@ struct Storage {
     static constexpr VkShaderStageFlags shaderStages { VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_VERTEX_BIT |
                                                        VK_SHADER_STAGE_FRAGMENT_BIT };
 
-    const core::Command&                             command;
-    load::Defaults                                   defaults;
-    core::LazyAccessContainer<ModelID, asset::Model> models;
-    core::LazyAccessContainer<PipelineID, Pipeline>  pipelines;
-    std::map<core::shader::Type, PipelineID>         pipelineIds;
+    const core::Command&                                    command;
+    load::Defaults                                          defaults;
+    core::LazyAccessContainer<ModelID, asset::Model>        models;
+    core::LazyAccessContainer<PipelineID, Pipeline>         pipelines;
+    core::LazyAccessContainer<core::shader::Type, Pipeline> pipelines2;
+    std::map<core::shader::Type, PipelineID>                pipelineIds;
 
     // using PushConstantsVariants = std::variant<ModelMatrix, ModelMatrixAndColor>;
     // std::map<MatrixID, PushConstantsVariants> matrices;
@@ -114,47 +133,190 @@ struct Storage {
         , defaultTextureId { createTexture(load::createDefaultTextureData(core::RGBA::white, core::RGBA::black)) }
         , whiteTextureId { createTexture(load::createFlatTextureData(core::RGBA::white)) }
         , blackTextureId { createTexture(load::createFlatTextureData(core::RGBA::black)) }
-        , defaultMaterialId { createSimpleMaterial(defaultTextureId) } {
+        , defaultMaterialId { createSimpleMaterial(defaultTextureId) }
+    // , pipelineTuple { createPiplineTuple(command.context, descriptorPool) }
+    {
         createPipelines();
     }
 
     ~Storage() {
         pipelines.apply([&](Pipeline& pipeline) { pipeline.destroy(command.context); });
+        // core::forEach<0, std::tuple_size_v<Pipelines>>(
+        //     [&]<int pipelineId> { std::get<pipelineId>(pipelineTuple).destroy(command.context); });
     }
+
+    template<core::shader::Type t, VkShaderStageFlags s, typename V, typename P, typename... Ls>
+    struct PipelineEntry {
+        static constexpr auto type   = t;
+        static constexpr auto stages = s;
+        using Vertex                 = V;
+        using PushConstant           = P;
+        using Layouts                = std::tuple<Ls...>;
+        // VkPipelineLayout pipelineLayout;
+        // VkPipeline       pipeline;
+
+        // PipelineEntry()
+        //     : pipelineLayout { VK_NULL_HANDLE }
+        //     , pipeline { VK_NULL_HANDLE } {
+        // }
+
+        // PipelineEntry(const surge::core::Context& context, const DescriptorPool& descriptorPool)
+        //     : pipelineLayout { core::createPipelineLayout(context,
+        //     core::createPushConstantRange<PushConstant>(stages),
+        //                                                   descriptorPool.layout<Layouts>()...) }
+        //     , pipeline { core::createGraphicPipeline(context, core::createVertexInputState<Vertex>(), pipelineLayout,
+        //                                              type) } {
+        // }
+
+        // void destroy(const core::Context& context) {
+        //     context.destroy(pipelineLayout);
+        //     context.destroy(pipeline);
+        // }
+
+        static VkPipelineLayout createPipelineLayout(const surge::core::Context& context,
+                                                     const DescriptorPool&       descriptorPool) {
+            constexpr auto pushConstantRange { core::createPushConstantRange<PushConstant>(stages) };
+            return core::createPipelineLayout(context, pushConstantRange, descriptorPool.layout<Ls>()...);
+        }
+
+        static VkPipeline createPipeline(const surge::core::Context& context, const VkPipelineLayout pipelineLayout) {
+            constexpr auto vertexInputState { core::createVertexInputState<Vertex>() };
+            return core::createGraphicPipeline(context, vertexInputState, pipelineLayout, type);
+        }
+    };
+
+    using Pipelines = std::tuple<                                           //
+        PipelineEntry<core::shader::Type::skybox,                           //
+                      shaderStages,                                         //
+                      core::geometry::Position,                             //
+                      ModelMatrix,                                          //
+                      SceneLayout, SimpleMaterialLayout>,                   //
+        PipelineEntry<core::shader::Type::coordinates,                      //
+                      shaderStages,                                         //
+                      core::geometry::PositionAndColor,                     //
+                      ModelMatrix,                                          //
+                      SceneLayout>,                                         //
+        PipelineEntry<core::shader::Type::primitive,                        //
+                      shaderStages,                                         //
+                      core::geometry::Position,                             //
+                      ModelMatrixAndColor,                                  //
+                      SceneLayout>,                                         //
+        PipelineEntry<core::shader::Type::primitiveNormal,                  //
+                      shaderStages,                                         //
+                      core::geometry::PositionNormal,                       //
+                      ModelMatrix,                                          //
+                      SceneLayout, SimpleMaterialLayout>,                   //
+        PipelineEntry<core::shader::Type::primitiveTextured,                //
+                      shaderStages,                                         //
+                      core::geometry::PositionTexture,                      //
+                      ModelMatrix,                                          //
+                      SceneLayout, SimpleMaterialLayout>,                   //
+        PipelineEntry<core::shader::Type::primitiveTexturedNormal,          //
+                      shaderStages,                                         //
+                      core::geometry::PositionNormalTexture, ModelMatrix,   //
+                      SceneLayout, SimpleMaterialLayout>,                   //
+        PipelineEntry<core::shader::Type::primitiveTexturedNormalAnimated,  //
+                      shaderStages,                                         //
+                      core::geometry::PositionNormalTextureJoint,           //
+                      ModelMatrix,                                          //
+                      SceneLayout, SimpleMaterialLayout, AnimationLayout>,  //
+        PipelineEntry<core::shader::Type::phongModel,                       //
+                      shaderStages,                                         //
+                      core::geometry::PositionNormalTexture,                //
+                      ModelMatrix,                                          //
+                      SceneLayout, PhongMaterialLayout>,                    //
+        PipelineEntry<core::shader::Type::phongModelNormal,                 //
+                      shaderStages,                                         //
+                      core::geometry::PositionNormalTangentTexture,         //
+                      ModelMatrix,                                          //
+                      SceneLayout, PhongMaterialLayout>                     //
+        >;
+
+    Pipelines pipelineTuple;
+
+    // static Pipelines createPiplineTuple(const surge::core::Context& context, const DescriptorPool& descriptorPool) {
+    //     Pipelines pipelines;
+    //     core::forEach<0, std::tuple_size_v<Pipelines>>([&]<int pipelineId> {
+    //         using Entry                     = std::tuple_element_t<pipelineId, Pipelines>;
+    //         std::get<pipelineId>(pipelines) = Entry(context, descriptorPool);
+    //     });
+    //     return pipelines;
+    // }
 
     void createPipelines() {
-        using ShaderType = core::shader::Type;
+        using Shader = core::shader::Type;
         using namespace core::geometry;
+
         pipelineIds = {
-            { ShaderType::line, createLinePipeline() },
-            { ShaderType::skybox,
-             createPipeline<Position, ModelMatrix, SceneLayout, SimpleMaterialLayout>(ShaderType::skybox) },
-            { ShaderType::coordinates,
-             createPipeline<PositionAndColor, ModelMatrix, SceneLayout>(ShaderType::coordinates) },
-            { ShaderType::primitive,
-             createPipeline<Position, ModelMatrixAndColor, SceneLayout>(ShaderType::primitive) },
-            { ShaderType::primitiveNormal,
-             createPipeline<PositionNormal, ModelMatrix, SceneLayout, SimpleMaterialLayout>(
-                  ShaderType::primitiveNormal) },
-            { ShaderType::primitiveTextured,
-             createPipeline<PositionTexture, ModelMatrix, SceneLayout, SimpleMaterialLayout>(
-                  ShaderType::primitiveTextured) },
-            { ShaderType::primitiveTexturedNormal,
-             createPipeline<PositionNormalTexture, ModelMatrix, SceneLayout, SimpleMaterialLayout>(
-                  ShaderType::primitiveTexturedNormal) },
-            { ShaderType::primitiveTexturedNormalAnimated,
-             createPipeline<PositionNormalTextureJoint, ModelMatrix, SceneLayout, SimpleMaterialLayout,
-             AnimationLayout>(ShaderType::primitiveTexturedNormalAnimated) },
-            { ShaderType::phongModel,
-             createPipeline<PositionNormalTexture, ModelMatrix, SceneLayout, PhongMaterialLayout>(
-                  ShaderType::phongModel) },
-            { ShaderType::phongModelNormal,
-             createPipeline<PositionNormalTangentTexture, ModelMatrix, SceneLayout, PhongMaterialLayout>(
-                  ShaderType::phongModelNormal) }
+            { Shader::line, createLinePipeline() },
+            // { Shader::skybox,
+            //  createPipeline<Position, ModelMatrix, SceneLayout, SimpleMaterialLayout>(Shader::skybox) },
+            // { Shader::coordinates, createPipeline<PositionAndColor, ModelMatrix, SceneLayout>(Shader::coordinates) },
+            // { Shader::primitive, createPipeline<Position, ModelMatrixAndColor, SceneLayout>(Shader::primitive) },
+            // { Shader::primitiveNormal,
+            //  createPipeline<PositionNormal, ModelMatrix, SceneLayout, SimpleMaterialLayout>(Shader::primitiveNormal)
+            //  },
+            // { Shader::primitiveTextured,
+            //  createPipeline<PositionTexture, ModelMatrix, SceneLayout, SimpleMaterialLayout>(
+            //       Shader::primitiveTextured) },
+            // { Shader::primitiveTexturedNormal,
+            //  createPipeline<PositionNormalTexture, ModelMatrix, SceneLayout, SimpleMaterialLayout>(
+            //       Shader::primitiveTexturedNormal) },
+            // { Shader::primitiveTexturedNormalAnimated,
+            //  createPipeline<PositionNormalTextureJoint, ModelMatrix, SceneLayout, SimpleMaterialLayout,
+            //  AnimationLayout>(Shader::primitiveTexturedNormalAnimated) },
+            // { Shader::phongModel, createPipeline<PositionNormalTexture, ModelMatrix, SceneLayout,
+            // PhongMaterialLayout>(
+            //                           Shader::phongModel) },
+            // { Shader::phongModelNormal,
+            //  createPipeline<PositionNormalTangentTexture, ModelMatrix, SceneLayout, PhongMaterialLayout>(
+            //       Shader::phongModelNormal) }
+            // { Shader::phongModel, createPipeline<std::tuple_element_t<0, Pipelines>>() },
+            // { Shader::phongModelNormal, createPipeline<std::tuple_element_t<1, Pipelines>>() }
         };
+
+        core::forEach<0, std::tuple_size_v<Pipelines>>([&]<int pipelineId> {
+            using Entry = std::tuple_element_t<pipelineId, Pipelines>;
+            pipelineIds.emplace(Entry::type, createPipeline<Entry>());
+        });
     }
 
-    const PipelineID getPipeline(const core::shader::Type shaderType) {
+    // core::LazyAccessContainer<core::shader::Type, Pipeline> createPipelinesIds2() {
+    //     core::LazyAccessContainer<core::shader::Type, Pipeline> pipelines;
+    //     core::forEach<0, std::tuple_size_v<Pipelines>>([&]<int pipelineId> {
+    //         using Entry         = std::tuple_element_t<pipelineId, Pipelines>;
+    //         constexpr auto push = core::createPushConstantRange<Entry::PushConstant>(Entry::stages);
+    //         const auto     pipelineLayout =
+    //             core::createPipelineLayout(command.context, push,
+    //             std::make_tuple(descriptorPool.layout<Layouts>()...));
+    //         constexpr auto vertexInputState = core::createVertexInputState<Entry::Vertex>();
+    //         const auto     pipeline =
+    //             core::createGraphicPipeline(command.context, vertexInputState, pipelineLayout, Entry::type);
+
+    //         pipelines.create(pipelineLayout, pipeline);
+    //     });
+    //     return pipelines;
+    // }
+
+    // template<core::shader::Type type>
+    // auto getPipeline() {
+    //     constexpr auto index = getPipelineIndex<type>();
+    //     return std::get<index>(pipelineTuple);
+    // }
+
+    template<core::shader::Type type>
+    static consteval std::size_t getPipelineIndex() {
+        std::size_t index {};
+        core::forEach<0, std::tuple_size_v<Pipelines>>([&]<int pipelineId>() {
+            using Entry = std::tuple_element_t<pipelineId, Pipelines>;
+            if constexpr (Entry::type == type) {
+                index = pipelineId;
+            }
+        });
+        return index;
+    }
+
+    PipelineID getPipeline(const core::shader::Type shaderType) const {
         return pipelineIds.at(shaderType);
     }
 
@@ -211,15 +373,19 @@ struct Storage {
     template<typename VertexInputState, typename PushConstants, typename... Layouts>
     PipelineID createPipeline(const core::shader::Type shaderType) {
         constexpr auto push = core::createPushConstantRange<PushConstants>(shaderStages);
-        if constexpr (sizeof...(Layouts) == 4) {
-            static_assert(false);
-        }
-        const auto pipelineLayout =
+        const auto     pipelineLayout =
             core::createPipelineLayout(command.context, push, descriptorPool.layout<Layouts>()...);
         constexpr auto vertexInputState = core::createVertexInputState<VertexInputState>();
         const auto     pipeline =
             core::createGraphicPipeline(command.context, vertexInputState, pipelineLayout, shaderType);
 
+        return pipelines.create(pipelineLayout, pipeline);
+    }
+
+    template<typename Entry>
+    PipelineID createPipeline() {
+        const auto pipelineLayout = Entry::createPipelineLayout(command.context, descriptorPool);
+        const auto pipeline       = Entry::createPipeline(command.context, pipelineLayout);
         return pipelines.create(pipelineLayout, pipeline);
     }
 

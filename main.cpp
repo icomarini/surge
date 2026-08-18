@@ -190,8 +190,10 @@ int main() {
             { TextureType::normalTexture,
              engine.storage.createTexture(cerberusFolder / "normal.ktx",   surge::Texture::texture2d) },
         };
-        const auto cerberus = engine.loader.load<surge::geom::PositionNormalTangentTexture>(
-            surge::ShaderType::phongModelNormal, cerberusGltfHandle, cerberusTextures);
+        // const auto cerberus = engine.loader.load<surge::geom::PositionNormalTangentTexture>(
+        //     surge::ShaderType::phongModelNormal, cerberusGltfHandle, cerberusTextures);
+        const auto cerberus =
+            engine.loader.loadCool<surge::ShaderType::phongModelNormal>(cerberusGltfHandle, cerberusTextures);
 
         const auto cesiumMan = engine.loader.load<surge::geom::PositionNormalTextureJoint>(
             surge::ShaderType::primitiveTexturedNormalAnimated,

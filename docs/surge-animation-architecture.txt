@@ -1,0 +1,389 @@
+================================================================================
+SURGE ENGINE — DECOUPLED ANIMATION CHANNEL ARCHITECTURE
+Design notes from Copilot CLI session, 2026-08-13
+================================================================================
+
+GOAL
+----
+Draw hundreds/thousands of skinned characters (e.g. a Diablo-II-style enemy
+swarm) without paying per-instance CPU cost for skinning math. Instead of
+computing joint matrices per draw object (the classic glTF approach, see
+old code in Entity.hpp/Animation.hpp), compute them once per "animation
+channel" (a dozen or so live animation instances), and have hundreds of
+entities reference a channel and contribute only their own world matrix.
+
+
+--------------------------------------------------------------------------------
+1. THE CORE MATH INSIGHT (why this works at all)
+--------------------------------------------------------------------------------
+
+Classic per-instance joint matrix (glTF spec):
+
+    jointMatrix = inverse(meshNodeGlobal) * jointNodeGlobal * inverseBindMatrix
+
+Where:
+    meshNodeGlobal  = entityWorldMatrix * meshLocalHierarchy
+    jointNodeGlobal = entityWorldMatrix * jointLocalHierarchy
+
+Substituting:
+
+    jointMatrix = inverse(meshLocalHierarchy) * inverse(entityWorldMatrix)
+                  * entityWorldMatrix * jointLocalHierarchy * inverseBindMatrix
+
+    entityWorldMatrix and inverse(entityWorldMatrix) CANCEL EXACTLY:
+
+    jointMatrix = inverse(meshLocalHierarchy) * jointLocalHierarchy * inverseBindMatrix
+
+=> Joint matrices depend ONLY on the animated local skeleton, NEVER on where
+   the instance is placed in the world. This is not an approximation — it's
+   an exact algebraic identity. This is what justifies computing joint
+   matrices once per animation channel (evaluated with an identity root)
+   and sharing the resulting SSBO across every entity that uses that channel.
+
+Similarly, for the raw per-node transform needed to place mesh geometry in
+the world (the "model" push constant), you never need a per-entity node
+tree at all:
+
+    finalNodeTransform = entityWorldMatrix * channelNodeTransform
+
+channelNodeTransform (the channel's own node.transformation, evaluated with
+an identity root) is fully shared/precomputed. The entity contributes
+exactly one matrix multiply.
+
+
+--------------------------------------------------------------------------------
+2. DATA MODEL
+--------------------------------------------------------------------------------
+
+--- Asset (immutable content, loaded once from glTF) ---
+
+    struct Asset {
+        ModelID modelId;                                   // vertex/index buffers
+
+        // Rest-pose hierarchy, built once. Also used as the template that every
+        // AnimationChannel clones from. For STATIC (unanimated) use, traverse
+        // this ONCE at load time with an identity root and bake final
+        // transforms directly into it — never recomputed again.
+        core::utils::Tree<asset::Node2> templateNodeTree;
+
+        // Flat list for draw-time iteration -- NO runtime tree walk needed at
+        // draw time, ever.
+        std::vector<std::pair<NodeID, MeshID>> meshNodes;
+
+        std::map<SkinID, asset::Skin> skinsUsed;           // or index into a global skins map
+        AnimationSetID animationSetId;                      // empty/invalid for static assets
+    };
+    using AssetID = ID<>;
+
+--- AnimationChannel (mutable runtime state, ~a dozen instances total) ---
+
+    struct AnimationChannel {
+        AssetID        assetId;
+        AnimationSetID animationSetId;
+        AnimationID    animationId;
+        float          progress { 0 };
+        bool           loop { true };      // false => one-shot (e.g. an attack swing)
+
+        // OWN clone of asset.templateNodeTree. Evaluated with an IDENTITY root
+        // every frame. Never touched by any entity.
+        core::utils::Tree<asset::Node2> nodeTree;
+
+        std::vector<core::math::Matrix<4,4>> jointMatrices;
+        BufferID   jointMatricesBufferId;      // SSBO, shared by every entity using this channel
+        MaterialID jointMatricesMaterialId;    // descriptor set for that SSBO, set = 2
+    };
+    using AnimationChannelID = ID<>;
+
+--- Entity (mutable per-instance state, hundreds/thousands of instances) ---
+
+    struct Entity {
+        AssetID                              assetId;
+        std::optional<AnimationChannelID>    animationChannelId;  // empty => static entity
+        PipelineID                           pipelineId;          // see note in section 6
+        core::math::Matrix<4,4>              worldMatrix;         // THE ONLY per-instance mutable state
+    };
+
+    Note: Entity does NOT own a NodeTree at all. That's the whole point.
+
+
+--------------------------------------------------------------------------------
+3. CREATION FLOW
+--------------------------------------------------------------------------------
+
+    // 1) Load an asset once (parses glTF, builds buffers/meshes/skins/animation set,
+    //    bakes the static/rest-pose node transforms into templateNodeTree).
+    AssetID assetId = storage.loadAsset(gltfHandle);
+
+    // 2) Create a POOL of animation channels for a given clip. Do this ~12 times
+    //    for a "walk" pool. Each clones asset.templateNodeTree independently and
+    //    allocates its own SSBO + descriptor set.
+    std::vector<AnimationChannelID> walkPool;
+    for (int i = 0; i < 12; ++i) {
+        auto chId = storage.createAnimationChannel(assetId, walkAnimationId);
+        // Optional: stagger channel.progress at creation so instances sharing
+        // a channel don't all look perfectly synced ("desync" trick). This is
+        // NOT the engine's responsibility -- it's an application-level choice.
+        storage.animationChannels.at(chId).progress = i * phaseStep;
+        walkPool.push_back(chId);
+    }
+
+    // 3) Create hundreds of entities, each referencing the SAME asset and a
+    //    RANDOMLY assigned channel from the pool. No tree cloning happens here.
+    for (int i = 0; i < 300; ++i) {
+        EntityID e = storage.createEntity(assetId, pipelineId,
+                                          walkPool[rand() % walkPool.size()]);
+        entities.at(e).worldMatrix = core::math::fullMatrix(/* spawn position */);
+    }
+
+
+--------------------------------------------------------------------------------
+4. PER-FRAME UPDATE
+--------------------------------------------------------------------------------
+
+    // 4a) Advance ONLY the channels (a dozen or two, never "per entity")
+    for (auto& [id, channel] : storage.animationChannels) {
+        const auto& animation =
+            storage.animationSets.at(channel.animationSetId).at(channel.animationId);
+
+        channel.progress += dt;
+        if (channel.progress > animation.end) {
+            if (channel.loop) {
+                channel.progress -= animation.end;
+            } else {
+                channel.progress = animation.end;   // clamp; caller checks "finished"
+            }
+        }
+
+        for (const auto& c : animation.channels) {
+            c.update(channel.nodeTree.get(c.nodeId),
+                     animation.samplers.at(c.samplerId),
+                     channel.progress);
+        }
+
+        // IDENTITY root -- this is the key trick. Never pass an entity's
+        // world matrix here.
+        update(channel.nodeTree, core::math::fullMatrix(core::math::identity<4>));
+
+        // Recompute joint matrices for this channel only.
+        channel.jointMatrices.clear();
+        channel.nodeTree.traverse<core::utils::Traversal::linear>([&](const asset::Node2& node) {
+            if (node.skinId) {
+                const auto& skin     = storage.skins.at(node.skinId);
+                const auto  invMesh  = core::math::inverse(node.transformation);  // <-- SEE SECTION 6, BUG FIX
+                for (const auto& [jointNodeIndex, invBind] : skin.joints) {
+                    channel.jointMatrices.emplace_back(
+                        invMesh * channel.nodeTree.get(jointNodeIndex).transformation * invBind);
+                }
+            }
+        });
+
+        memcpy(storage.buffers.at(channel.jointMatricesBufferId).mapped,
+               channel.jointMatrices.data(),
+               channel.jointMatrices.size() * sizeof(core::math::Matrix<4,4>));
+    }
+
+    // 4b) Update each entity -- O(1) per entity, NO tree traversal, NO skinning math.
+    for (auto& entity : storage.entities) {
+        entity.worldMatrix = core::math::fullMatrix(
+            Translation{ entity.position } * Rotation{ entity.rotation } * Scaling{ entity.scale });
+    }
+
+
+--------------------------------------------------------------------------------
+5. DRAW
+--------------------------------------------------------------------------------
+
+    for (const auto& entity : storage.entities) {
+        bind pipeline (entity.pipelineId, or per-primitive pipeline -- see section 7)
+
+        if (entity.animationChannelId) {
+            bind storage.animationChannels.at(*entity.animationChannelId)
+                     .jointMatricesMaterialId   // descriptor set at set = 2
+        }
+
+        const auto& asset = storage.assets.at(entity.assetId);
+        for (auto [nodeId, meshId] : asset.meshNodes) {
+            const auto& nodeTransform = entity.animationChannelId
+                ? storage.animationChannels.at(*entity.animationChannelId)
+                      .nodeTree.get(nodeId).transformation
+                : asset.templateNodeTree.get(nodeId).transformation;  // static, baked once at load
+
+            push.model = entity.worldMatrix * nodeTransform;   // ONE matrix multiply, no tree walk
+
+            for (primitive in storage.meshes.at(meshId).primitives) {
+                bind primitive.materialId descriptor set (set = 1)
+                vkCmdPushConstants(..., &push.model, ...)
+                vkCmdDrawIndexed(...)
+            }
+        }
+    }
+
+
+--------------------------------------------------------------------------------
+6. CONCRETE BUGS TO FIX IN THE CURRENT CODE
+--------------------------------------------------------------------------------
+
+(a) Engine.hpp / joint matrix computation is MISSING the inverse(meshNode)
+    term. Current (wrong unless the skinned node has an identity transform
+    relative to the tree root):
+
+        jointMatrices.emplace_back(
+            animationChannel.nodeTree.get(jointNodeIndex).transformation * inverseBindMatrix);
+
+    Fix (matches the old, correct Entity.hpp logic, just moved to the channel):
+
+        animationChannel.nodeTree.traverse<core::utils::Traversal::linear>([&](const asset::Node2& node) {
+            if (node.skinId) {
+                const auto& skin = storage.skins.at(node.skinId);
+                const auto  invMeshNode = core::math::inverse(node.transformation);
+                for (const auto& [jointNodeIndex, invBind] : skin.joints) {
+                    jointMatrices.emplace_back(
+                        invMeshNode * animationChannel.nodeTree.get(jointNodeIndex).transformation * invBind);
+                }
+            }
+        });
+
+    This only "worked" for CesiumMan because that particular model's skinned
+    node happens to sit at an identity-transform root. It will silently break
+    for any model where the mesh node has a non-identity local transform.
+
+(b) primitiveTexturedNormalAnimated.vert -- normals are not skinned at all,
+    and mixes multiplication conventions inconsistently:
+
+        // current (wrong / incomplete):
+        mat4 inverseModel = inverse(model);       // computed, unused correctly
+        ...
+        outNormal = mat3(inverse(model)) * inNormal;   // no skin applied,
+                                                        // also left-multiply here
+                                                        // vs right-multiply for position
+
+    Fix direction (keep the right-multiply convention consistent, and include
+    the skin matrix's linear part):
+
+        mat4 inverseModel = inverse(model);
+        ...
+        outNormal = inNormal * mat3(skin) * mat3(inverseModel);
+
+    (For non-uniform scale you'd want the inverse-transpose of the affine
+    part rather than the affine part itself, but glTF skin matrices are
+    usually close enough to orthogonal that this is a reasonable first pass.)
+    Also: compute `inverse(model)` exactly once, not twice.
+
+(c) Row-major / right-multiply convention (for reference, this part is
+    CORRECT and intentional, not a bug): because C++-side matrices are
+    row-major and are NOT transposed before upload, GLSL's default
+    column-major interpretation effectively reads them as transposed.
+    The trick `vec4 * M` (row vector times matrix) computes exactly the
+    same result as the intended `M * v` in the "normal" column-vector
+    convention, PROVIDED every stage of the chain uses this same
+    right-multiply style consistently:
+
+        v' = v * skin * model * view * projection
+             (skin applied first / innermost, exactly matching
+              M_proj * M_view * M_model * M_skin * v in standard notation)
+
+    Keep this convention consistent everywhere (see bug (b) above, where it
+    was NOT kept consistent for normals).
+
+
+--------------------------------------------------------------------------------
+7. FOLLOW-UP ARCHITECTURE DECISIONS DISCUSSED (not yet implemented)
+--------------------------------------------------------------------------------
+
+(a) PipelineID does not belong on Entity.
+    - It's redundant/derivable data: nothing currently enforces that the
+      pipeline assigned to an Entity actually matches its mesh's vertex
+      format or skinned-ness -- a real invariant-violation risk.
+    - It also does NOT belong on Material either: a Vulkan pipeline is a
+      function of THREE orthogonal things --
+          1) vertex format (from the mesh/geometry)
+          2) skinned or not (from the mesh's skin presence)
+          3) shading style (the one thing Material actually owns)
+      Baking pipeline into Material would force materials to fork per
+      vertex-format/skin combination, breaking reuse of a texture's
+      descriptor set across different mesh types.
+    - Best home: `Mesh2::Primitive`. A primitive is the one place all three
+      inputs (vertex format, skin presence, material) are simultaneously
+      known, at content-creation time (in Loader, where `Vertex` is a
+      template parameter). Renderer should then bind pipeline PER PRIMITIVE
+      (lazily, only rebinding when it changes), not once per Entity --
+      this also fixes an existing unstated limitation where a single Entity
+      with mixed-material submeshes (e.g. Phong body + unlit visor) can't
+      currently be represented correctly.
+
+(b) Enemy-swarm (Diablo II style) scenario validated:
+    - Ambient/background state (walking, idling): pool of ~12 shared
+      channels, hundreds of entities randomly assigned -- this is the
+      main case the architecture above optimizes for.
+    - Rare/foreground state (attacking): naturally capped by gameplay
+      constraints (limited melee-ring space around the player), so an
+      "attack pool" can be a small EXCLUSIVE lease system (1 channel per
+      active attacker, released back to the pool when the swing finishes)
+      rather than shared -- this costs the same as the old "classic"
+      per-instance approach, but only for the handful of entities
+      attacking at once, which is fine.
+    - Needed additions for this to work:
+        1. One-shot playback mode (`loop = false` on AnimationChannel,
+           clamp instead of wrap, expose "finished" = progress >= end)
+           so the game FSM knows when to release the channel.
+        2. A `channel.reset(animationId)` style API: currently
+           AnimationChannel's animationId/animationSetId are baked in at
+           creation and immutable -- a leased/reusable channel needs to be
+           resettable (progress = 0, optionally swap which clip it plays)
+           when handed to a new attacker.
+        3. A free-list / lease manager for the attack pool: acquire on
+           "start attack", release on "finished". Decide the exhaustion
+           fallback (queue vs. let two attackers share one channel that
+           frame) explicitly, even if it's rare given the ring-space cap.
+    - Switching an entity between pools (walk channel -> attack channel)
+      is just reassigning `entity.animationChannelId` -- O(1), no
+      reallocation. There is NO blending on this transition (instant cut) --
+      acceptable for a chunky/D2-style combat feel; true blending would
+      need a small amount of genuinely per-instance state, but only for the
+      few entities actively transitioning at any moment (bounded by the
+      same ring-space constraint), not for the whole crowd.
+
+(c) At "thousands of entities" scale, once the animation-math cost is
+    solved (as above), the NEXT bottleneck becomes per-entity Vulkan
+    command submission (one bind + one push-constant + one draw call per
+    entity). True scaling to thousands eventually wants instanced
+    rendering (batch entities sharing the same asset+channel into one
+    instanced draw, with per-instance world matrices delivered via an
+    extra vertex buffer or SSBO indexed by gl_InstanceIndex). Not solved
+    here -- flagged so it isn't mistaken for solved.
+
+(d) `ID<Underlying, Unique = decltype([]{})>` already gives every
+    `using XxxID = ID<>;` alias a genuinely distinct compile-time type
+    (each alias evaluates the lambda default-argument at its own point,
+    producing a unique closure-type tag) -- this is a correct, elegant
+    strong-typedef mechanism already in place. No change needed there;
+    just noting it so the ID-based handle design is trusted going forward.
+
+
+--------------------------------------------------------------------------------
+8. OPEN QUESTIONS FOR WHEN YOU COME BACK TO THIS
+--------------------------------------------------------------------------------
+
+1. Where should channel-progress staggering ("desync" of visually identical
+   walk cycles across a pool) be decided -- purely application-side (as
+   agreed), or does the engine want a convenience helper
+   (createAnimationChannelPool(assetId, animationId, count, staggered=true))?
+
+2. For the attack-pool lease manager: what should happen when an attacker
+   wants to start swinging but all attack-pool channels are currently
+   leased? (queue / delay start vs. let two attackers temporarily share one
+   channel vs. hard fail / skip attack this frame)
+
+3. Do you want blending support at all in v0.1, or is instant-cut transition
+   between pooled channels acceptable indefinitely for this project's
+   art style?
+
+4. Static (non-skinned) entities: fold them into the same
+   Asset/Entity model now (baked template transform, no per-instance tree,
+   as described in section 2-3), or leave the current working static-entity
+   code path untouched until the animated path is fully working and only
+   unify afterward?
+
+================================================================================
+END OF NOTES
+================================================================================

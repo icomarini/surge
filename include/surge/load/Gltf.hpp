@@ -800,8 +800,9 @@ public:
                     { fastgltf::AnimationPath::Scale,       animation::Channel::Path::scale       },
                     { fastgltf::AnimationPath::Weights,     animation::Channel::Path::weights     },
                 };
-                channels.emplace_back(convert.at(fastgltfChannel.path), NodeID { fastgltfChannel.nodeIndex.value() },
-                                      AnimationSamplerID { fastgltfChannel.samplerIndex });
+                channels.emplace_back(convert.at(fastgltfChannel.path),
+                                      NodeID { static_cast<int>(fastgltfChannel.nodeIndex.value()) },
+                                      AnimationSamplerID { static_cast<int>(fastgltfChannel.samplerIndex) });
             }
             animations.emplace_back(baptize<This::animation>(fastgltfAnimation.name, animationId++), start, end,
                                     std::move(samplers), std::move(channels));

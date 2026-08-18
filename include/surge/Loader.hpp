@@ -31,6 +31,34 @@ public:
             .modelId            = modelId,
             .nodeTreeId         = nodeTreeId,
             .pipelineId         = storage.getPipeline(shaderType),
+            .shader             = shaderType,
+            .animationChannelId = animationChannelId,
+        };
+    }
+
+    template<core::shader::Type shaderType>
+    Entity loadCool(const load::Gltf::Handle&                           handle,
+                    const std::map<load::Gltf::TextureType, TextureID>& externalTextureIds) {
+        const load::Gltf gltf { handle, storage.defaults };
+        const auto       textureIds    = gltf.createTextures(storage);
+        const auto       materialIds   = gltf.createMaterials(storage, textureIds, externalTextureIds);
+        const auto       meshIds       = gltf.createMeshes(storage, materialIds);
+        constexpr auto   pipelineIndex = Storage::getPipelineIndex<shaderType>();
+        using Vertex                   = std::tuple_element_t<pipelineIndex, Storage::Pipelines>::Vertex;
+        const auto modelId             = gltf.createModel<Vertex>(storage, meshIds);
+        const auto skinIds             = gltf.createSkins(storage);
+        const auto nodeTreeId          = gltf.createNodeTree(storage, meshIds, skinIds);
+        const auto animationSetId      = gltf.createAnimationSet(storage);
+
+        const auto animationChannelId =
+            animationSetId ? storage.createAnimationChannel(storage.nodeTrees.at(nodeTreeId), animationSetId, 0) :
+                             AnimationChannelID {};
+        // const auto
+        return Entity {
+            .modelId            = modelId,
+            .nodeTreeId         = nodeTreeId,
+            .pipelineId         = storage.getPipeline(shaderType),
+            .shader             = shaderType,
             .animationChannelId = animationChannelId,
         };
     }

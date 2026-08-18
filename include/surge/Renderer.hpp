@@ -25,6 +25,7 @@ public:
     void draw(const VkCommandBuffer commandBuffer, const Entity& entity, const MaterialID sceneMaterialId) {
         // bind pipeline
         const auto pipelineLayout = storage.pipelines.get(entity.pipelineId).layout();
+        // const auto& pipeline = storage.getPipeline()
 
         // bind pipeline and main camera
         storage.pipelines.apply(entity.pipelineId, [&](const Pipeline& pipeline) {
