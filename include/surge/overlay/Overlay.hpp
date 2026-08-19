@@ -26,6 +26,7 @@ public:
     };
 
 
+    using PCR = core::PushConstantRange<VK_SHADER_STAGE_VERTEX_BIT, PushConstBlock>;
     Overlay(const core::Command& command, const std::map<std::string, asset::Asset>& assets)
         : core::Contextualized { command.context }
         , imGuiContext { 1.5 }
@@ -34,14 +35,9 @@ public:
         , model {}
         , descriptor { context, 1, asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT> { fontTexture } }
         , graphicsQueue { command.graphicsQueue }
-        , pipelineLayout { core::createPipelineLayout(
-              context, core::createPushConstantRange<PushConstBlock>(VK_SHADER_STAGE_VERTEX_BIT),
-              descriptor.setLayout) }
-        , pipeline { core::createGraphicPipeline<LoadedOverlay::Vertex>(
+        , pipelineLayout { core::createPipelineLayout<PCR>(context, descriptor.setLayout) }
+        , pipeline { core::createGraphicPipeline<core::shader::Type::ui, LoadedOverlay::Vertex>(
               context, pipelineLayout,
-              core::shader::Shader {
-                  context, core::shader::ShaderInfo<core::shader::Type::ui, core::shader::Stage::vertex> { nullptr },
-                  core::shader::ShaderInfo<core::shader::Type::ui, core::shader::Stage::fragment> { nullptr } },
               VkPipelineRasterizationStateCreateInfo {
                   .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
                   .pNext                   = nullptr,

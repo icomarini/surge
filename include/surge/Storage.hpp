@@ -1,7 +1,6 @@
 #pragma once
 
 #include "surge/load/Defaults.hpp"
-#include "surge/core/DescriptorPool.hpp"
 #include "surge/asset/Line.hpp"
 
 namespace surge {
@@ -158,108 +157,78 @@ struct Storage {
         }
 
         static VkPipeline createPipeline(const surge::core::Context& context, const VkPipelineLayout pipelineLayout) {
-            return createGraphicPipeline<Vertex>(
-                context, pipelineLayout,
-                core::shader::Shader {
-                    context,
-                    core::shader::ShaderInfo<type, core::shader::Stage::vertex> { nullptr },
-                    core::shader::ShaderInfo<type, core::shader::Stage::fragment> { nullptr },
-                });
-            // return core::createGraphicPipeline<type, Vertex>(context, pipelineLayout);
-        }
-
-        static VkPipeline createPipeline(const surge::core::Context& context, const VkPipelineLayout pipelineLayout)
-            requires(type == core::shader::Type::line)
-        {
-            return core::createGraphicPipeline<Vertex>(
-                context, pipelineLayout,
-                core::shader::Shader {
-                    context,
-                    core::shader::ShaderInfo<core::shader::Type::line, core::shader::Stage::vertex> { nullptr },
-                    core::shader::ShaderInfo<core::shader::Type::line, core::shader::Stage::fragment> { nullptr },
-                },
-                VkPipelineInputAssemblyStateCreateInfo {
-                    .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-                    .pNext                  = nullptr,
-                    .flags                  = {},
-                    .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
-                    .primitiveRestartEnable = VK_FALSE,
-                });
-        }
-
-        static VkPipeline createPipeline(const surge::core::Context& context, const VkPipelineLayout pipelineLayout)
-            requires(type == core::shader::Type::skybox)
-        {
-            return core::createGraphicPipeline<Vertex>(
-                context, pipelineLayout,
-                core::shader::Shader {
-                    context,
-                    core::shader::ShaderInfo<type, core::shader::Stage::vertex> { nullptr },
-                    core::shader::ShaderInfo<type, core::shader::Stage::fragment> { nullptr },
-                },
-                VkPipelineRasterizationStateCreateInfo {
-                    .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-                    .pNext                   = nullptr,
-                    .flags                   = {},
-                    .depthClampEnable        = VK_FALSE,
-                    .rasterizerDiscardEnable = VK_FALSE,
-                    .polygonMode             = VK_POLYGON_MODE_FILL,
-                    .cullMode                = VK_CULL_MODE_FRONT_BIT,
-                    .frontFace               = VK_FRONT_FACE_CLOCKWISE,
-                    .depthBiasEnable         = VK_FALSE,
-                    .depthBiasConstantFactor = 0.0f,
-                    .depthBiasClamp          = 0.0f,
-                    .depthBiasSlopeFactor    = 0.0f,
-                    .lineWidth               = 1.0f,
-                },
-                VkPipelineDepthStencilStateCreateInfo {
-                    .sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-                    .pNext                 = nullptr,
-                    .flags                 = {},
-                    .depthTestEnable       = VK_FALSE,
-                    .depthWriteEnable      = VK_FALSE,
-                    .depthCompareOp        = VK_COMPARE_OP_LESS,
-                    .depthBoundsTestEnable = VK_FALSE,
-                    .stencilTestEnable     = VK_FALSE,
-                    .front                 = {},
-                    .back                  = {},
-                    .minDepthBounds        = 0.0f,
-                    .maxDepthBounds        = 1.0f,
-                });
-        }
-
-        static VkPipeline createPipeline(const surge::core::Context& context, const VkPipelineLayout pipelineLayout)
-            requires(type == core::shader::Type::coordinates)
-        {
-            return core::createGraphicPipeline<Vertex>(
-                context, pipelineLayout,
-                core::shader::Shader {
-                    context,
-                    core::shader::ShaderInfo<type, core::shader::Stage::vertex> { nullptr },
-                    core::shader::ShaderInfo<type, core::shader::Stage::fragment> { nullptr },
-                },
-                VkPipelineInputAssemblyStateCreateInfo {
-                    .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-                    .pNext                  = nullptr,
-                    .flags                  = {},
-                    .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
-                    .primitiveRestartEnable = VK_FALSE,
-                },
-                VkPipelineRasterizationStateCreateInfo {
-                    .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-                    .pNext                   = nullptr,
-                    .flags                   = {},
-                    .depthClampEnable        = VK_FALSE,
-                    .rasterizerDiscardEnable = VK_FALSE,
-                    .polygonMode             = VK_POLYGON_MODE_LINE,
-                    .cullMode                = VK_CULL_MODE_FRONT_BIT,
-                    .frontFace               = VK_FRONT_FACE_CLOCKWISE,
-                    .depthBiasEnable         = VK_FALSE,
-                    .depthBiasConstantFactor = 0.0f,
-                    .depthBiasClamp          = 0.0f,
-                    .depthBiasSlopeFactor    = 0.0f,
-                    .lineWidth               = 1.0f,
-                });
+            // return createGraphicPipeline<type, Vertex>(context, pipelineLayout);
+            switch (type) {
+            case core::shader::Type::line:
+                return core::createGraphicPipeline<type, Vertex>(
+                    context, pipelineLayout,
+                    VkPipelineInputAssemblyStateCreateInfo {
+                        .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+                        .pNext                  = nullptr,
+                        .flags                  = {},
+                        .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
+                        .primitiveRestartEnable = VK_FALSE,
+                    });
+            case core::shader::Type::coordinates:
+                return core::createGraphicPipeline<type, Vertex>(
+                    context, pipelineLayout,
+                    VkPipelineInputAssemblyStateCreateInfo {
+                        .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+                        .pNext                  = nullptr,
+                        .flags                  = {},
+                        .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
+                        .primitiveRestartEnable = VK_FALSE,
+                    },
+                    VkPipelineRasterizationStateCreateInfo {
+                        .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+                        .pNext                   = nullptr,
+                        .flags                   = {},
+                        .depthClampEnable        = VK_FALSE,
+                        .rasterizerDiscardEnable = VK_FALSE,
+                        .polygonMode             = VK_POLYGON_MODE_LINE,
+                        .cullMode                = VK_CULL_MODE_FRONT_BIT,
+                        .frontFace               = VK_FRONT_FACE_CLOCKWISE,
+                        .depthBiasEnable         = VK_FALSE,
+                        .depthBiasConstantFactor = 0.0f,
+                        .depthBiasClamp          = 0.0f,
+                        .depthBiasSlopeFactor    = 0.0f,
+                        .lineWidth               = 1.0f,
+                    });
+            case core::shader::Type::skybox:
+                return core::createGraphicPipeline<type, Vertex>(
+                    context, pipelineLayout,
+                    VkPipelineRasterizationStateCreateInfo {
+                        .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+                        .pNext                   = nullptr,
+                        .flags                   = {},
+                        .depthClampEnable        = VK_FALSE,
+                        .rasterizerDiscardEnable = VK_FALSE,
+                        .polygonMode             = VK_POLYGON_MODE_FILL,
+                        .cullMode                = VK_CULL_MODE_FRONT_BIT,
+                        .frontFace               = VK_FRONT_FACE_CLOCKWISE,
+                        .depthBiasEnable         = VK_FALSE,
+                        .depthBiasConstantFactor = 0.0f,
+                        .depthBiasClamp          = 0.0f,
+                        .depthBiasSlopeFactor    = 0.0f,
+                        .lineWidth               = 1.0f,
+                    },
+                    VkPipelineDepthStencilStateCreateInfo {
+                        .sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+                        .pNext                 = nullptr,
+                        .flags                 = {},
+                        .depthTestEnable       = VK_FALSE,
+                        .depthWriteEnable      = VK_FALSE,
+                        .depthCompareOp        = VK_COMPARE_OP_LESS,
+                        .depthBoundsTestEnable = VK_FALSE,
+                        .stencilTestEnable     = VK_FALSE,
+                        .front                 = {},
+                        .back                  = {},
+                        .minDepthBounds        = 0.0f,
+                        .maxDepthBounds        = 1.0f,
+                    });
+            default:
+                return createGraphicPipeline<type, Vertex>(context, pipelineLayout);
+            }
         }
     };
 
@@ -426,32 +395,6 @@ struct Storage {
         }
         return insertion.first->first;
     }
-
-    // PipelineID createLinePipeline() {
-    //     using LinePipelineEntry = PipelineEntry<core::shader::Type::line,  //
-    //                                             shaderStages,              //
-    //                                             void*,                     //
-    //                                             asset::Line,               //
-    //                                             SceneLayout>;              //
-
-    //     const auto pipelineLayout = LinePipelineEntry::createPipelineLayout(command.context, descriptorPool);
-
-    //     const auto pipeline = core::createGraphicPipeline<void*>(
-    //         command.context, pipelineLayout,
-    //         core::shader::Shader {
-    //             command.context,
-    //             core::shader::ShaderInfo<core::shader::Type::line, core::shader::Stage::vertex> { nullptr },
-    //             core::shader::ShaderInfo<core::shader::Type::line, core::shader::Stage::fragment> { nullptr },
-    //         },
-    //         VkPipelineInputAssemblyStateCreateInfo {
-    //             .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-    //             .pNext                  = nullptr,
-    //             .flags                  = {},
-    //             .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
-    //             .primitiveRestartEnable = VK_FALSE,
-    //         });
-    //     return pipelines.create(pipelineLayout, pipeline);
-    // }
 
     template<typename TextureData>
     TextureID createTexture(const TextureData& textureData) {

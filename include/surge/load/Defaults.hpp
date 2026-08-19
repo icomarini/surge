@@ -215,12 +215,6 @@ public:
     VkDescriptorSetLayout descriptorSetLayout;
     asset::Material       material;
 
-    VkPipelineLayout descriptorlessPipelineLayout;
-    VkPipeline       descriptorlessPipeline;
-
-    // asset::Model coordinateSystem;
-    // asset::Model cube;
-
     using TextureDescr = asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT>;
 
     struct NodePushBlock {
@@ -266,33 +260,10 @@ public:
                          context, descriptorSetLayout, descriptorPool,  //
                          TextureDescr { texture }, TextureDescr { texture }, TextureDescr { texture },
                          TextureDescr { texture }, TextureDescr { texture }) }
-        , descriptorlessPipelineLayout { core::createPipelineLayout(
-              context,
-              core::createPushConstantRange<NodePushBlock>(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)) }
-        , descriptorlessPipeline {
-        core::createGraphicPipeline<core::geometry::PositionAndColor>(
-            context,  
-            descriptorlessPipelineLayout,
-            core::shader::Shader {
-                context, core::shader::ShaderInfo<core::shader::Type::bbox, core::shader::Stage::vertex> { nullptr },
-                core::shader::ShaderInfo<core::shader::Type::bbox, core::shader::Stage::fragment> { nullptr } },
-            core::createRasterizationStateInfo(VK_POLYGON_MODE_LINE),
-            VkPipelineInputAssemblyStateCreateInfo {
-                .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-                .pNext                  = nullptr,
-                .flags                  = {},
-                .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
-                .primitiveRestartEnable = VK_FALSE,
-            })
-    }
-    // , coordinateSystem { command, core::geometry::coordinateSystem, asset::Model::scene }
-    // , cube { command, core::geometry::cube, asset::Model::scene }
     {
     }
 
     ~Defaults() {
-        context.destroy(descriptorlessPipeline);
-        context.destroy(descriptorlessPipelineLayout);
         context.destroy(descriptorSetLayout);
         context.destroy(descriptorPool);
     }
