@@ -7,13 +7,16 @@
 
 #include "surge/core/Descriptor.hpp"
 
+#include "surge/Pipelines.hpp"
+
 namespace surge {
 
 class Renderer : public core::Contextualized {
 public:
     Renderer(const Storage& storage)
         : Contextualized { storage.command.context }
-        , storage { storage } {
+        , storage { storage }
+        , pipelines { context } {
     }
 
     void draw(const VkCommandBuffer commandBuffer, const Scene& scene) {
@@ -99,6 +102,7 @@ public:
     }
 
     const Storage& storage;
+    Pipelines      pipelines;
 };
 
 }  // namespace surge

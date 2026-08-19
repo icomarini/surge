@@ -115,6 +115,14 @@ struct LazyAccessContainer {
         }
         return insertion.first->first;
     }
+
+    template<typename... Args>
+    void insert(const Key& key, const Value& value) {
+        const auto insertion = objects.emplace(key, value);
+        if (!insertion.second) {
+            throw std::runtime_error("Object already present");
+        }
+    }
 };
 
 template<class T, template<class...> class Primary>

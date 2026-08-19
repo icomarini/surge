@@ -300,6 +300,14 @@ struct Storage {
         return createEntity(asset, {});
     }
 
+    template<typename Entry>
+    PipelineID createPipeline() {
+        const auto pipelineLayout = Entry::createPipelineLayout(command.context, descriptorPool);
+        const auto pipeline       = Entry::createPipeline(command.context, pipelineLayout);
+        return pipelines.create(pipelineLayout, pipeline);
+    }
+
+
     void createPipelines() {
         core::forEach<0, std::tuple_size_v<Pipelines>>([&]<int pipelineId> {
             using Entry = std::tuple_element_t<pipelineId, Pipelines>;
@@ -381,12 +389,6 @@ struct Storage {
         return insertion.first->first;
     }
 
-    template<typename Entry>
-    PipelineID createPipeline() {
-        const auto pipelineLayout = Entry::createPipelineLayout(command.context, descriptorPool);
-        const auto pipeline       = Entry::createPipeline(command.context, pipelineLayout);
-        return pipelines.create(pipelineLayout, pipeline);
-    }
 
     MeshID createMesh(std::vector<asset::Mesh2::Primitive>&& primitives) {
         const auto insertion = meshes.emplace(meshes.size(), std::move(primitives));
