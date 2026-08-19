@@ -37,8 +37,8 @@ public:
         , pipelineLayout { core::createPipelineLayout(
               context, core::createPushConstantRange<PushConstBlock>(VK_SHADER_STAGE_VERTEX_BIT),
               descriptor.setLayout) }
-        , pipeline { core::createGraphicPipeline(
-              context, core::createVertexInputState<LoadedOverlay::Vertex>(), VK_NULL_HANDLE, pipelineLayout,
+        , pipeline { core::createGraphicPipeline<LoadedOverlay::Vertex>(
+              context, pipelineLayout,
               core::shader::Shader {
                   context, core::shader::ShaderInfo<core::shader::Type::ui, core::shader::Stage::vertex> { nullptr },
                   core::shader::ShaderInfo<core::shader::Type::ui, core::shader::Stage::fragment> { nullptr } },
@@ -227,7 +227,7 @@ public:
         // UI scale and translate via push constants
         const PushConstBlock pushConstBlock {
             .scale     = core::math::Vector<2> { 2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y },
-            .translate = core::math::Vector<2> { -1.0f, -1.0f },
+            .translate = core::math::Vector<2> { -1.0f,                   -1.0f                   },
         };
         vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock),
                            &pushConstBlock);
@@ -251,13 +251,13 @@ public:
                     const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[j];
                     const VkRect2D   scissorRect {
                           .offset {
-                            std::max(static_cast<int32_t>(pcmd->ClipRect.x), 0),
-                            std::max(static_cast<int32_t>(pcmd->ClipRect.y), 0),
-                        },
+                                   std::max(static_cast<int32_t>(pcmd->ClipRect.x), 0),
+                                   std::max(static_cast<int32_t>(pcmd->ClipRect.y), 0),
+                                   },
                           .extent {
-                            static_cast<uint32_t>(pcmd->ClipRect.z - pcmd->ClipRect.x),
-                            static_cast<uint32_t>(pcmd->ClipRect.w - pcmd->ClipRect.y),
-                        },
+                                   static_cast<uint32_t>(pcmd->ClipRect.z - pcmd->ClipRect.x),
+                                   static_cast<uint32_t>(pcmd->ClipRect.w - pcmd->ClipRect.y),
+                                   },
                     };
                     vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
                     vkCmdDrawIndexed(commandBuffer, pcmd->ElemCount, 1, indexOffset, vertexOffset, 0);

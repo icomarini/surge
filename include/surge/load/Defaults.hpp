@@ -270,8 +270,8 @@ public:
               context,
               core::createPushConstantRange<NodePushBlock>(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)) }
         , descriptorlessPipeline {
-        core::createGraphicPipeline(
-            context, core::createVertexInputState<core::geometry::PositionAndColor>(), VK_NULL_HANDLE,
+        core::createGraphicPipeline<core::geometry::PositionAndColor>(
+            context,  
             descriptorlessPipelineLayout,
             core::shader::Shader {
                 context, core::shader::ShaderInfo<core::shader::Type::bbox, core::shader::Stage::vertex> { nullptr },

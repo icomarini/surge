@@ -127,7 +127,7 @@ struct Storage {
 
     Storage(const core::Command& command)
         : command { command }
-        , defaults { command }  // , matrices {}
+        , defaults { command }
         , descriptorPool { command.context, core::DescriptorAllocation<SceneLayout> { 2 },
                            core::DescriptorAllocation<SimpleMaterialLayout> { 128 },
                            core::DescriptorAllocation<PhongMaterialLayout> { 128 },
@@ -135,16 +135,12 @@ struct Storage {
         , defaultTextureId { createTexture(load::createDefaultTextureData(core::RGBA::white, core::RGBA::black)) }
         , whiteTextureId { createTexture(load::createFlatTextureData(core::RGBA::white)) }
         , blackTextureId { createTexture(load::createFlatTextureData(core::RGBA::black)) }
-        , defaultMaterialId { createSimpleMaterial(defaultTextureId) }
-    // , pipelineTuple { createPiplineTuple(command.context, descriptorPool) }
-    {
+        , defaultMaterialId { createSimpleMaterial(defaultTextureId) } {
         createPipelines();
     }
 
     ~Storage() {
         pipelines.apply([&](Pipeline& pipeline) { pipeline.destroy(command.context); });
-        // core::forEach<0, std::tuple_size_v<Pipelines>>(
-        //     [&]<int pipelineId> { std::get<pipelineId>(pipelineTuple).destroy(command.context); });
     }
 
     template<core::shader::Type t, VkShaderStageFlags s, typename V, typename P, typename... Ls>
@@ -154,40 +150,126 @@ struct Storage {
         using Vertex                 = V;
         using PushConstant           = P;
         using Layouts                = std::tuple<Ls...>;
-        // VkPipelineLayout pipelineLayout;
-        // VkPipeline       pipeline;
-
-        // PipelineEntry()
-        //     : pipelineLayout { VK_NULL_HANDLE }
-        //     , pipeline { VK_NULL_HANDLE } {
-        // }
-
-        // PipelineEntry(const surge::core::Context& context, const DescriptorPool& descriptorPool)
-        //     : pipelineLayout { core::createPipelineLayout(context,
-        //     core::createPushConstantRange<PushConstant>(stages),
-        //                                                   descriptorPool.layout<Layouts>()...) }
-        //     , pipeline { core::createGraphicPipeline(context, core::createVertexInputState<Vertex>(), pipelineLayout,
-        //                                              type) } {
-        // }
-
-        // void destroy(const core::Context& context) {
-        //     context.destroy(pipelineLayout);
-        //     context.destroy(pipeline);
-        // }
 
         static VkPipelineLayout createPipelineLayout(const surge::core::Context& context,
                                                      const DescriptorPool&       descriptorPool) {
-            constexpr auto pushConstantRange { core::createPushConstantRange<PushConstant>(stages) };
-            return core::createPipelineLayout(context, pushConstantRange, descriptorPool.layout<Ls>()...);
+            return core::createPipelineLayout<core::PushConstantRange<stages, PushConstant>>(
+                context, descriptorPool.layout<Ls>()...);
         }
 
         static VkPipeline createPipeline(const surge::core::Context& context, const VkPipelineLayout pipelineLayout) {
-            constexpr auto vertexInputState { core::createVertexInputState<Vertex>() };
-            return core::createGraphicPipeline(context, vertexInputState, pipelineLayout, type);
+            return createGraphicPipeline<Vertex>(
+                context, pipelineLayout,
+                core::shader::Shader {
+                    context,
+                    core::shader::ShaderInfo<type, core::shader::Stage::vertex> { nullptr },
+                    core::shader::ShaderInfo<type, core::shader::Stage::fragment> { nullptr },
+                });
+            // return core::createGraphicPipeline<type, Vertex>(context, pipelineLayout);
+        }
+
+        static VkPipeline createPipeline(const surge::core::Context& context, const VkPipelineLayout pipelineLayout)
+            requires(type == core::shader::Type::line)
+        {
+            return core::createGraphicPipeline<Vertex>(
+                context, pipelineLayout,
+                core::shader::Shader {
+                    context,
+                    core::shader::ShaderInfo<core::shader::Type::line, core::shader::Stage::vertex> { nullptr },
+                    core::shader::ShaderInfo<core::shader::Type::line, core::shader::Stage::fragment> { nullptr },
+                },
+                VkPipelineInputAssemblyStateCreateInfo {
+                    .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+                    .pNext                  = nullptr,
+                    .flags                  = {},
+                    .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
+                    .primitiveRestartEnable = VK_FALSE,
+                });
+        }
+
+        static VkPipeline createPipeline(const surge::core::Context& context, const VkPipelineLayout pipelineLayout)
+            requires(type == core::shader::Type::skybox)
+        {
+            return core::createGraphicPipeline<Vertex>(
+                context, pipelineLayout,
+                core::shader::Shader {
+                    context,
+                    core::shader::ShaderInfo<type, core::shader::Stage::vertex> { nullptr },
+                    core::shader::ShaderInfo<type, core::shader::Stage::fragment> { nullptr },
+                },
+                VkPipelineRasterizationStateCreateInfo {
+                    .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+                    .pNext                   = nullptr,
+                    .flags                   = {},
+                    .depthClampEnable        = VK_FALSE,
+                    .rasterizerDiscardEnable = VK_FALSE,
+                    .polygonMode             = VK_POLYGON_MODE_FILL,
+                    .cullMode                = VK_CULL_MODE_FRONT_BIT,
+                    .frontFace               = VK_FRONT_FACE_CLOCKWISE,
+                    .depthBiasEnable         = VK_FALSE,
+                    .depthBiasConstantFactor = 0.0f,
+                    .depthBiasClamp          = 0.0f,
+                    .depthBiasSlopeFactor    = 0.0f,
+                    .lineWidth               = 1.0f,
+                },
+                VkPipelineDepthStencilStateCreateInfo {
+                    .sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+                    .pNext                 = nullptr,
+                    .flags                 = {},
+                    .depthTestEnable       = VK_FALSE,
+                    .depthWriteEnable      = VK_FALSE,
+                    .depthCompareOp        = VK_COMPARE_OP_LESS,
+                    .depthBoundsTestEnable = VK_FALSE,
+                    .stencilTestEnable     = VK_FALSE,
+                    .front                 = {},
+                    .back                  = {},
+                    .minDepthBounds        = 0.0f,
+                    .maxDepthBounds        = 1.0f,
+                });
+        }
+
+        static VkPipeline createPipeline(const surge::core::Context& context, const VkPipelineLayout pipelineLayout)
+            requires(type == core::shader::Type::coordinates)
+        {
+            return core::createGraphicPipeline<Vertex>(
+                context, pipelineLayout,
+                core::shader::Shader {
+                    context,
+                    core::shader::ShaderInfo<type, core::shader::Stage::vertex> { nullptr },
+                    core::shader::ShaderInfo<type, core::shader::Stage::fragment> { nullptr },
+                },
+                VkPipelineInputAssemblyStateCreateInfo {
+                    .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+                    .pNext                  = nullptr,
+                    .flags                  = {},
+                    .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
+                    .primitiveRestartEnable = VK_FALSE,
+                },
+                VkPipelineRasterizationStateCreateInfo {
+                    .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+                    .pNext                   = nullptr,
+                    .flags                   = {},
+                    .depthClampEnable        = VK_FALSE,
+                    .rasterizerDiscardEnable = VK_FALSE,
+                    .polygonMode             = VK_POLYGON_MODE_LINE,
+                    .cullMode                = VK_CULL_MODE_FRONT_BIT,
+                    .frontFace               = VK_FRONT_FACE_CLOCKWISE,
+                    .depthBiasEnable         = VK_FALSE,
+                    .depthBiasConstantFactor = 0.0f,
+                    .depthBiasClamp          = 0.0f,
+                    .depthBiasSlopeFactor    = 0.0f,
+                    .lineWidth               = 1.0f,
+                });
         }
     };
 
+
     using Pipelines = std::tuple<                                           //
+        PipelineEntry<core::shader::Type::line,                             //
+                      shaderStages,                                         //
+                      void*,                                                //
+                      asset::Line,                                          //
+                      SceneLayout>,                                         //
         PipelineEntry<core::shader::Type::skybox,                           //
                       shaderStages,                                         //
                       core::geometry::Position,                             //
@@ -234,16 +316,6 @@ struct Storage {
                       SceneLayout, PhongMaterialLayout>                     //
         >;
 
-    Pipelines pipelineTuple;
-
-    // static Pipelines createPiplineTuple(const surge::core::Context& context, const DescriptorPool& descriptorPool) {
-    //     Pipelines pipelines;
-    //     core::forEach<0, std::tuple_size_v<Pipelines>>([&]<int pipelineId> {
-    //         using Entry                     = std::tuple_element_t<pipelineId, Pipelines>;
-    //         std::get<pipelineId>(pipelines) = Entry(context, descriptorPool);
-    //     });
-    //     return pipelines;
-    // }
 
     Entity createEntity(const Asset& asset, const AnimationChannelID animationChannelId) {
         return Entity {
@@ -260,65 +332,11 @@ struct Storage {
     }
 
     void createPipelines() {
-        using Shader = core::shader::Type;
-        using namespace core::geometry;
-
-        pipelineIds = {
-            { Shader::line, createLinePipeline() },
-            // { Shader::skybox,
-            //  createPipeline<Position, ModelMatrix, SceneLayout, SimpleMaterialLayout>(Shader::skybox) },
-            // { Shader::coordinates, createPipeline<PositionAndColor, ModelMatrix, SceneLayout>(Shader::coordinates) },
-            // { Shader::primitive, createPipeline<Position, ModelMatrixAndColor, SceneLayout>(Shader::primitive) },
-            // { Shader::primitiveNormal,
-            //  createPipeline<PositionNormal, ModelMatrix, SceneLayout, SimpleMaterialLayout>(Shader::primitiveNormal)
-            //  },
-            // { Shader::primitiveTextured,
-            //  createPipeline<PositionTexture, ModelMatrix, SceneLayout, SimpleMaterialLayout>(
-            //       Shader::primitiveTextured) },
-            // { Shader::primitiveTexturedNormal,
-            //  createPipeline<PositionNormalTexture, ModelMatrix, SceneLayout, SimpleMaterialLayout>(
-            //       Shader::primitiveTexturedNormal) },
-            // { Shader::primitiveTexturedNormalAnimated,
-            //  createPipeline<PositionNormalTextureJoint, ModelMatrix, SceneLayout, SimpleMaterialLayout,
-            //  AnimationLayout>(Shader::primitiveTexturedNormalAnimated) },
-            // { Shader::phongModel, createPipeline<PositionNormalTexture, ModelMatrix, SceneLayout,
-            // PhongMaterialLayout>(
-            //                           Shader::phongModel) },
-            // { Shader::phongModelNormal,
-            //  createPipeline<PositionNormalTangentTexture, ModelMatrix, SceneLayout, PhongMaterialLayout>(
-            //       Shader::phongModelNormal) }
-            // { Shader::phongModel, createPipeline<std::tuple_element_t<0, Pipelines>>() },
-            // { Shader::phongModelNormal, createPipeline<std::tuple_element_t<1, Pipelines>>() }
-        };
-
         core::forEach<0, std::tuple_size_v<Pipelines>>([&]<int pipelineId> {
             using Entry = std::tuple_element_t<pipelineId, Pipelines>;
             pipelineIds.emplace(Entry::type, createPipeline<Entry>());
         });
     }
-
-    // core::LazyAccessContainer<core::shader::Type, Pipeline> createPipelinesIds2() {
-    //     core::LazyAccessContainer<core::shader::Type, Pipeline> pipelines;
-    //     core::forEach<0, std::tuple_size_v<Pipelines>>([&]<int pipelineId> {
-    //         using Entry         = std::tuple_element_t<pipelineId, Pipelines>;
-    //         constexpr auto push = core::createPushConstantRange<Entry::PushConstant>(Entry::stages);
-    //         const auto     pipelineLayout =
-    //             core::createPipelineLayout(command.context, push,
-    //             std::make_tuple(descriptorPool.layout<Layouts>()...));
-    //         constexpr auto vertexInputState = core::createVertexInputState<Entry::Vertex>();
-    //         const auto     pipeline =
-    //             core::createGraphicPipeline(command.context, vertexInputState, pipelineLayout, Entry::type);
-
-    //         pipelines.create(pipelineLayout, pipeline);
-    //     });
-    //     return pipelines;
-    // }
-
-    // template<core::shader::Type type>
-    // auto getPipeline() {
-    //     constexpr auto index = getPipelineIndex<type>();
-    //     return std::get<index>(pipelineTuple);
-    // }
 
     template<core::shader::Type type>
     static consteval std::size_t getPipelineIndex() {
@@ -394,18 +412,6 @@ struct Storage {
         return insertion.first->first;
     }
 
-    template<typename VertexInputState, typename PushConstants, typename... Layouts>
-    PipelineID createPipeline(const core::shader::Type shaderType) {
-        constexpr auto push = core::createPushConstantRange<PushConstants>(shaderStages);
-        const auto     pipelineLayout =
-            core::createPipelineLayout(command.context, push, descriptorPool.layout<Layouts>()...);
-        constexpr auto vertexInputState = core::createVertexInputState<VertexInputState>();
-        const auto     pipeline =
-            core::createGraphicPipeline(command.context, vertexInputState, pipelineLayout, shaderType);
-
-        return pipelines.create(pipelineLayout, pipeline);
-    }
-
     template<typename Entry>
     PipelineID createPipeline() {
         const auto pipelineLayout = Entry::createPipelineLayout(command.context, descriptorPool);
@@ -421,26 +427,31 @@ struct Storage {
         return insertion.first->first;
     }
 
-    PipelineID createLinePipeline() {
-        const auto pipelineLayout =
-            core::createPipelineLayout(command.context, core::createPushConstantRange<asset::Line>(shaderStages),
-                                       descriptorPool.layout<SceneLayout>());
-        const auto pipeline = core::createGraphicPipeline(
-            command.context, core::createVertexInputState(), VK_NULL_HANDLE, pipelineLayout,
-            core::shader::Shader {
-                command.context,
-                core::shader::ShaderInfo<core::shader::Type::line, core::shader::Stage::vertex> { nullptr },
-                core::shader::ShaderInfo<core::shader::Type::line, core::shader::Stage::fragment> { nullptr },
-            },
-            VkPipelineInputAssemblyStateCreateInfo {
-                .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-                .pNext                  = nullptr,
-                .flags                  = {},
-                .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
-                .primitiveRestartEnable = VK_FALSE,
-            });
-        return pipelines.create(pipelineLayout, pipeline);
-    }
+    // PipelineID createLinePipeline() {
+    //     using LinePipelineEntry = PipelineEntry<core::shader::Type::line,  //
+    //                                             shaderStages,              //
+    //                                             void*,                     //
+    //                                             asset::Line,               //
+    //                                             SceneLayout>;              //
+
+    //     const auto pipelineLayout = LinePipelineEntry::createPipelineLayout(command.context, descriptorPool);
+
+    //     const auto pipeline = core::createGraphicPipeline<void*>(
+    //         command.context, pipelineLayout,
+    //         core::shader::Shader {
+    //             command.context,
+    //             core::shader::ShaderInfo<core::shader::Type::line, core::shader::Stage::vertex> { nullptr },
+    //             core::shader::ShaderInfo<core::shader::Type::line, core::shader::Stage::fragment> { nullptr },
+    //         },
+    //         VkPipelineInputAssemblyStateCreateInfo {
+    //             .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+    //             .pNext                  = nullptr,
+    //             .flags                  = {},
+    //             .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
+    //             .primitiveRestartEnable = VK_FALSE,
+    //         });
+    //     return pipelines.create(pipelineLayout, pipeline);
+    // }
 
     template<typename TextureData>
     TextureID createTexture(const TextureData& textureData) {
