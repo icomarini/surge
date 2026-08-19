@@ -1,7 +1,9 @@
 #pragma once
 
 #include "surge/Storage.hpp"
+#include "surge/Pipelines.hpp"
 #include "surge/load/Gltf.hpp"
+
 
 namespace surge {
 
@@ -15,15 +17,13 @@ public:
     Asset loadAsset(const load::Gltf::Handle&                           handle,
                     const std::map<load::Gltf::TextureType, TextureID>& externalTextureIds) {
         const load::Gltf gltf { handle, storage.defaults };
-        const auto       textureIds    = gltf.createTextures(storage);
-        const auto       materialIds   = gltf.createMaterials(storage, textureIds, externalTextureIds);
-        const auto       meshIds       = gltf.createMeshes(storage, materialIds);
-        constexpr auto   pipelineIndex = Storage::getPipelineIndex<shaderType>();
-        using Vertex                   = std::tuple_element_t<pipelineIndex, Storage::Pipelines>::Vertex;
-        const auto modelId             = gltf.createModel<Vertex>(storage, meshIds);
-        const auto skinIds             = gltf.createSkins(storage);
-        const auto nodeTreeId          = gltf.createNodeTree(storage, meshIds, skinIds);
-        const auto animationSetId      = gltf.createAnimationSet(storage);
+        const auto       textureIds     = gltf.createTextures(storage);
+        const auto       materialIds    = gltf.createMaterials(storage, textureIds, externalTextureIds);
+        const auto       meshIds        = gltf.createMeshes(storage, materialIds);
+        const auto       modelId        = gltf.createModel<Pipelines::Vertex<shaderType>>(storage, meshIds);
+        const auto       skinIds        = gltf.createSkins(storage);
+        const auto       nodeTreeId     = gltf.createNodeTree(storage, meshIds, skinIds);
+        const auto       animationSetId = gltf.createAnimationSet(storage);
 
         return Asset {
             .shaderType     = shaderType,

@@ -12,15 +12,12 @@ struct PipelineEntry {
     using PushConstant           = P;
     using Layouts                = std::tuple<Ls...>;
 
-    template<typename DescriptorPool>
-    static VkPipelineLayout createPipelineLayout(const surge::core::Context& context,
-                                                 const DescriptorPool&       descriptorPool) {
-        return core::createPipelineLayout<core::PushConstantRange<stages, PushConstant>>(
-            context, descriptorPool.template layout<Ls>()...);
+    static VkPipelineLayout createPipelineLayout(const surge::core::Context& context, const Descriptors& descriptors) {
+        return core::createPipelineLayout<core::PushConstantRange<stages, PushConstant>>(context,
+                                                                                         descriptors.layout<Ls>()...);
     }
 
     static VkPipeline createPipeline(const surge::core::Context& context, const VkPipelineLayout pipelineLayout) {
-        // return createGraphicPipeline<type, Vertex>(context, pipelineLayout);
         switch (type) {
         case core::shader::Type::line:
             return core::createGraphicPipeline<type, Vertex>(
@@ -98,13 +95,9 @@ struct PipelineEntry {
 template<typename... Entries>
 class PipelineManager : core::Contextualized {
 public:
-    PipelineManager(const core::Context& context)
+    PipelineManager(const core::Context& context, const Descriptors& descriptors)
         : Contextualized { context }
-        , descriptorPool { context, core::DescriptorAllocation<SceneLayout> { 2 },
-                           core::DescriptorAllocation<SimpleMaterialLayout> { 128 },
-                           core::DescriptorAllocation<PhongMaterialLayout> { 128 },
-                           core::DescriptorAllocation<AnimationLayout> { 16 } }
-        , pipelines { createPipelines(context, descriptorPool) } {
+        , pipelines { createPipelines(context, descriptors) } {
     }
 
     ~PipelineManager() {
@@ -116,17 +109,34 @@ public:
         return pipelines.get(type);
     }
 
-    using DescriptorPool =
-        core::DescriptorPool<SceneLayout, SimpleMaterialLayout, PhongMaterialLayout, AnimationLayout>;
-    DescriptorPool                                          descriptorPool;
+    template<typename Operation>
+    void apply(const core::shader::Type type, const Operation& operation) const {
+        pipelines.apply(type, operation);
+    }
+
+    template<core::shader::Type type>
+    static consteval std::size_t getPipelineIndex() {
+        std::size_t index {};
+        core::forEach<0, sizeof...(Entries)>([&]<int pipelineId>() {
+            using Entry = std::tuple_element_t<pipelineId, std::tuple<Entries...>>;
+            if constexpr (Entry::type == type) {
+                index = pipelineId;
+            }
+        });
+        return index;
+    }
+
+    template<core::shader::Type type>
+    using Vertex = std::tuple_element_t<getPipelineIndex<type>(), std::tuple<Entries...>>::Vertex;
+
     core::LazyAccessContainer<core::shader::Type, Pipeline> pipelines;
 
-    static core::LazyAccessContainer<core::shader::Type, Pipeline>
-    createPipelines(const core::Context& context, const DescriptorPool& descriptorPool) {
+    static core::LazyAccessContainer<core::shader::Type, Pipeline> createPipelines(const core::Context& context,
+                                                                                   const Descriptors&   descriptors) {
         core::LazyAccessContainer<core::shader::Type, Pipeline> pipelines;
         core::forEach<0, sizeof...(Entries)>([&]<int pipelineId> {
             using Entry               = std::tuple_element_t<pipelineId, std::tuple<Entries...>>;
-            const auto pipelineLayout = Entry::createPipelineLayout(context, descriptorPool);
+            const auto pipelineLayout = Entry::createPipelineLayout(context, descriptors);
             const auto pipeline       = Entry::createPipeline(context, pipelineLayout);
             pipelines.insert(Entry::type, Pipeline { .pipelineLayout = pipelineLayout, .pipeline = pipeline });
         });
@@ -136,6 +146,13 @@ public:
 
 static constexpr VkShaderStageFlags shaderStages { VK_SHADER_STAGE_GEOMETRY_BIT | VK_SHADER_STAGE_VERTEX_BIT |
                                                    VK_SHADER_STAGE_FRAGMENT_BIT };
+
+
+using ModelMatrix = core::math::Matrix<4, 4>;
+struct ModelMatrixAndColor {
+    core::math::Matrix<4, 4> matrix;
+    core::math::Vector<4>    baseColor;
+};
 
 using Pipelines = PipelineManager<                                      //
     PipelineEntry<core::shader::Type::line,                             //

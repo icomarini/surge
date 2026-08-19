@@ -21,10 +21,14 @@ public:
         , context { windowName, appName, resolution, Callbacks { input } }
         , command { context }
         , presenter { command }
-        , storage { command }
+        , descriptors { command.context, core::DescriptorAllocation<SceneLayout> { 2 },
+                        core::DescriptorAllocation<SimpleMaterialLayout> { 128 },
+                        core::DescriptorAllocation<PhongMaterialLayout> { 128 },
+                        core::DescriptorAllocation<AnimationLayout> { 16 } }
+        , storage { command, descriptors }
         , loader { storage }
-        , renderer { storage }
-        , overlay { command, assets } {
+        , renderer { storage, descriptors }
+        , overlay { command, {} } {
         log::checkpoint("The surge of urge to purge started");
     }
 
@@ -106,12 +110,9 @@ public:
     core::Context   context;
     core::Command   command;
     core::Presenter presenter;
+    Descriptors     descriptors;
     Storage         storage;
     Loader          loader;
-
-private:
-    std::map<std::string, asset::Asset>   assets;
-    std::map<std::string, asset::Texture> textures;
 
 public:
     Renderer renderer;

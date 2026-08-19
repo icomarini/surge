@@ -162,3 +162,14 @@ private:
 };
 
 }  // namespace surge::core
+
+namespace surge {
+using SceneLayout          = core::DescriptorLayout<0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER>;
+using SimpleMaterialLayout = core::DescriptorLayout<1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER>;
+using PhongMaterialLayout  = core::DescriptorLayout<1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,  //
+                                                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,     //
+                                                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER>;
+using AnimationLayout      = core::DescriptorLayout<2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER>;
+
+using Descriptors = core::DescriptorPool<SceneLayout, SimpleMaterialLayout, PhongMaterialLayout, AnimationLayout>;
+}  // namespace surge

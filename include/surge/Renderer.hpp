@@ -13,10 +13,12 @@ namespace surge {
 
 class Renderer : public core::Contextualized {
 public:
-    Renderer(const Storage& storage)
+    static constexpr auto graphicsBindPoint { VK_PIPELINE_BIND_POINT_GRAPHICS };
+
+    Renderer(const Storage& storage, const Descriptors& descriptors)
         : Contextualized { storage.command.context }
         , storage { storage }
-        , pipelines { context } {
+        , pipelines { context, descriptors } {
     }
 
     void draw(const VkCommandBuffer commandBuffer, const Scene& scene) {
@@ -27,18 +29,19 @@ public:
 
     void draw(const VkCommandBuffer commandBuffer, const Entity& entity, const MaterialID sceneMaterialId) {
         // bind pipeline
-        const auto pipelineLayout = storage.pipelines.get(entity.pipelineId).layout();
-        // const auto& pipeline = storage.getPipeline()
+        const auto pipelineLayout = pipelines.at(entity.shader).layout();
 
         // bind pipeline and main camera
-        storage.pipelines.apply(entity.pipelineId, [&](const Pipeline& pipeline) {
+        pipelines.apply(entity.shader, [&](const Pipeline& pipeline) {
             core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
+            // vkCmdSetPolygonModeEXT(commandBuffer, VK_POLYGON_MODE_FILL);
             vkCmdSetLineWidth(commandBuffer, 2.0);
-            vkCmdBindPipeline(commandBuffer, Storage::graphicsBindPoint, pipeline.get());
+
+            vkCmdBindPipeline(commandBuffer, graphicsBindPoint, pipeline.get());
             if (sceneMaterialId) {
                 const auto         sceneDescriptorSet = storage.materials.get(sceneMaterialId);
                 constexpr uint32_t sceneIndex { 0 };
-                vkCmdBindDescriptorSets(commandBuffer, Storage::graphicsBindPoint, pipelineLayout, sceneIndex, 1,
+                vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, sceneIndex, 1,
                                         &sceneDescriptorSet, 0, nullptr);
             }
         });
@@ -55,8 +58,8 @@ public:
             const auto& animationChannel = storage.animationChannels.at(entity.animationChannelId);
             storage.materials.apply(animationChannel.jointMatricesMaterialId, [&](const VkDescriptorSet& material) {
                 constexpr uint32_t jointMatricesIndex { 2 };
-                vkCmdBindDescriptorSets(commandBuffer, Storage::graphicsBindPoint, pipelineLayout, jointMatricesIndex,
-                                        1, &material, 0, nullptr);
+                vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, jointMatricesIndex, 1,
+                                        &material, 0, nullptr);
             });
         }
 
@@ -69,13 +72,13 @@ public:
                     if (primitive.materialId) {
                         storage.materials.apply(primitive.materialId, [&](const VkDescriptorSet& material) {
                             constexpr uint32_t materialIndex { 1 };
-                            vkCmdBindDescriptorSets(commandBuffer, Storage::graphicsBindPoint, pipelineLayout,
-                                                    materialIndex, 1, &material, 0, nullptr);
+                            vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, materialIndex, 1,
+                                                    &material, 0, nullptr);
                         });
                     }
 
                     // push constants
-                    vkCmdPushConstants(commandBuffer, pipelineLayout, Storage::shaderStages, 0, sizeof(ModelMatrix),
+                    vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(ModelMatrix),
                                        &node.transformation);
 
                     // draw
@@ -87,17 +90,16 @@ public:
 
     void draw(const VkCommandBuffer commandBuffer, const Scene& scene, const asset::Line& line) const {
         // bind main camera
-        const auto linePipelineId = storage.pipelineIds.at(core::shader::Type::line);
-        const auto pipelineLayout = storage.pipelines.get(linePipelineId).layout();
+        const auto pipelineLayout = pipelines.at(core::shader::Type::line).layout();
 
-        storage.pipelines.apply(linePipelineId, [&](const Pipeline& pipeline) {
+        pipelines.apply(core::shader::Type::line, [&](const Pipeline& pipeline) {
             core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
-            vkCmdBindPipeline(commandBuffer, Storage::graphicsBindPoint, pipeline.get());
+            vkCmdBindPipeline(commandBuffer, graphicsBindPoint, pipeline.get());
             constexpr uint32_t sceneIndex { 0 };
-            vkCmdBindDescriptorSets(commandBuffer, Storage::graphicsBindPoint, pipelineLayout, sceneIndex, 1,
+            vkCmdBindDescriptorSets(commandBuffer, graphicsBindPoint, pipelineLayout, sceneIndex, 1,
                                     &storage.materials.get(scene.materialId), 0, nullptr);
         });
-        vkCmdPushConstants(commandBuffer, pipelineLayout, Storage::shaderStages, 0, sizeof(asset::Line), &line);
+        vkCmdPushConstants(commandBuffer, pipelineLayout, shaderStages, 0, sizeof(asset::Line), &line);
         vkCmdDraw(commandBuffer, 2, 1, 0, 0);
     }
 
