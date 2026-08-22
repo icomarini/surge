@@ -32,23 +32,47 @@ public:
         log::checkpoint("The surge of urge to purge started");
     }
 
+    Entity createEntity(const Asset& asset, const core::math::Matrix<4, 4>& transformation,
+                        const AnimationChannelID animationChannelId) {
+        Entity entity {
+            .modelId            = asset.modelId,
+            .nodeTreeId         = storage.createNodeTree(asset.nodeTree),
+            .shader             = asset.shaderType,
+            .animationChannelId = animationChannelId,
+        };
+        update(entity, transformation);
+        return entity;
+    }
+
+    Entity createEntity(const Asset& asset, const core::math::Matrix<4, 4>& transformation) {
+        return createEntity(asset, transformation, {});
+    }
+
+    Entity createEntity(const Asset& asset, const AnimationChannelID animationChannelId) {
+        return createEntity(asset, {}, animationChannelId);
+    }
+
+    Entity createEntity(const Asset& asset) {
+        return createEntity(asset, {}, {});
+    }
+
     template<typename Data>
     void updateBuffer(const BufferID bufferId, const Data& data) {
         memcpy(storage.buffers.at(bufferId).mapped, &data, sizeof(Data));
     }
 
     void update(const Entity& entity, const core::math::Matrix<4, 4>& transformation) {
-        if (entity.animationChannelId) {
-            auto&       entityNodeTree    = storage.nodeTrees.at(entity.nodeTreeId);
-            const auto& animationNodeTree = storage.animationChannels.at(entity.animationChannelId).nodeTree;
-            std::size_t nodeIdx           = 0;
-            for (const auto& node : animationNodeTree.nodes) {
-                entityNodeTree.nodes[nodeIdx].value.translation = node.value.translation;
-                entityNodeTree.nodes[nodeIdx].value.scale       = node.value.scale;
-                entityNodeTree.nodes[nodeIdx].value.rotation    = node.value.rotation;
-                ++nodeIdx;
-            }
-        }
+        // if (entity.animationChannelId) {
+        //     auto&       entityNodeTree    = storage.nodeTrees.at(entity.nodeTreeId);
+        //     const auto& animationNodeTree = storage.animationChannels.at(entity.animationChannelId).nodeTree;
+        //     std::size_t nodeIdx           = 0;
+        //     for (const auto& node : animationNodeTree.nodes) {
+        //         entityNodeTree.nodes[nodeIdx].value.translation = node.value.translation;
+        //         entityNodeTree.nodes[nodeIdx].value.scale       = node.value.scale;
+        //         entityNodeTree.nodes[nodeIdx].value.rotation    = node.value.rotation;
+        //         ++nodeIdx;
+        //     }
+        // }
         update(storage.nodeTrees.at(entity.nodeTreeId), transformation);
     }
 
@@ -78,20 +102,20 @@ public:
             channel.update(node, sampler, animationChannel.progress);
         }
 
-        update(animationChannel.nodeTree, core::math::fullMatrix(core::math::identity<4>));
+        // update(animationChannel.nodeTree, core::math::fullMatrix(core::math::identity<4>));
 
         auto& jointMatrices = animationChannel.jointMatrices;
         jointMatrices.clear();
         animationChannel.nodeTree.traverse<core::utils::Traversal::linear>([&](const asset::Node2& node) {
             if (node.skinId) {
                 // assert(animation);
-                const auto& skin = storage.skins.at(node.skinId);
-                // auto        jointMatrices = animationChannel.jointMatrices;
-                // jointMatrices.clear();
-                // jointMatrices.reserve(skin.joints.size());
-                // const auto inverse = core::math::inverse(transformation);
+                const auto& skin          = storage.skins.at(node.skinId);
+                auto        jointMatrices = animationChannel.jointMatrices;
+                jointMatrices.clear();
+                jointMatrices.reserve(skin.joints.size());
+                const auto inverse = core::math::inverse(node.transformation);
                 for (const auto& [jointNodeIndex, inverseBindMatrix] : skin.joints) {
-                    jointMatrices.emplace_back(animationChannel.nodeTree.get(jointNodeIndex).transformation *
+                    jointMatrices.emplace_back(inverse * animationChannel.nodeTree.get(jointNodeIndex).transformation *
                                                inverseBindMatrix);
                 }
             }

@@ -104,20 +104,6 @@ struct Storage {
         , defaultMaterialId { createSimpleMaterial(defaultTextureId) } {
     }
 
-    Entity createEntity(const Asset& asset, const AnimationChannelID animationChannelId) {
-        return Entity {
-            .modelId            = asset.modelId,
-            .nodeTreeId         = createNodeTree(asset.nodeTree),
-            .shader             = asset.shaderType,
-            .animationChannelId = animationChannelId,
-        };
-    }
-
-    Entity createEntity(const Asset& asset) {
-        return createEntity(asset, {});
-    }
-
-
     template<typename BufferInfo>
     BufferID createBuffer(const std::size_t size, const BufferInfo& bufferInfo) {
         const auto insertion = buffers.emplace(std::piecewise_construct,  //
@@ -273,14 +259,6 @@ struct Storage {
         return insertion.first->first;
     }
 
-    AnimationChannelID createAnimationChannel(AnimationChannel&& animationChannel) {
-        const auto insertion = animationChannels.emplace(animationChannels.size(), std::move(animationChannel));
-        if (!insertion.second) {
-            throw std::runtime_error("Animation channel already present");
-        }
-        return insertion.first->first;
-    }
-
     AnimationChannelID createAnimationChannel(const core::utils::Tree<asset::Node2>& nodes,
                                               const AnimationSetID animationSetId, const AnimationID animationId) {
         std::size_t bufferSize {};
@@ -291,15 +269,21 @@ struct Storage {
         });
         const auto bufferId   = createBuffer(bufferSize, core::Buffer::ssbo);
         const auto materialId = materials.create(descriptors.allocate<AnimationLayout>(buffers.at(bufferId)));
-        return createAnimationChannel(AnimationChannel {
-            .animationSetId          = animationSetId,
-            .animationId             = animationId,
-            .progress                = 0,
-            .nodeTree                = nodes,
-            .jointMatrices           = {},
-            .jointMatricesBufferId   = bufferId,
-            .jointMatricesMaterialId = materialId,
-        });
+        std::vector<core::math::Matrix<4, 4>> jointMatrices;
+        const auto                            insertion =
+            animationChannels.emplace(animationChannels.size(), AnimationChannel {
+                                                                    .animationSetId          = animationSetId,
+                                                                    .animationId             = animationId,
+                                                                    .progress                = 0,
+                                                                    .nodeTree                = nodes,
+                                                                    .jointMatrices           = {},
+                                                                    .jointMatricesBufferId   = bufferId,
+                                                                    .jointMatricesMaterialId = materialId,
+                                                                });
+        if (!insertion.second) {
+            throw std::runtime_error("Animation channel already present");
+        }
+        return insertion.first->first;
     }
 
     AnimationChannelID createAnimationChannel(const Asset& asset, const AnimationID animationId) {

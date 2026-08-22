@@ -49,12 +49,12 @@ int main() {
             engine.storage.createModel(surge::geom::cube),
             engine.storage.createSimpleMaterial(
                 engine.storage.createTexture(surgeTextureFolder / "skybox.ktx", surge::Texture::cube)));
-        const auto skybox = engine.storage.createEntity(skyboxAsset);
+        const auto skybox = engine.createEntity(skyboxAsset);
 
 
         const auto coordinatesAsset = engine.loader.loadAsset<surge::ShaderType::coordinates>(
             engine.storage.createModel(surge::geom::coordinates));
-        const auto coordinates = engine.storage.createEntity(coordinatesAsset);
+        const auto coordinates = engine.createEntity(coordinatesAsset);
 
         surge::Vector<3> lightPosition { -2, 2, 1 };
         constexpr auto   lightColor = surge::RGBA::white;
@@ -77,7 +77,7 @@ int main() {
         const auto lightCubeAsset     = engine.loader.loadAsset<surge::ShaderType::primitiveTextured>(
             planeTexturedModel, engine.storage.defaultMaterialId);
         const auto lightCube = surge::createArray<surge::Entity, cubeFaces.size()>(
-            [&]<int faceId>(auto& face) { face = engine.storage.createEntity(lightCubeAsset); });
+            [&]<int faceId>(auto& face) { face = engine.createEntity(lightCubeAsset); });
 
         const std::array cubeDiffuseTextures {
             engine.storage.createTexture(surge::createTextureDataX(surge::RGBA::darkRed, surge::RGBA::black)),    //
@@ -132,7 +132,7 @@ int main() {
                                                                                  cubeSimpleMaterials.at(faceId));
         });
         const auto texturedCube = surge::createArray<surge::Entity, cubeFaces.size()>([&]<int faceId>(auto& face) {
-            face = engine.storage.createEntity(texturedCubeAssets.at(faceId));
+            face = engine.createEntity(texturedCubeAssets.at(faceId));
             engine.update(face, surge::translate<x>(2.0) * cubeFaces.at(faceId));
         });
 
@@ -144,14 +144,14 @@ int main() {
                     planeTexturedNormalsModel, cubeSimpleMaterials.at(faceId));
             });
         const auto texturedNormalCube = surge::createArray<surge::Entity, cubeFaces.size()>(
-            [&]<int faceId>(auto& face) { face = engine.storage.createEntity(texturedNormalCubeAssets.at(faceId)); });
+            [&]<int faceId>(auto& face) { face = engine.createEntity(texturedNormalCubeAssets.at(faceId)); });
 
         const auto phongCubeAssets = surge::createArray<surge::Asset, cubeFaces.size()>([&]<int faceId>(auto& face) {
             face = engine.loader.loadAsset<surge::ShaderType::phongModel>(planeTexturedNormalsModel,
                                                                           cubePhongMaterials.at(faceId));
         });
         const auto phongCube       = surge::createArray<surge::Entity, cubeFaces.size()>(
-            [&]<int faceId>(auto& face) { face = engine.storage.createEntity(phongCubeAssets.at(faceId)); });
+            [&]<int faceId>(auto& face) { face = engine.createEntity(phongCubeAssets.at(faceId)); });
 
         const auto planeTexturedNormalTangentModel = engine.storage.createModel(surge::geom::planeNormalTangentTexture);
 
@@ -161,7 +161,7 @@ int main() {
                                                                                     cubePhongMaterials.at(faceId));
             });
         const auto phongNormalCube = surge::createArray<surge::Entity, cubeFaces.size()>(
-            [&]<int faceId>(auto& face) { face = engine.storage.createEntity(phongNormalCubeAssets.at(faceId)); });
+            [&]<int faceId>(auto& face) { face = engine.createEntity(phongNormalCubeAssets.at(faceId)); });
 
         const auto brickwallMaterial = engine.storage.createPhongMaterial(
             engine.storage.createTexture(surgeTextureFolder / "brickwall_diffuse.jpg", surge::Texture::texture2d),
@@ -172,7 +172,7 @@ int main() {
 
         std::vector<surge::Entity> brickwalls;
         for (const auto& translation : generateTranslations<10>()) {
-            const auto brickwall = engine.storage.createEntity(brickwallAsset);
+            const auto brickwall = engine.createEntity(brickwallAsset);
             engine.update(brickwall, surge::Translation { translation } * surge::scale(4.0) * surge::rotate<x>(90));
             brickwalls.emplace_back(brickwall);
         }
@@ -184,16 +184,16 @@ int main() {
         const auto crateAsset = engine.loader.loadAsset<surge::ShaderType::phongModelNormal>(
             planeTexturedNormalTangentModel, crateMaterial);
         const auto crate = surge::createArray<surge::Entity, cubeFaces.size()>(
-            [&]<int faceId>(auto& face) { face = engine.storage.createEntity(crateAsset); });
+            [&]<int faceId>(auto& face) { face = engine.createEntity(crateAsset); });
 
         const auto floorAsset = engine.loader.loadAsset<surge::ShaderType::phongModelNormal>(
             planeTexturedNormalTangentModel, brickwallMaterial);
-        const auto floor = engine.storage.createEntity(floorAsset);
+        const auto floor = engine.createEntity(floorAsset);
 
         // ===========================================================================================
         const auto dragonAsset = engine.loader.loadAsset<surge::ShaderType::primitiveNormal>(
             surge::GltfHandle { vulkanAssetFolder / "models/chinesedragon.gltf" });
-        const auto dragon = engine.storage.createEntity(dragonAsset);
+        const auto dragon = engine.createEntity(dragonAsset);
 
         const std::filesystem::path cerberusFolder { vulkanAssetFolder / "models/cerberus" };
         using TextureType = surge::load::Gltf::TextureType;
@@ -207,16 +207,18 @@ int main() {
         };
         const auto cerberusAsset = engine.loader.loadAsset<surge::ShaderType::phongModelNormal>(
             surge::GltfHandle { cerberusFolder / "cerberus.gltf" }, cerberusTextures);
-        const auto cerberus = engine.storage.createEntity(cerberusAsset);
+        const auto cerberus = engine.createEntity(cerberusAsset);
 
         const auto cesiumManAsset = engine.loader.loadAsset<surge::ShaderType::primitiveTexturedNormalAnimated>(
             surge::GltfHandle { vulkanAssetFolder / "models/CesiumMan/glTF-Embedded/CesiumMan.gltf" });
         const auto cesiumManAnimationChannel = engine.storage.createAnimationChannel(cesiumManAsset, 0);
-        const auto cesiumMan                 = engine.storage.createEntity(cesiumManAsset, cesiumManAnimationChannel);
+        const auto cesiumMan                 = engine.createEntity(cesiumManAsset, cesiumManAnimationChannel);
 
         const auto buggyAsset = engine.loader.loadAsset<surge::ShaderType::primitiveNormal>(
             surge::GltfHandle { vulkanAssetFolder / "models/gltf/glTF-Embedded/Buggy.gltf" });
-        const auto buggy = engine.storage.createEntity(buggyAsset);
+        const auto buggy = engine.createEntity(buggyAsset, surge::translate<x>(-6.0) * surge::scale(0.01));
+        // engine.update(buggy, surge::translate<x>(-6.0) * surge::scale(0.01));
+        // engine.update(buggy, surge::translate<x>(-6.0) * surge::scale(0.01));
 
         const std::filesystem::path                   armorFolder { vulkanAssetFolder / "models/armor" };
         const std::map<TextureType, surge::TextureID> armorTextures1 {
@@ -228,7 +230,7 @@ int main() {
         };
         const auto armorAsset1 = engine.loader.loadAsset<surge::ShaderType::phongModelNormal>(
             surge::GltfHandle { armorFolder / "armor.gltf" }, armorTextures1);
-        const auto armor1 = engine.storage.createEntity(armorAsset1);
+        const auto armor1 = engine.createEntity(armorAsset1);
 
 
         const std::map<TextureType, surge::TextureID> armorTextures2 {
@@ -237,11 +239,11 @@ int main() {
         };
         const auto armorAsset2 = engine.loader.loadAsset<surge::ShaderType::primitiveTexturedNormal>(
             surge::GltfHandle { armorFolder / "armor.gltf" }, armorTextures2);
-        const auto armor2 = engine.storage.createEntity(armorAsset2);
+        const auto armor2 = engine.createEntity(armorAsset2);
 
         const auto oaktreeAsset = engine.loader.loadAsset<surge::ShaderType::primitiveTexturedNormal>(
             surge::GltfHandle { vulkanAssetFolder / "models/oaktree.gltf" });
-        const auto oaktree = engine.storage.createEntity(oaktreeAsset);
+        const auto oaktree = engine.createEntity(oaktreeAsset);
 
 
         double elapsedTime = {};
@@ -262,7 +264,7 @@ int main() {
                                                                   surge::fullMatrix(playerCamera.mats.view), lightColor,
                                                                   lightPosition });
 
-                // engine.update(cesiumMan.animationChannelId, elapsedTime);
+                engine.update(cesiumMan.animationChannelId, elapsedTime);
 
                 // channels
                 const surge::Rotation rotationY { surge::toQuaternion(0.0f, 1.0f * engine.input.timer, 0.0f) };
@@ -288,7 +290,7 @@ int main() {
                 engine.update(dragon, surge::translate<x>(6.0) * surge::scale(0.5) * rotationY);
                 engine.update(cerberus, surge::translate<x>(8.0) * surge::scale(0.5) * rotationY);
                 engine.update(cesiumMan, surge::translate<x>(-4.0) * rotationY);
-                engine.update(buggy, surge::translate<x>(-6.0) * surge::scale(0.01) * rotationY);
+                // engine.update(buggy, surge::translate<x>(-6.0) * surge::scale(0.01) * rotationY);
                 engine.update(armor1, surge::translate<x>(-8.0) * surge::scale(0.3) * rotationY);
                 engine.update(armor2,
                               surge::translate<x>(-8.0) * surge::translate<z>(2.0) * surge::scale(0.3) * rotationY);

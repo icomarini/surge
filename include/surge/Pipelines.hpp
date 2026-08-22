@@ -38,21 +38,6 @@ struct PipelineEntry {
                     .flags                  = {},
                     .topology               = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
                     .primitiveRestartEnable = VK_FALSE,
-                },
-                VkPipelineRasterizationStateCreateInfo {
-                    .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-                    .pNext                   = nullptr,
-                    .flags                   = {},
-                    .depthClampEnable        = VK_FALSE,
-                    .rasterizerDiscardEnable = VK_FALSE,
-                    .polygonMode             = VK_POLYGON_MODE_LINE,
-                    .cullMode                = VK_CULL_MODE_FRONT_BIT,
-                    .frontFace               = VK_FRONT_FACE_CLOCKWISE,
-                    .depthBiasEnable         = VK_FALSE,
-                    .depthBiasConstantFactor = 0.0f,
-                    .depthBiasClamp          = 0.0f,
-                    .depthBiasSlopeFactor    = 0.0f,
-                    .lineWidth               = 1.0f,
                 });
         case core::shader::Type::skybox:
             return core::createGraphicPipeline<type, Vertex>(
