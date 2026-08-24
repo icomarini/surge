@@ -29,20 +29,12 @@ layout(location = 2) out vec2 outTexCoord;
 
 
 void main(void) {
-    // mat4 inverseModel = inverse(model);
     mat4 skin = inJointWeights.x * jointMatrices[int(inJointIndices.x)] +
                 inJointWeights.y * jointMatrices[int(inJointIndices.y)] +
                 inJointWeights.z * jointMatrices[int(inJointIndices.z)] +
                 inJointWeights.w * jointMatrices[int(inJointIndices.w)];
-    gl_Position = vec4(inPosition, 1.0) * model * view * projection;
+    gl_Position = vec4(inPosition, 1.0) * skin * model * view * projection;
     outPosition = vec3(vec4(inPosition, 1.0) * model);
     outNormal   = mat3(inverse(model)) * inNormal;
     outTexCoord = inTexCoord;
-
-    // outNormal   = (vec4(mat3(transpose(inverse(model))) * inNormal, 1.0) * view * projection).xyz;
-    // outTexCoord = inTexCoord;
-    // vec4 pos    = vec4(inPosition, 1.0) * view;
-    // outLightVec = (vec4(lightPosition, 1.0) * view).xyz;
-    // outLightVec = lightPosition.xyz * mat3(view) - pos.xyz;
-    // outViewVec = -pos.xyz;
 }

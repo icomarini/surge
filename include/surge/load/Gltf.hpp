@@ -645,6 +645,9 @@ public:
                         joints.emplace_back(
                             joint, core::math::transpose(fastgltf::getAccessorElement<core::math::Matrix<4, 4>>(
                                        asset, accessor, jointId++)));
+                        // joints.emplace_back(
+                        //     joint, fastgltf::getAccessorElement<core::math::Matrix<4, 4>>(asset, accessor,
+                        //     jointId++));
                     }
                     return joints;
                 }),
@@ -1090,6 +1093,14 @@ public:
                     const auto attributeName = attributeNames.at(Attribute::attribute);
                     if (const auto values = primitive.findAttribute(attributeName);
                         values != primitive.attributes.end()) {
+                        if (Attribute::attribute == core::geometry::Attribute::jointIndex) {
+                            log::info("In file '" + std::string(path) + "': found attribute " +
+                                      std::string(attributeName));
+                        }
+                        if (Attribute::attribute == core::geometry::Attribute::jointWeight) {
+                            log::info("In file '" + std::string(path) + "': found attribute " +
+                                      std::string(attributeName));
+                        }
                         fastgltf::iterateAccessorWithIndex<typename Attribute::Value>(
                             asset, asset.accessors.at(values->accessorIndex),
                             [&](const typename Attribute::Value& value, const auto index) {

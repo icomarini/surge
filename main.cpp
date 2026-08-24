@@ -2,12 +2,12 @@
 
 template<int radius>
 constexpr auto generateTranslations() {
-    constexpr auto                     length = 2 * radius + 1;
-    constexpr auto                     size   = length * length;
-    std::array<surge::Vector<3>, size> translations;
+    constexpr auto                                     length = 2 * radius + 1;
+    constexpr auto                                     size   = length * length;
+    std::array<surge::core::math::Translation<>, size> translations;
     surge::forEach<0, length, 0, length>([&]<int i, int j>() {
         constexpr auto index = i * length + j;
-        translations[index]  = surge::Vector<3> { 4 * (i - radius), -3, 4 * (j - radius) };
+        translations[index]  = surge::core::math::Translation<> { 4 * (i - radius), -3, 4 * (j - radius) };
     });
     return translations;
 }
@@ -132,8 +132,7 @@ int main() {
                                                                                  cubeSimpleMaterials.at(faceId));
         });
         const auto texturedCube = surge::createArray<surge::Entity, cubeFaces.size()>([&]<int faceId>(auto& face) {
-            face = engine.createEntity(texturedCubeAssets.at(faceId));
-            engine.update(face, surge::translate<x>(2.0) * cubeFaces.at(faceId));
+            face = engine.createEntity(texturedCubeAssets.at(faceId), surge::translate<x>(2.0) * cubeFaces.at(faceId));
         });
 
         const auto planeTexturedNormalsModel = engine.storage.createModel(surge::geom::planeTexturedNormals);
@@ -172,9 +171,8 @@ int main() {
 
         std::vector<surge::Entity> brickwalls;
         for (const auto& translation : generateTranslations<10>()) {
-            const auto brickwall = engine.createEntity(brickwallAsset);
-            engine.update(brickwall, surge::Translation { translation } * surge::scale(4.0) * surge::rotate<x>(90));
-            brickwalls.emplace_back(brickwall);
+            brickwalls.emplace_back(
+                engine.createEntity(brickwallAsset, translation * surge::scale(4.0) * surge::rotate<x>(90)));
         }
 
         const auto crateMaterial = engine.storage.createPhongMaterial(
@@ -216,9 +214,7 @@ int main() {
 
         const auto buggyAsset = engine.loader.loadAsset<surge::ShaderType::primitiveNormal>(
             surge::GltfHandle { vulkanAssetFolder / "models/gltf/glTF-Embedded/Buggy.gltf" });
-        const auto buggy = engine.createEntity(buggyAsset, surge::translate<x>(-6.0) * surge::scale(0.01));
-        // engine.update(buggy, surge::translate<x>(-6.0) * surge::scale(0.01));
-        // engine.update(buggy, surge::translate<x>(-6.0) * surge::scale(0.01));
+        const auto buggy = engine.createEntity(buggyAsset);
 
         const std::filesystem::path                   armorFolder { vulkanAssetFolder / "models/armor" };
         const std::map<TextureType, surge::TextureID> armorTextures1 {
@@ -249,7 +245,7 @@ int main() {
         double elapsedTime = {};
         auto   start       = std::chrono::high_resolution_clock::now();
         while (engine.input.proceed) {
-            if (elapsedTime > 1.0 / 144.0) {
+            if (elapsedTime > 1.0 / 60.0) {
                 engine.input.reset();
                 engine.context.pollEvents();
 
@@ -264,7 +260,8 @@ int main() {
                                                                   surge::fullMatrix(playerCamera.mats.view), lightColor,
                                                                   lightPosition });
 
-                engine.update(cesiumMan.animationChannelId, elapsedTime);
+                engine.update(cesiumManAnimationChannel, elapsedTime);
+                // engine.update(cesiumManAnimationChannel, 0);
 
                 // channels
                 const surge::Rotation rotationY { surge::toQuaternion(0.0f, 1.0f * engine.input.timer, 0.0f) };
@@ -290,7 +287,7 @@ int main() {
                 engine.update(dragon, surge::translate<x>(6.0) * surge::scale(0.5) * rotationY);
                 engine.update(cerberus, surge::translate<x>(8.0) * surge::scale(0.5) * rotationY);
                 engine.update(cesiumMan, surge::translate<x>(-4.0) * rotationY);
-                // engine.update(buggy, surge::translate<x>(-6.0) * surge::scale(0.01) * rotationY);
+                engine.update(buggy, surge::translate<x>(-6.0) * surge::scale(0.01) * rotationY);
                 engine.update(armor1, surge::translate<x>(-8.0) * surge::scale(0.3) * rotationY);
                 engine.update(armor2,
                               surge::translate<x>(-8.0) * surge::translate<z>(2.0) * surge::scale(0.3) * rotationY);
@@ -355,6 +352,11 @@ int main() {
                 // === rendering ===
 
                 start = std::chrono::high_resolution_clock::now();
+                // std::cout << "\rciao " << elapsedTime << " | ";
+                // for (const auto x : engine.storage.animationChannels.at(0).jointMatrices.back()) {
+                //     std::cout << x << " | ";
+                // }
+                // std::cout << std::flush;
             }
 
             const auto stop     = std::chrono::high_resolution_clock::now();

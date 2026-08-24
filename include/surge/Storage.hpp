@@ -269,8 +269,7 @@ struct Storage {
         });
         const auto bufferId   = createBuffer(bufferSize, core::Buffer::ssbo);
         const auto materialId = materials.create(descriptors.allocate<AnimationLayout>(buffers.at(bufferId)));
-        std::vector<core::math::Matrix<4, 4>> jointMatrices;
-        const auto                            insertion =
+        const auto insertion =
             animationChannels.emplace(animationChannels.size(), AnimationChannel {
                                                                     .animationSetId          = animationSetId,
                                                                     .animationId             = animationId,
