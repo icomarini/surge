@@ -32,8 +32,7 @@ public:
         log::checkpoint("The surge of urge to purge started");
     }
 
-    template<core::math::StaticMatrix Transformation>
-    Entity createEntity(const Asset& asset, const Transformation& transformation,
+    Entity createEntity(const Asset& asset, const core::math::StaticMatrix auto& transformation,
                         const AnimationChannelID animationChannelId) {
         Entity entity {
             .modelId            = asset.modelId,
@@ -93,9 +92,6 @@ public:
         }
 
         update(animationChannel.nodeTree, core::math::identity<4>);
-
-        // auto& jointMatrices = animationChannel.jointMatrices;
-        // jointMatrices.clear();
 
         animationChannel.nodeTree.traverse<core::utils::Traversal::linear>([&](const asset::Node2& node) {
             if (node.skinId) {

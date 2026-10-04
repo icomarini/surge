@@ -1,5 +1,7 @@
 #include "surge/surge.hpp"
 
+#include <bitset>
+
 template<int radius>
 constexpr auto generateTranslations() {
     constexpr auto                                     length = 2 * radius + 1;
@@ -12,8 +14,399 @@ constexpr auto generateTranslations() {
     return translations;
 }
 
+
+namespace surge::tiamat  // TIAMAT: Template Interfaces for Affine MATrices
+{
+enum class Entry : uint8_t {
+    zero = 0,
+    pone,
+    mone,
+    any,
+};
+
+std::string toString(const Entry e) {
+    switch (e) {
+    case Entry::zero:
+        return "zero";
+    case Entry::pone:
+        return "+one";
+    case Entry::mone:
+        return "-one";
+    case Entry::any:
+        return "any!";
+    default:
+        throw("bad");
+    }
+}
+
+using Layout = uint32_t;
+
+static constexpr Entry entry(const Layout layout, const int position)
+// requires(0 <= position && position < 16)
+{
+    const auto position1 = (layout >> (2 * position)) & 1;
+    const auto position2 = (layout >> (2 * position + 1)) & 1;
+    return position1 ? (position2 ? Entry::any : Entry::mone) : (position2 ? Entry::pone : Entry::zero);
+}
+
+template<uint8_t row, uint8_t col>
+    requires(row < 4 && col < 4)
+constexpr Entry getEntry(const Layout layout) {
+    return entry(layout, row * 4 + col);
+}
+
+
+constexpr Layout set(Layout layout, int position, const Entry entry) {
+    auto setBit   = [&](int p) { layout |= (1U << p); };
+    auto clearBit = [&](int p) { layout &= ~(1U << p); };
+
+    const auto left  = 2 * position;
+    const auto right = 2 * position + 1;
+    switch (entry) {
+    case Entry::zero:
+        clearBit(left);
+        clearBit(right);
+        return layout;
+    case Entry::pone:
+        clearBit(left);
+        setBit(right);
+        return layout;
+    case Entry::mone:
+        setBit(left);
+        clearBit(right);
+        return layout;
+    case Entry::any:
+        setBit(left);
+        setBit(right);
+        return layout;
+    default:
+        throw("bad");
+    }
+}
+
+template<uint8_t row, uint8_t col>
+constexpr Layout setEntry(const Layout layout, const Entry entry) {
+    return set(layout, row * 4 + col, entry);
+}
+
+static constexpr std::size_t count(const Layout layout, const Entry entry) {
+    std::size_t count {};
+    core::forEach<0, 4, 0, 4>([&]<int row, int col>() {
+        if (getEntry<row, col>(layout) == entry) {
+            ++count;
+        }
+    });
+    return count;
+}
+
+constexpr Entry operator+(const Entry a, const Entry b) {
+    static constexpr std::array<std::array<Entry, 4>, 4> table {
+        //           Entry::zero  Entry::pone  Entry::mone  Entry::any
+        std::array { Entry::zero, Entry::pone, Entry::mone, Entry::any }, // Entry::zero
+        std::array { Entry::pone, Entry::any,  Entry::zero, Entry::any }, // Entry::pone
+        std::array { Entry::mone, Entry::zero, Entry::any,  Entry::any }, // Entry::mone
+        std::array { Entry::any,  Entry::any,  Entry::any,  Entry::any }, // Entry::any
+    };
+    return table[static_cast<uint8_t>(a)][static_cast<uint8_t>(b)];
+}
+
+constexpr Entry operator*(const Entry a, const Entry b) {
+    static constexpr std::array<std::array<Entry, 4>, 4> table {
+        //           Entry::zero  Entry::pone  Entry::mone  Entry::any
+        std::array { Entry::zero, Entry::zero, Entry::zero, Entry::zero }, // Entry::zero
+        std::array { Entry::zero, Entry::pone, Entry::mone, Entry::any  }, // Entry::pone
+        std::array { Entry::zero, Entry::mone, Entry::pone, Entry::any  }, // Entry::mone
+        std::array { Entry::zero, Entry::any,  Entry::any,  Entry::any  }, // Entry::any
+    };
+    return table[static_cast<uint8_t>(a)][static_cast<uint8_t>(b)];
+}
+
+constexpr Layout multiply(const Layout a, const Layout b) {
+    Layout c {};
+    core::forEach<0, 4, 0, 4, 0, 4>([&]<int row, int col, int mid>() {
+        const auto entryA = getEntry<row, mid>(a);
+        const auto entryB = getEntry<mid, col>(b);
+        const auto entryC = getEntry<row, col>(c);
+        c                 = setEntry<row, col>(c, entryC + entryA * entryB);
+    });
+    return c;
+}
+
+
+template<typename V, Layout l>
+    requires(l != 0)
+class Matrix {
+public:
+    using Value                    = V;
+    static constexpr Layout layout = l;
+    constexpr Matrix()
+        : data {} { };
+
+public:
+    std::array<Value, count(layout, Entry::any)> data;
+};
+
+template<uint8_t row, uint8_t col, Layout layout>
+constexpr uint8_t index() {
+    int idx { -1 };
+    core::forEach<0, row * 4 + col + 1>([&]<int n>() {
+        // const auto n = row * 4 + col;
+        const auto e = entry(layout, n);
+        if (e == Entry::any) {
+            ++idx;
+        }
+    });
+    return idx > -1 ? idx : throw("bad");
+}
+
+template<typename T>
+static constexpr T zero = T { 0 };
+
+template<typename T>
+static constexpr T one = T { 1 };
+
+
+template<uint8_t row, uint8_t col, typename V, Layout l>
+constexpr auto& get(const Matrix<V, l>& m) {
+    constexpr auto e = getEntry<row, col>(l);
+    if constexpr (e == Entry::zero) {
+        return zero<V>;
+    } else if constexpr (e == Entry::pone) {
+        return one<V>;
+    } else if constexpr (e == Entry::mone) {
+        return -one<V>;
+    } else {
+        return m.data[index<row, col, l>()];
+    }
+}
+
+template<uint8_t row, uint8_t col, typename Value, Layout layout>
+    requires(getEntry<row, col>(layout) == Entry::any)
+constexpr auto& get(Matrix<Value, layout>& m) {
+    return m.data[index<row, col, layout>()];
+}
+
+template<typename ValueA, Layout layoutA, typename ValueB, Layout layoutB>
+constexpr auto operator*(const Matrix<ValueA, layoutA>& A, const Matrix<ValueB, layoutB>& B) {
+    constexpr auto                                      layoutC = multiply(layoutA, layoutB);
+    Matrix<std::common_type_t<ValueA, ValueB>, layoutC> C {};
+    core::forEach<0, 4, 0, 4, 0, 4>([&]<uint8_t row, uint8_t col, uint8_t mid>() {
+        if constexpr (getEntry<row, col>(layoutC) == Entry::any) {
+            constexpr auto entryA = getEntry<row, mid>(layoutA);
+            constexpr auto entryB = getEntry<mid, col>(layoutB);
+            auto&          valueC = get<row, col>(C);
+            if constexpr (entryA == Entry::any && entryB != Entry::any) {
+                const auto&    valueA = get<row, mid>(A);
+                constexpr auto valueB = get<mid, col>(B);
+                valueC += valueA * valueB;
+            } else if constexpr (entryA != Entry::any && entryB == Entry::any) {
+                constexpr auto valueA = get<row, mid>(A);
+                const auto&    valueB = get<mid, col>(B);
+                valueC += valueA * valueB;
+            } else if constexpr (entryA == Entry::any && entryB == Entry::any) {
+                const auto& valueA = get<row, mid>(A);
+                const auto& valueB = get<mid, col>(B);
+                valueC += valueA * valueB;
+            }
+        }
+    });
+    return C;
+}
+
+constexpr Layout layout(const std::array<std::array<Entry, 4>, 4>& table) {
+    Layout layout {};
+    core::forEach<0, 4, 0, 4>([&]<int i, int j>() {
+        const auto n = i * 4 + j;
+        layout       = setEntry<i, j>(layout, table[i][j]);
+    });
+    return layout;
+}
+
+using Identity = Matrix<float, layout({
+                                   //           Entry::zero  Entry::pone  Entry::mone  Entry::any
+                                   std::array { Entry::pone, Entry::zero, Entry::zero, Entry::zero }, // Entry::zero
+                                   std::array { Entry::zero, Entry::pone, Entry::zero, Entry::zero }, // Entry::pone
+                                   std::array { Entry::zero, Entry::zero, Entry::pone, Entry::zero }, // Entry::mone
+                                   std::array { Entry::zero, Entry::zero, Entry::zero, Entry::pone }, // Entry::any
+})>;
+constexpr Identity identity;
+
+template<typename Mat>
+bool testMat() {
+    static_assert(multiply(Mat::layout, Mat::layout) == Mat::layout);
+    static_assert(multiply(Identity::layout, Mat::layout) == Mat::layout);
+    static_assert(multiply(Mat::layout, Identity::layout) == Mat::layout);
+
+    constexpr Mat cm1;
+    constexpr Mat cm2;
+    static_assert((cm1 * cm1).layout == Mat::layout);
+
+    static_assert((cm1 * identity).layout == Mat::layout);
+    static_assert((identity * cm1).layout == Mat::layout);
+
+    static_assert((cm1 * cm2).layout == Mat::layout);
+    static_assert((cm2 * cm1).layout == Mat::layout);
+
+    return true;
+}
+
+void test() {
+    using namespace surge::tiamat;
+
+    // Matrix
+    // static_assert(get<0, 0>(identity) == 1);
+    static_assert(get<1, 0>(identity) == 0);
+    static_assert(get<0, 1>(identity) == 0);
+    // static_assert(get<1, 1>(identity) == 1);
+    // static_assert(sizeof(identity) == 1);
+    std::cout << get<0, 0>(identity) << std::endl;
+
+    using Translation =
+        Matrix<float, layout({
+                          //           Entry::zero  Entry::pone  Entry::mone  Entry::any
+                          std::array { Entry::pone, Entry::zero, Entry::zero, Entry::any  }, // Entry::zero
+                          std::array { Entry::zero, Entry::pone, Entry::zero, Entry::any  }, // Entry::pone
+                          std::array { Entry::zero, Entry::zero, Entry::pone, Entry::any  }, // Entry::mone
+                          std::array { Entry::zero, Entry::zero, Entry::zero, Entry::pone }, // Entry::any
+    })>;
+    testMat<Translation>();
+    Translation translation;
+    static_assert(sizeof(Translation) == 3 * sizeof(float));
+    static_assert(multiply(Translation::layout, Translation::layout) == Translation::layout);
+    static_assert(multiply(Identity::layout, Translation::layout) == Translation::layout);
+    static_assert(multiply(Translation::layout, Identity::layout) == Translation::layout);
+    constexpr Translation cTr;
+    static_assert((cTr * cTr).layout == Translation::layout);
+    static_assert((identity * cTr).layout == Translation::layout);
+    static_assert((cTr * identity).layout == Translation::layout);
+    get<0, 3>(translation) = 1.4;
+    constexpr auto t00     = get<0, 0>(translation);
+    static_assert(t00 == 1);
+    static_assert(get<0, 0>(translation) == 1);
+    static_assert(get<0, 1>(translation) == 0);
+    {
+        constexpr Translation t1 = std::invoke([] {
+            Translation t;
+            get<0, 3>(t) = 1;
+            get<1, 3>(t) = 2;
+            get<2, 3>(t) = 3;
+            return t;
+        });
+        static_assert(get<0, 3>(t1 * identity) == 1);
+        static_assert(get<1, 3>(t1) == 2);
+        static_assert(get<2, 3>(t1) == 3);
+
+        constexpr Translation t2 = std::invoke([] {
+            Translation t;
+            get<0, 3>(t) = 2;
+            get<1, 3>(t) = 3;
+            get<2, 3>(t) = 4;
+            return t;
+        });
+        constexpr auto        t3 = t1 * t2;
+        static_assert(get<0, 3>(t3) == 3);
+        static_assert(get<1, 3>(t3) == 5);
+        static_assert(get<2, 3>(t3) == 7);
+    }
+
+    Translation translation2;
+    get<0, 3>(translation) = 2;
+
+    static_assert(get<0, 0>(translation) == 1);
+    static_assert(get<1, 0>(translation) == 0);
+    static_assert(get<0, 1>(translation) == 0);
+    static_assert(get<1, 1>(translation) == 1);
+    // static_assert(get<0, 3>(translation) == 0);
+    // get<0,3>
+    // static_assert(sizeof(identity) == 1);
+
+    using Rotation = Matrix<float, layout({
+                                       //           Entry::zero  Entry::pone  Entry::mone  Entry::any
+                                       std::array { Entry::any,  Entry::any,  Entry::any,  Entry::zero }, // Entry::zero
+                                       std::array { Entry::any,  Entry::any,  Entry::any,  Entry::zero }, // Entry::pone
+                                       std::array { Entry::any,  Entry::any,  Entry::any,  Entry::zero }, // Entry::mone
+                                       std::array { Entry::zero, Entry::zero, Entry::zero, Entry::pone }, // Entry::any
+    })>;
+    testMat<Rotation>();
+    Rotation rotation;
+    static_assert(sizeof(Rotation) == 9 * sizeof(float));
+    static_assert(multiply(Rotation::layout, Rotation::layout) == Rotation::layout);
+    static_assert(multiply(Identity::layout, Rotation::layout) == Rotation::layout);
+    static_assert(multiply(Rotation::layout, Identity::layout) == Rotation::layout);
+    constexpr Rotation cRot;
+    static_assert((cRot * cRot).layout == Rotation::layout);
+    static_assert((identity * cRot).layout == Rotation::layout);
+    static_assert((cRot * identity).layout == Rotation::layout);
+
+    using Scale = Matrix<float, layout({
+                                    //           Entry::zero  Entry::pone  Entry::mone  Entry::any
+                                    std::array { Entry::any,  Entry::zero, Entry::zero, Entry::zero }, // Entry::zero
+                                    std::array { Entry::zero, Entry::any,  Entry::zero, Entry::zero }, // Entry::pone
+                                    std::array { Entry::zero, Entry::zero, Entry::any,  Entry::zero }, // Entry::mone
+                                    std::array { Entry::zero, Entry::zero, Entry::zero, Entry::pone }, // Entry::any
+    })>;
+    Scale scale;
+    testMat<Scale>();
+    {
+        constexpr auto s1 = std::invoke([] {
+            Scale s;
+            get<0, 0>(s) = 1;
+            get<1, 1>(s) = 2;
+            get<2, 2>(s) = 3;
+            return s;
+        });
+        static_assert(get<0, 0>(s1 * identity) == 1);
+        static_assert(get<1, 1>(s1) == 2);
+        static_assert(get<2, 2>(s1) == 3);
+
+        constexpr auto s2 = std::invoke([] {
+            Scale s;
+            get<0, 0>(s) = 2;
+            get<1, 1>(s) = 3;
+            get<2, 2>(s) = 4;
+            return s;
+        });
+        constexpr auto s3 = s1 * s2;
+        static_assert(get<0, 0>(s3) == 2);
+        static_assert(get<1, 1>(s3) == 6);
+        static_assert(get<2, 2>(s3) == 12);
+    }
+    static_assert(sizeof(Scale) == 3 * sizeof(float));
+    static_assert(multiply(Scale::layout, Scale::layout) == Scale::layout);
+    static_assert(multiply(Identity::layout, Scale::layout) == Scale::layout);
+    static_assert(multiply(Scale::layout, Identity::layout) == Scale::layout);
+
+
+    using Transformation =
+        Matrix<float, layout({
+                          //           Entry::zero  Entry::pone  Entry::mone  Entry::any
+                          std::array { Entry::any,  Entry::any,  Entry::any,  Entry::any  }, // Entry::zero
+                          std::array { Entry::any,  Entry::any,  Entry::any,  Entry::any  }, // Entry::pone
+                          std::array { Entry::any,  Entry::any,  Entry::any,  Entry::any  }, // Entry::mone
+                          std::array { Entry::zero, Entry::zero, Entry::zero, Entry::pone }, // Entry::any
+    })>;
+    testMat<Transformation>();
+    Transformation transformation;
+    static_assert(sizeof(Transformation) == 12 * sizeof(float));
+    static_assert(multiply(Transformation::layout, Transformation::layout) == Transformation::layout);
+    static_assert(multiply(Identity::layout, Transformation::layout) == Transformation::layout);
+    static_assert(multiply(Transformation::layout, Identity::layout) == Transformation::layout);
+    static_assert(multiply(multiply(Translation::layout, Rotation::layout), Scale::layout) == Transformation::layout);
+    static_assert(multiply(multiply(Translation::layout, Rotation::layout), Identity::layout) ==
+                  Transformation::layout);
+    static_assert(multiply(Translation::layout, multiply(Scale::layout, Rotation::layout)) == Transformation::layout);
+
+    static_assert(multiply(Translation::layout, multiply(Rotation::layout, Scale::layout)) == Transformation::layout);
+    static_assert(multiply(Translation::layout, multiply(Rotation::layout, Identity::layout)) ==
+                  Transformation::layout);
+    std::exit(0);
+};
+
+}  // namespace surge::tiamat
+
 int main() {
     try {
+        surge::tiamat::test();
         const std::filesystem::path surgeTextureFolder { "/home/ico/projects/surge/textures" };
         const std::filesystem::path vulkanAssetFolder { "/home/ico/projects/extern/Vulkan/assets" };
 
@@ -33,11 +426,6 @@ int main() {
             16.0 / 9.0,
             { 0.0f, 0.0f, 0.0f  },
             { 0.0f, 0.0f, -1.0f },
-        };
-        surge::Camera<false> lightCamera {
-            16.0 / 9.0,
-            { -1.0f, 1.0f,  3.0f  },
-            { -1.0f, -1.0f, -1.0f },
         };
 
         // create scene
@@ -261,7 +649,6 @@ int main() {
                                                                   lightPosition });
 
                 engine.update(cesiumManAnimationChannel, elapsedTime);
-                // engine.update(cesiumManAnimationChannel, 0);
 
                 // channels
                 const surge::Rotation rotationY { surge::toQuaternion(0.0f, 1.0f * engine.input.timer, 0.0f) };
@@ -286,7 +673,8 @@ int main() {
                 engine.update(floor, surge::translate<x>(-2.0) * rotationY * surge::rotate<x>(90));
                 engine.update(dragon, surge::translate<x>(6.0) * surge::scale(0.5) * rotationY);
                 engine.update(cerberus, surge::translate<x>(8.0) * surge::scale(0.5) * rotationY);
-                engine.update(cesiumMan, surge::translate<x>(-4.0) * rotationY);
+                // engine.update(cesiumMan, surge::translate<x>(-4.0) * rotationY);
+                engine.update(cesiumMan, surge::translate<x>(-4.0));
                 engine.update(buggy, surge::translate<x>(-6.0) * surge::scale(0.01) * rotationY);
                 engine.update(armor1, surge::translate<x>(-8.0) * surge::scale(0.3) * rotationY);
                 engine.update(armor2,
