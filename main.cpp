@@ -2,19 +2,6 @@
 
 #include <bitset>
 
-template<int radius>
-constexpr auto generateTranslations() {
-    constexpr auto                                     length = 2 * radius + 1;
-    constexpr auto                                     size   = length * length;
-    std::array<surge::core::math::Translation<>, size> translations;
-    surge::forEach<0, length, 0, length>([&]<int i, int j>() {
-        constexpr auto index = i * length + j;
-        translations[index]  = surge::core::math::Translation<> { 4 * (i - radius), -3, 4 * (j - radius) };
-    });
-    return translations;
-}
-
-
 namespace surge::tiamat  // TIAMAT: Template Interfaces for Affine MATrices
 {
 enum class Entry : uint8_t {
@@ -56,12 +43,13 @@ constexpr Entry getEntry(const Layout layout) {
 }
 
 
-constexpr Layout set(Layout layout, int position, const Entry entry) {
-    auto setBit   = [&](int p) { layout |= (1U << p); };
-    auto clearBit = [&](int p) { layout &= ~(1U << p); };
-
-    const auto left  = 2 * position;
-    const auto right = 2 * position + 1;
+template<uint8_t row, uint8_t col>
+constexpr Layout setEntry(Layout layout, const Entry entry) {
+    auto       setBit   = [&](int p) { layout |= (1U << p); };
+    auto       clearBit = [&](int p) { layout &= ~(1U << p); };
+    const auto position = row * 4 + col;
+    const auto left     = 2 * position;
+    const auto right    = 2 * position + 1;
     switch (entry) {
     case Entry::zero:
         clearBit(left);
@@ -82,11 +70,7 @@ constexpr Layout set(Layout layout, int position, const Entry entry) {
     default:
         throw("bad");
     }
-}
-
-template<uint8_t row, uint8_t col>
-constexpr Layout setEntry(const Layout layout, const Entry entry) {
-    return set(layout, row * 4 + col, entry);
+    // return set(layout, row * 4 + col, entry);
 }
 
 static constexpr std::size_t count(const Layout layout, const Entry entry) {
@@ -142,7 +126,19 @@ public:
     constexpr Matrix()
         : data {} { };
 
-public:
+    template<typename... Vs>
+    constexpr Matrix(Vs... vs)
+        : data { vs... } {
+    }
+
+    template<uint8_t row, uint8_t col, typename VV, Layout ll>
+    friend constexpr auto& get(const Matrix<VV, ll>& m);
+
+    template<uint8_t row, uint8_t col, typename VV, Layout ll>
+        requires(getEntry<row, col>(ll) == Entry::any)
+    friend constexpr auto& get(Matrix<VV, ll>& m);
+
+private:
     std::array<Value, count(layout, Entry::any)> data;
 };
 
@@ -186,10 +182,49 @@ constexpr auto& get(Matrix<Value, layout>& m) {
     return m.data[index<row, col, layout>()];
 }
 
+constexpr Layout encodeLayout(const std::array<std::array<Entry, 4>, 4>& table) {
+    Layout layout {};
+    core::forEach<0, 4, 0, 4>([&]<int i, int j>() { layout = setEntry<i, j>(layout, table[i][j]); });
+    return layout;
+}
+
+constexpr auto translationLayout = encodeLayout({
+    //           Entry::zero  Entry::pone  Entry::mone  Entry::any
+    std::array { Entry::pone, Entry::zero, Entry::zero, Entry::any  }, // Entry::zero
+    std::array { Entry::zero, Entry::pone, Entry::zero, Entry::any  }, // Entry::pone
+    std::array { Entry::zero, Entry::zero, Entry::pone, Entry::any  }, // Entry::mone
+    std::array { Entry::zero, Entry::zero, Entry::zero, Entry::pone }, // Entry::any
+});
+
+template<typename Value = float>
+class Translation : public Matrix<Value, translationLayout> {
+public:
+    constexpr Translation()                   = default;
+    constexpr Translation(const Translation&) = default;
+    constexpr Translation(Translation&&)      = default;
+    constexpr Translation(const Value x, const Value y, const Value z)
+        : Matrix<Value, translationLayout> { x, y, z } {
+    }
+};
+
+
+template<typename Value, Layout layout>
+constexpr auto dispatch() {
+    if constexpr (layout == translationLayout) {
+        return Translation<Value> {};
+    } else {
+        return Matrix<Value, layout> {};
+    }
+}
+
 template<typename ValueA, Layout layoutA, typename ValueB, Layout layoutB>
 constexpr auto operator*(const Matrix<ValueA, layoutA>& A, const Matrix<ValueB, layoutB>& B) {
-    constexpr auto                                      layoutC = multiply(layoutA, layoutB);
-    Matrix<std::common_type_t<ValueA, ValueB>, layoutC> C {};
+    constexpr auto layoutC = multiply(layoutA, layoutB);
+
+    using CommonValue = std::common_type_t<ValueA, ValueB>;
+    using MatrixC     = decltype(dispatch<CommonValue, layoutC>());
+    // std::conditional_t<layoutC == translationLayout, Translation<CommonValue>, Matrix<CommonValue, layoutC>> C {};
+    MatrixC C;
     core::forEach<0, 4, 0, 4, 0, 4>([&]<uint8_t row, uint8_t col, uint8_t mid>() {
         if constexpr (getEntry<row, col>(layoutC) == Entry::any) {
             constexpr auto entryA = getEntry<row, mid>(layoutA);
@@ -213,16 +248,8 @@ constexpr auto operator*(const Matrix<ValueA, layoutA>& A, const Matrix<ValueB, 
     return C;
 }
 
-constexpr Layout layout(const std::array<std::array<Entry, 4>, 4>& table) {
-    Layout layout {};
-    core::forEach<0, 4, 0, 4>([&]<int i, int j>() {
-        const auto n = i * 4 + j;
-        layout       = setEntry<i, j>(layout, table[i][j]);
-    });
-    return layout;
-}
 
-using Identity = Matrix<float, layout({
+using Identity = Matrix<float, encodeLayout({
                                    //           Entry::zero  Entry::pone  Entry::mone  Entry::any
                                    std::array { Entry::pone, Entry::zero, Entry::zero, Entry::zero }, // Entry::zero
                                    std::array { Entry::zero, Entry::pone, Entry::zero, Entry::zero }, // Entry::pone
@@ -230,6 +257,25 @@ using Identity = Matrix<float, layout({
                                    std::array { Entry::zero, Entry::zero, Entry::zero, Entry::pone }, // Entry::any
 })>;
 constexpr Identity identity;
+
+// using Translation = Matrix<float, layout({
+//                                       //           Entry::zero  Entry::pone  Entry::mone  Entry::any
+//                                       std::array { Entry::pone, Entry::zero, Entry::zero, Entry::any  }, //
+//                                       Entry::zero std::array { Entry::zero, Entry::pone, Entry::zero, Entry::any  },
+//                                       // Entry::pone std::array { Entry::zero, Entry::zero, Entry::pone, Entry::any
+//                                       }, // Entry::mone std::array { Entry::zero, Entry::zero, Entry::zero,
+//                                       Entry::pone }, // Entry::any
+// })>;
+
+
+template<typename Value, Layout layout>
+std::ostream& operator<<(std::ostream& stream, const Matrix<Value, layout>& matrix) {
+    core::forEach<0, 4>([&]<int row> {
+        core::forEach<0, 4>([&]<int col> { stream << " " << get<row, col>(matrix); });
+        stream << std::endl;
+    });
+    return stream;
+}
 
 template<typename Mat>
 bool testMat() {
@@ -261,52 +307,46 @@ void test() {
     // static_assert(sizeof(identity) == 1);
     std::cout << get<0, 0>(identity) << std::endl;
 
-    using Translation =
-        Matrix<float, layout({
-                          //           Entry::zero  Entry::pone  Entry::mone  Entry::any
-                          std::array { Entry::pone, Entry::zero, Entry::zero, Entry::any  }, // Entry::zero
-                          std::array { Entry::zero, Entry::pone, Entry::zero, Entry::any  }, // Entry::pone
-                          std::array { Entry::zero, Entry::zero, Entry::pone, Entry::any  }, // Entry::mone
-                          std::array { Entry::zero, Entry::zero, Entry::zero, Entry::pone }, // Entry::any
-    })>;
-    testMat<Translation>();
-    Translation translation;
-    static_assert(sizeof(Translation) == 3 * sizeof(float));
-    static_assert(multiply(Translation::layout, Translation::layout) == Translation::layout);
-    static_assert(multiply(Identity::layout, Translation::layout) == Translation::layout);
-    static_assert(multiply(Translation::layout, Identity::layout) == Translation::layout);
-    constexpr Translation cTr;
-    static_assert((cTr * cTr).layout == Translation::layout);
-    static_assert((identity * cTr).layout == Translation::layout);
-    static_assert((cTr * identity).layout == Translation::layout);
+    std::cout << identity;
+
+
+    testMat<Translation<>>();
+    Translation<> translation;
+    static_assert(sizeof(Translation<>) == 3 * sizeof(float));
+    static_assert(multiply(Translation<>::layout, Translation<>::layout) == Translation<>::layout);
+    static_assert(multiply(Identity::layout, Translation<>::layout) == Translation<>::layout);
+    static_assert(multiply(Translation<>::layout, Identity::layout) == Translation<>::layout);
+    constexpr Translation<> cTr;
+    static_assert((cTr * cTr).layout == Translation<>::layout);
+    static_assert((identity * cTr).layout == Translation<>::layout);
+    static_assert((cTr * identity).layout == Translation<>::layout);
     get<0, 3>(translation) = 1.4;
     constexpr auto t00     = get<0, 0>(translation);
     static_assert(t00 == 1);
     static_assert(get<0, 0>(translation) == 1);
     static_assert(get<0, 1>(translation) == 0);
     {
-        constexpr Translation t1 = std::invoke([] {
-            Translation t;
-            get<0, 3>(t) = 1;
-            get<1, 3>(t) = 2;
-            get<2, 3>(t) = 3;
-            return t;
-        });
+        // constexpr Translation t1 = std::invoke([] {
+        //     Translation t;
+        //     get<0, 3>(t) = 1;
+        //     get<1, 3>(t) = 2;
+        //     get<2, 3>(t) = 3;
+        //     return t;
+        // });
+        constexpr Translation t1 { 1, 2, 3 };
         static_assert(get<0, 3>(t1 * identity) == 1);
         static_assert(get<1, 3>(t1) == 2);
         static_assert(get<2, 3>(t1) == 3);
+        std::cout << "\n" << t1;
 
-        constexpr Translation t2 = std::invoke([] {
-            Translation t;
-            get<0, 3>(t) = 2;
-            get<1, 3>(t) = 3;
-            get<2, 3>(t) = 4;
-            return t;
-        });
-        constexpr auto        t3 = t1 * t2;
+        constexpr Translation t2 { 2, 3, 4 };
+        std::cout << "\n" << t2;
+        constexpr auto t3 = t1 * t2;
+        std::cout << "\n" << t3;
         static_assert(get<0, 3>(t3) == 3);
         static_assert(get<1, 3>(t3) == 5);
         static_assert(get<2, 3>(t3) == 7);
+        // const auto g = glm::transpose();
     }
 
     Translation translation2;
@@ -320,7 +360,7 @@ void test() {
     // get<0,3>
     // static_assert(sizeof(identity) == 1);
 
-    using Rotation = Matrix<float, layout({
+    using Rotation = Matrix<float, encodeLayout({
                                        //           Entry::zero  Entry::pone  Entry::mone  Entry::any
                                        std::array { Entry::any,  Entry::any,  Entry::any,  Entry::zero }, // Entry::zero
                                        std::array { Entry::any,  Entry::any,  Entry::any,  Entry::zero }, // Entry::pone
@@ -338,7 +378,7 @@ void test() {
     static_assert((identity * cRot).layout == Rotation::layout);
     static_assert((cRot * identity).layout == Rotation::layout);
 
-    using Scale = Matrix<float, layout({
+    using Scale = Matrix<float, encodeLayout({
                                     //           Entry::zero  Entry::pone  Entry::mone  Entry::any
                                     std::array { Entry::any,  Entry::zero, Entry::zero, Entry::zero }, // Entry::zero
                                     std::array { Entry::zero, Entry::any,  Entry::zero, Entry::zero }, // Entry::pone
@@ -378,7 +418,7 @@ void test() {
 
 
     using Transformation =
-        Matrix<float, layout({
+        Matrix<float, encodeLayout({
                           //           Entry::zero  Entry::pone  Entry::mone  Entry::any
                           std::array { Entry::any,  Entry::any,  Entry::any,  Entry::any  }, // Entry::zero
                           std::array { Entry::any,  Entry::any,  Entry::any,  Entry::any  }, // Entry::pone
@@ -391,18 +431,32 @@ void test() {
     static_assert(multiply(Transformation::layout, Transformation::layout) == Transformation::layout);
     static_assert(multiply(Identity::layout, Transformation::layout) == Transformation::layout);
     static_assert(multiply(Transformation::layout, Identity::layout) == Transformation::layout);
-    static_assert(multiply(multiply(Translation::layout, Rotation::layout), Scale::layout) == Transformation::layout);
-    static_assert(multiply(multiply(Translation::layout, Rotation::layout), Identity::layout) ==
+    static_assert(multiply(multiply(Translation<>::layout, Rotation::layout), Scale::layout) == Transformation::layout);
+    static_assert(multiply(multiply(Translation<>::layout, Rotation::layout), Identity::layout) ==
                   Transformation::layout);
-    static_assert(multiply(Translation::layout, multiply(Scale::layout, Rotation::layout)) == Transformation::layout);
+    static_assert(multiply(Translation<>::layout, multiply(Scale::layout, Rotation::layout)) == Transformation::layout);
 
-    static_assert(multiply(Translation::layout, multiply(Rotation::layout, Scale::layout)) == Transformation::layout);
-    static_assert(multiply(Translation::layout, multiply(Rotation::layout, Identity::layout)) ==
+    static_assert(multiply(Translation<>::layout, multiply(Rotation::layout, Scale::layout)) == Transformation::layout);
+    static_assert(multiply(Translation<>::layout, multiply(Rotation::layout, Identity::layout)) ==
                   Transformation::layout);
-    std::exit(0);
+    // std::exit(0);
 };
 
 }  // namespace surge::tiamat
+
+
+template<int radius>
+constexpr auto generateTranslations() {
+    constexpr auto                                     length = 2 * radius + 1;
+    constexpr auto                                     size   = length * length;
+    std::array<surge::core::math::Translation<>, size> translations;
+    surge::forEach<0, length, 0, length>([&]<int i, int j>() {
+        constexpr auto index = i * length + j;
+        translations[index]  = surge::core::math::Translation<> { 4 * (i - radius), -3, 4 * (j - radius) };
+    });
+    return translations;
+}
+
 
 int main() {
     try {
