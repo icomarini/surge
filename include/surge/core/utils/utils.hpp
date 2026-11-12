@@ -168,7 +168,7 @@ public:
         return id < other.id;
     }
 
-    operator bool() const {
+    constexpr explicit operator bool() const {
         return id >= 0;
     }
 

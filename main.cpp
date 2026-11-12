@@ -142,6 +142,11 @@ private:
     std::array<Value, count(layout, Entry::any)> data;
 };
 
+template<typename Value, Layout layout>
+struct Dispatch {
+    using Type = Matrix<Value, layout>;
+};
+
 template<uint8_t row, uint8_t col, Layout layout>
 constexpr uint8_t index() {
     int idx { -1 };
@@ -207,22 +212,27 @@ public:
     }
 };
 
+template<typename Value>
+struct Dispatch<Value, translationLayout> {
+    using Type = Translation<Value>;
+};
 
-template<typename Value, Layout layout>
-constexpr auto dispatch() {
-    if constexpr (layout == translationLayout) {
-        return Translation<Value> {};
-    } else {
-        return Matrix<Value, layout> {};
-    }
-}
+// template<typename Value, Layout layout>
+// constexpr auto dispatch() {
+//     if constexpr (layout == translationLayout) {
+//         return Translation<Value> {};
+//     } else {
+//         return Matrix<Value, layout> {};
+//     }
+// }
 
 template<typename ValueA, Layout layoutA, typename ValueB, Layout layoutB>
 constexpr auto operator*(const Matrix<ValueA, layoutA>& A, const Matrix<ValueB, layoutB>& B) {
     constexpr auto layoutC = multiply(layoutA, layoutB);
 
     using CommonValue = std::common_type_t<ValueA, ValueB>;
-    using MatrixC     = decltype(dispatch<CommonValue, layoutC>());
+    // using MatrixC     = decltype(dispatch<CommonValue, layoutC>());
+    using MatrixC = typename Dispatch<CommonValue, layoutC>::Type;
     // std::conditional_t<layoutC == translationLayout, Translation<CommonValue>, Matrix<CommonValue, layoutC>> C {};
     MatrixC C;
     core::forEach<0, 4, 0, 4, 0, 4>([&]<uint8_t row, uint8_t col, uint8_t mid>() {
@@ -286,6 +296,7 @@ bool testMat() {
     constexpr Mat cm1;
     constexpr Mat cm2;
     static_assert((cm1 * cm1).layout == Mat::layout);
+    // static_assert(typ)
 
     static_assert((cm1 * identity).layout == Mat::layout);
     static_assert((identity * cm1).layout == Mat::layout);

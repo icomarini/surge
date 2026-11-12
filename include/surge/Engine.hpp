@@ -86,8 +86,8 @@ public:
         }
 
         for (const auto& channel : animation.channels) {
-            const auto& sampler = animation.samplers.at(channel.samplerId);
-            auto&       node    = animationChannel.nodeTree.get(channel.nodeId);
+            const auto& sampler = animation.samplers.at(channel.samplerId.get());
+            auto&       node    = animationChannel.nodeTree.get(channel.nodeId.get());
             channel.update(node, sampler, animationChannel.progress);
         }
 
@@ -101,8 +101,8 @@ public:
                 jointMatrices.reserve(skin.joints.size());
                 for (const auto& [jointNodeIndex, inverseBindMatrix] : skin.joints) {
                     const auto& joint = animationChannel.nodeTree.get(jointNodeIndex).transformation;
-                    jointMatrices.emplace_back(inverseBindMatrix * joint * inverse);
-                    // jointMatrices.emplace_back(inverse * joint * inverseBindMatrix);
+                    // jointMatrices.emplace_back(inverseBindMatrix * joint * inverse);
+                    jointMatrices.emplace_back(inverse * joint * inverseBindMatrix);
                 }
                 const auto& buffer = storage.buffers.at(animationChannel.jointMatricesBufferId);
                 memcpy(buffer.mapped, jointMatrices.data(), jointMatrices.size() * sizeof(core::math::Matrix<4, 4>));
