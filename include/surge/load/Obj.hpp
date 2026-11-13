@@ -2,7 +2,7 @@
 
 #include "surge/asset/Animation.hpp"
 #include "surge/asset/Mesh.hpp"
-#include "surge/asset/Scene.hpp"
+// #include "surge/asset/Scene.hpp"
 #include "surge/asset/Skin.hpp"
 #include "surge/load/Defaults.hpp"
 
@@ -23,22 +23,12 @@ public:
         std::optional<std::filesystem::path> texturePath;
     };
 
-    using TextureDescr = asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT>;
-    using Index        = core::geometry::Index;
-    using Vertex       = core::geometry::Vertex<  //
-        core::geometry::AttributeSlot<core::geometry::Attribute::position, core::math::Vector<3>, 3,
-                                            core::geometry::Format::sfloat>,
-        core::geometry::AttributeSlot<core::geometry::Attribute::color, core::math::Vector<4>, 4,
-                                            core::geometry::Format::sfloat>,
-        core::geometry::AttributeSlot<core::geometry::Attribute::normal, core::math::Vector<3>, 3,
-                                            core::geometry::Format::sfloat>,
-        core::geometry::AttributeSlot<core::geometry::Attribute::texCoord, core::math::Vector<2>, 2,
-                                            core::geometry::Format::sfloat>>;
+    using Index = core::geometry::Index;
 
-    Obj(const Handle& handle, const Defaults& defaults)
+
+    Obj(const Handle& handle)
         : name { handle.meshPath.filename() }
         , path { handle.meshPath }
-        , defaults { defaults }
         , texture {} {
         if (handle.texturePath) {
             texture.emplace(handle.texturePath.value());
@@ -51,73 +41,51 @@ public:
         }
     }
 
-    core::shader::Type shader() const {
-        return core::shader::Type::shader;
+    std::vector<TextureID> createTextures(Storage& storage) const {
+        return texture ? std::vector<TextureID> { storage.createTexture(texture.value(), defaultSampler(),
+                                                                        asset::Texture::texture2d) } :
+                         std::vector<TextureID> {};
     }
 
-    std::vector<asset::Texture> createTextures(const core::Command& command) const {
-        std::vector<asset::Texture> textures;
-        if (texture) {
-            textures.emplace_back(command, texture.value(), load::Defaults::sampler, asset::Texture::texture2d);
-        }
-        return textures;
+    std::vector<MaterialID> createMaterials(Storage& storage, const std::vector<TextureID>& texturesIds) const {
+        return !texturesIds.empty() ? std::vector<MaterialID> { storage.createSimpleMaterial(texturesIds.front()) } :
+                                      std::vector<MaterialID> {};
+        // // assert(textures.size() == 1);
+        // using TextureData = asset::Material::TextureData;
+        // return {
+        //     asset::Material { .name                     = baptize<This::material>(0),
+        //                      .doubleSided              = false,
+        //                      .unlit                    = false,
+        //                      .alphaMode                = asset::Material::AlphaMode::opaque,
+        //                      .alphaCutoff              = 1,
+        //                      .baseColorTexture         = TextureData { &textures.front(), 0 },
+        //                      .baseColorFactor          = { 1, 1, 1, 1 },
+        //                      .metallicRoughnessTexture = TextureData { &defaults.texture, 0 },
+        //                      .metallicFactor           = 1,
+        //                      .roughnessFactor          = 1,
+        //                      .emissiveTexture          = TextureData { &defaults.texture, 0 },
+        //                      .emissiveFactor           = { 0, 0, 0, 0 },
+        //                      .emissiveStrength         = 1,
+        //                      .normalTexture            = TextureData { &defaults.texture, 0 },
+        //                      .normalScale              = 1,
+        //                      .occlusionTexture         = TextureData { &defaults.texture, 0 },
+        //                      .occlusionStrength        = 1,
+        //                      .descriptorSet            = core::Descriptor::createDescriptorSet(
+        //                           context, materialDescriptorSetLayout, descriptorPool,  //
+        //                           TextureDescr { textures.front() }, TextureDescr { defaults.texture },
+        //                      TextureDescr { defaults.texture }, TextureDescr { defaults.texture },
+        //                      TextureDescr { defaults.texture }) }
+        // };
     }
 
-    VkDescriptorPool createDescriptorPool(const core::Context& context) const {
-        return core::Descriptor::createDescriptorPool(context, 5U,
-                                                      std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U });
-    }
-
-    VkDescriptorSetLayout createMaterialDescriptorSetLayout(const core::Context& context) const {
-        return core::Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture
-                                                           TextureDescr,  // metallic/rough texture
-                                                           TextureDescr,  // normal texture
-                                                           TextureDescr,  // occlusion texture
-                                                           TextureDescr   // emissive texture
-                                                           >(context, 1);
-    }
-
-    std::vector<asset::Material> createMaterials(const core::Context& context, const VkDescriptorPool descriptorPool,
-                                                 const VkDescriptorSetLayout        materialDescriptorSetLayout,
-                                                 const std::vector<asset::Texture>& textures) const {
-        if (textures.empty()) {
-            return {};
-        }
-        assert(textures.size() == 1);
-        using TextureData = asset::Material::TextureData;
-        return {
-            asset::Material { .name                     = baptize<This::material>(0),
-                             .doubleSided              = false,
-                             .unlit                    = false,
-                             .alphaMode                = asset::Material::AlphaMode::opaque,
-                             .alphaCutoff              = 1,
-                             .baseColorTexture         = TextureData { &textures.front(), 0 },
-                             .baseColorFactor          = { 1, 1, 1, 1 },
-                             .metallicRoughnessTexture = TextureData { &defaults.texture, 0 },
-                             .metallicFactor           = 1,
-                             .roughnessFactor          = 1,
-                             .emissiveTexture          = TextureData { &defaults.texture, 0 },
-                             .emissiveFactor           = { 0, 0, 0, 0 },
-                             .emissiveStrength         = 1,
-                             .normalTexture            = TextureData { &defaults.texture, 0 },
-                             .normalScale              = 1,
-                             .occlusionTexture         = TextureData { &defaults.texture, 0 },
-                             .occlusionStrength        = 1,
-                             .descriptorSet            = core::Descriptor::createDescriptorSet(
-                                  context, materialDescriptorSetLayout, descriptorPool,  //
-                                  TextureDescr { textures.front() }, TextureDescr { defaults.texture },
-                             TextureDescr { defaults.texture }, TextureDescr { defaults.texture },
-                             TextureDescr { defaults.texture }) }
-        };
-    }
-
-    std::vector<asset::Mesh> createMeshes(const std::vector<asset::Material>& materials) const {
+    template<typename Vertex>
+    std::vector<MeshID> createMeshes(Storage& storage, const std::vector<MaterialID>& materialIds) const {
         core::Size indexCount {};
         for (const auto& shape : shapes) {
             indexCount += shape.mesh.indices.size();
         }
 
-        const auto& material = materials.size() > 0 ? materials.front() : defaults.material;
+        const auto& materialId = materialIds.size() > 0 ? materialIds.front() : storage.defaultMaterialId;
 
         core::math::Vector<3> min {};
         core::math::Vector<3> max {};
@@ -131,32 +99,19 @@ public:
                 });
             }
         }
-        // constexpr bool          color    = false;
-        // constexpr bool          normal   = false;
-        // const bool              texCoord = materials.size() > 0;
-        const core::geometry::BoundingBox bbox { .min = min, .max = max };
 
-        std::vector<asset::Mesh> meshes;
-        auto&                    mesh = meshes.emplace_back(baptize<This::mesh>(0));
-        mesh.primitives.emplace_back(0, indexCount, indexCount, material,
-                                     asset::Mesh::Primitive::Attributes {
-                                         { core::geometry::Attribute::position,    true                 },
-                                         { core::geometry::Attribute::color,       false                },
-                                         { core::geometry::Attribute::normal,      false                },
-                                         { core::geometry::Attribute::texCoord,    materials.size() > 0 },
-                                         { core::geometry::Attribute::jointIndex,  false                },
-                                         { core::geometry::Attribute::jointWeight, false                },
-        },
-                                     bbox, asset::Mesh::Primitive::State { false });
-
-        return meshes;
+        const core::geometry::BoundingBox   bbox { .min = min, .max = max };
+        std::vector<asset::Mesh::Primitive> primitives;
+        primitives.emplace_back(0, indexCount, indexCount, materialId, bbox);
+        return { storage.createMesh(std::move(primitives)) };
     }
 
-    asset::Model createModel(const core::Command& command, const std::vector<asset::Mesh>& meshes) const {
-        assert(meshes.size() == 1);
-        assert(meshes.front().primitives.size() == 1);
+    template<typename Vertex>
+    ModelID createModel(Storage& storage, const std::vector<MeshID>& meshIds) const {
+        assert(meshIds.size() == 1);
+        assert(storage.meshes.at(meshIds.front().get()).primitives.size() == 1);
 
-        const auto vertexCount = meshes.front().primitives.front().vertexCount;
+        const auto vertexCount = storage.meshes.at(meshIds.front().get()).primitives.front().vertexCount;
         // const auto indexCount  = meshes.front().primitives.front().indexCount;
 
         std::vector<Vertex> vertices;
@@ -167,20 +122,24 @@ public:
                 const auto normalIdx   = 3 * index.normal_index;
                 const auto texCoordIdx = 2 * index.texcoord_index;
 
+                using Position = typename Vertex::Attribute<
+                    Vertex::template attributeIndex<core::geometry::Attribute::position>()>::Value;
+                using Normal = typename Vertex::Attribute<
+                    Vertex::template attributeIndex<core::geometry::Attribute::normal>()>::Value;
+                using TexCoord = typename Vertex::Attribute<
+                    Vertex::template attributeIndex<core::geometry::Attribute::texCoord>()>::Value;
                 vertices.emplace_back(
-                    Vertex::Attribute<Vertex::attributeIndex<core::geometry::Attribute::position>()>::Value {
+                    Position {
                         attrib.vertices.at(vertexIdx + 0),
                         attrib.vertices.at(vertexIdx + 1),
                         attrib.vertices.at(vertexIdx + 2),
                     },
-                    Vertex::Attribute<Vertex::attributeIndex<core::geometry::Attribute::color>()>::Value { 1.0f, 1.0f,
-                                                                                                           1.0f, 1.0f },
-                    Vertex::Attribute<Vertex::attributeIndex<core::geometry::Attribute::normal>()>::Value {
+                    Normal {
                         attrib.normals.at(normalIdx + 0),
                         attrib.normals.at(normalIdx + 1),
                         attrib.normals.at(normalIdx + 2),
                     },
-                    Vertex::Attribute<Vertex::attributeIndex<core::geometry::Attribute::texCoord>()>::Value {
+                    TexCoord {
                         attrib.texcoords.at(texCoordIdx + 0),
                         1.0f - attrib.texcoords.at(texCoordIdx + 1),
                     });
@@ -190,65 +149,43 @@ public:
         std::vector<Index> indices(vertexCount);
         std::iota(indices.begin(), indices.end(), 0);
 
-        return asset::Model {
-            command, core::geometry::Shape { "asset", std::move(vertices), std::move(indices) },
-              asset::Model::scene
-        };
+        return storage.createModel(core::geometry::Shape { "asset", std::move(vertices), std::move(indices) });
     }
 
-    core::utils::Tree<asset::Node> createTree() const {
-        auto createNode = [this]() {
+    NodeTreeID createNodeTree(Storage& storage, const std::vector<MeshID>& meshIds, const std::vector<SkinID>&) const {
+        assert(meshIds.size() == 1);
+        auto createNode = [&]() {
             core::utils::Tree<asset::Node>::Nodes nodes;
             nodes.reserve(1);
             nodes.emplace_back(
                 asset::Node {
-                    .meshIndex = std::optional<core::Index> { 0 },
-                    .skinIndex = std::optional<core::Index> {},
-                    .color     = {},
-                    .isLight   = false,
-                    .state =
-                        asset::Node::State {
-                                                             .active      = true,
-                                                             .polygonMode = core::PolygonMode::fill,
-                                                             // .vertexStageFlag   = 0,
-                            // .fragmentStageFlag = 0,
-                            .translation  = { 0, 0, 0 },
-                                                             .scale        = { 1, 1, 1 },
-                                                             .localMatrix  = core::math::Matrix<4, 4> {},
-                                                             .globalMatrix = core::math::Matrix<4, 4> {},
-                                                             },
+                    .meshId         = meshIds.front(),
+                    .skinId         = {},
+                    .translation    = { 0, 0, 0 },
+                    .rotation       = { 0, 0, 0 },
+                    .scale          = { 1, 1, 1 },
+                    .transformation = core::math::fullMatrix(core::math::identity<4>)
             },
                 std::vector<core::Index> {});
             return nodes;
         };
-        return core::utils::Tree<asset::Node> {
+        return storage.createNodeTree(core::utils::Tree<asset::Node> {
             .roots = std::vector<Index> { 0 },
             .nodes = createNode(),
-        };
+        });
     }
 
-    std::vector<asset::Scene> createScenes() const {
-        std::vector<asset::Scene> scenes;
-        scenes.reserve(1);
-        scenes.emplace_back(baptize<This::scene>(0), createTree());
-        return scenes;
-    }
-
-    std::size_t mainSceneIndex() const {
-        return 0;
-    }
-
-    std::vector<asset::Skin> createSkins() const {
+    AnimationSetID createAnimationSet(Storage&) const {
         return {};
     }
 
-    std::vector<asset::Animation> createAnimations() const {
+    std::vector<SkinID> createSkins(Storage&) const {
         return {};
     }
 
+private:
     std::string                      name;
     std::filesystem::path            path;
-    const Defaults&                  defaults;
     tinyobj::attrib_t                attrib;
     std::vector<tinyobj::shape_t>    shapes;
     std::vector<tinyobj::material_t> materials;

@@ -53,23 +53,7 @@ public:
         std::map<TextureType, std::filesystem::path> externalTextures {};
     };
 
-    using Index  = core::geometry::Index;
-    using Vertex = core::geometry::Vertex<  //
-        core::geometry::AttributeSlot<core::geometry::Attribute::position, core::math::Vector<3>, 3,
-                                      core::geometry::Format::sfloat>,
-        core::geometry::AttributeSlot<core::geometry::Attribute::normal, core::math::Vector<3>, 3,
-                                      core::geometry::Format::sfloat>,
-        core::geometry::AttributeSlot<core::geometry::Attribute::texCoord, core::math::Vector<2>, 2,
-                                      core::geometry::Format::sfloat>,
-        core::geometry::AttributeSlot<core::geometry::Attribute::tangent, core::math::Vector<4>, 4,
-                                      core::geometry::Format::sfloat>
-        // core::geometry::AttributeSlot<core::geometry::Attribute::color, core::math::Vector<4>, 4,
-        //                                     core::geometry::Format::sfloat>,
-        // core::geometry::AttributeSlot<core::geometry::Attribute::jointIndex, core::math::Vector<4>, 4,
-        //                                     core::geometry::Format::sfloat>,
-        // core::geometry::AttributeSlot<core::geometry::Attribute::jointWeight, core::math::Vector<4>, 4,
-        //                                     core::geometry::Format::sfloat>
-        >;
+    using Index = core::geometry::Index;
 
     Gltf(const Handle& handle)
         : name { handle.path.filename() }
@@ -82,10 +66,6 @@ public:
     std::filesystem::path                        path;
     fastgltf::Asset                              asset;
     std::map<TextureType, std::filesystem::path> externalTextures;
-
-    // core::shader::Type shader() const {
-    //     return asset.skins.empty() ? core::shader::Type::gltfStatic : core::shader::Type::gltfAnimated;
-    // }
 
     asset::Texture::Sampler createSampler(const uint32_t samplerIndex) const {
         constexpr auto extractFilter = [](const fastgltf::Filter filter) {
@@ -154,9 +134,9 @@ public:
         return map;
     }
 
-    std::size_t mainSceneIndex() const {
-        return asset.defaultScene.value_or(0);
-    }
+    // std::size_t mainSceneIndex() const {
+    //     return asset.defaultScene.value_or(0);
+    // }
 
     NodeTreeID createNodeTree(Storage& storage, const std::vector<MeshID>& meshIds,
                               const std::vector<SkinID>& skinIds) const {
@@ -435,7 +415,7 @@ public:
     }
 
     std::vector<MaterialID>
-    createMaterials(Storage& storage, const std::vector<TextureID> texturesIds,
+    createMaterials(Storage& storage, const std::vector<TextureID>& textureIds,
                     const std::map<load::Gltf::TextureType, TextureID>& externalTextures) const {
         // constexpr auto extractAlphaMode = [](const fastgltf::AlphaMode alphaMode) {
         //     switch (alphaMode) {
@@ -458,9 +438,9 @@ public:
             if (textureInfo) {
                 const auto textureIndex  = textureInfo.value().textureIndex;
                 const auto texCoordIndex = textureInfo.value().texCoordIndex;
-                assert(0 <= textureIndex && textureIndex < texturesIds.size());
+                assert(0 <= textureIndex && textureIndex < textureIds.size());
                 return TextureData {
-                    .textureId = texturesIds.at(textureIndex),
+                    .textureId = textureIds.at(textureIndex),
                     .texCoord  = static_cast<uint8_t>(texCoordIndex),
                 };
             }
@@ -542,6 +522,7 @@ public:
         return materialIds;
     }
 
+    template<typename Vertex>
     std::vector<MeshID> createMeshes(Storage& storage, const std::vector<MaterialID>& materialIds) const {
         std::vector<MeshID> meshIds;
         uint32_t            partialIndexCount { 0 };
@@ -559,8 +540,8 @@ public:
                 constexpr auto        maxValue = std::numeric_limits<core::math::Vector<3>::value_type>::min();
                 core::math::Vector<3> min { maxValue, maxValue, maxValue };
                 core::math::Vector<3> max { minValue, minValue, minValue };
-                using PositionAttribute =
-                    typename Vertex::Attribute<Vertex::attributeIndex<core::geometry::Attribute::position>()>::Value;
+                using PositionAttribute = typename Vertex::Attribute<
+                    Vertex::template attributeIndex<core::geometry::Attribute::position>()>::Value;
                 fastgltf::iterateAccessor<PositionAttribute>(asset, positionAccessor, [&](const auto& value) {
                     core::forEach<0, 3>([&]<int i> {
                         get<i>(min) = std::min(get<i>(min), value[i]);
@@ -582,7 +563,7 @@ public:
         return meshIds;
     }
 
-    template<typename V>
+    template<typename Vertex>
     ModelID createModel(Storage& storage, const std::vector<MeshID>& meshIds) const {
         const auto [vertexCount, indexCount] = std::invoke([&] {
             uint32_t vertexCount { 0 };
@@ -596,8 +577,8 @@ public:
             return std::pair { vertexCount, indexCount };
         });
 
-        std::vector<V>     vertices(vertexCount);
-        std::vector<Index> indices;
+        std::vector<Vertex> vertices(vertexCount);
+        std::vector<Index>  indices;
         indices.reserve(indexCount);
 
         uint32_t vertexOffset { 0 };
@@ -617,8 +598,8 @@ public:
                     { core::geometry::Attribute::jointWeight, "WEIGHTS_0"  },
                 };
 
-                core::forEach<0, V::attributeCount>([&]<int i>() {
-                    using Attribute          = typename V::Attribute<i>;
+                core::forEach<0, Vertex::attributeCount>([&]<int i>() {
+                    using Attribute          = typename Vertex::Attribute<i>;
                     const auto attributeName = attributeNames.at(Attribute::attribute);
                     if (const auto values = primitive.findAttribute(attributeName);
                         values != primitive.attributes.end()) {

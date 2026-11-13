@@ -15,6 +15,7 @@ constexpr auto generateTranslations() {
 
 int main() {
     try {
+        const std::filesystem::path surgeModelFolder { "/home/ico/projects/surge/models" };
         const std::filesystem::path surgeTextureFolder { "/home/ico/projects/surge/textures" };
         const std::filesystem::path vulkanAssetFolder { "/home/ico/projects/extern/Vulkan/assets" };
 
@@ -185,6 +186,11 @@ int main() {
         const auto floor = engine.createEntity(floorAsset);
 
         // ===========================================================================================
+        const auto vikingRoomAsset = engine.loader.loadAsset<surge::ShaderType::primitiveTexturedNormal>(
+            surge::ObjHandle { .meshPath    = surgeModelFolder / "viking_room.obj",
+                               .texturePath = surgeTextureFolder / "viking_room.png" });
+        const auto vikingRoom = engine.createEntity(vikingRoomAsset);
+
         const auto dragonAsset = engine.loader.loadAsset<surge::ShaderType::primitiveNormal>(
             surge::GltfHandle { vulkanAssetFolder / "models/chinesedragon.gltf" });
         const auto dragon = engine.createEntity(dragonAsset);
@@ -237,6 +243,9 @@ int main() {
             surge::GltfHandle { vulkanAssetFolder / "models/oaktree.gltf" });
         const auto oaktree = engine.createEntity(oaktreeAsset);
 
+        const auto pathfinderAsset = engine.loader.loadAsset<surge::ShaderType::phongModel>(
+            surge::GltfHandle { "/home/ico/projects/uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" });
+        const auto pathfinder = engine.createEntity(pathfinderAsset);
 
         double elapsedTime = {};
         auto   start       = std::chrono::high_resolution_clock::now();
@@ -279,16 +288,16 @@ int main() {
                 });
                 engine.storage.reset();
                 engine.update(floor, surge::translate<x>(-2.0) * rotationY * surge::rotate<x>(90));
+                engine.update(vikingRoom, surge::translate<z>(2.0) * rotationY * surge::rotate<x>(90));
                 engine.update(dragon, surge::translate<x>(6.0) * surge::scale(0.5) * rotationY);
                 engine.update(cerberus, surge::translate<x>(8.0) * surge::scale(0.5) * rotationY);
-                // engine.update(cesiumMan, surge::translate<x>(-4.0) * rotationY);
                 engine.update(cesiumMan, surge::translate<x>(-4.0));
                 engine.update(buggy, surge::translate<x>(-6.0) * surge::scale(0.01) * rotationY);
                 engine.update(armor1, surge::translate<x>(-8.0) * surge::scale(0.3) * rotationY);
                 engine.update(armor2,
                               surge::translate<x>(-8.0) * surge::translate<z>(2.0) * surge::scale(0.3) * rotationY);
                 engine.update(oaktree, surge::translate<x>(-10.0) * rotationY);
-                // engine.update(pathfinder, surge::translate<z>(4.0) * rotationY);
+                engine.update(pathfinder, surge::translate<z>(4.0) * rotationY);
 
                 // create scene
                 mainScene.entities.push_back(skybox);
@@ -302,6 +311,7 @@ int main() {
                 mainScene.entities.insert(mainScene.entities.end(), phongNormalCube.begin(), phongNormalCube.end());
                 mainScene.entities.insert(mainScene.entities.end(), brickwalls.begin(), brickwalls.end());
                 mainScene.entities.insert(mainScene.entities.end(), crate.begin(), crate.end());
+                mainScene.entities.push_back(vikingRoom);
                 mainScene.entities.push_back(dragon);
                 mainScene.entities.push_back(cerberus);
                 mainScene.entities.push_back(cesiumMan);
@@ -309,7 +319,7 @@ int main() {
                 mainScene.entities.push_back(armor1);
                 mainScene.entities.push_back(armor2);
                 mainScene.entities.push_back(oaktree);
-                // mainScene.entities.push_back(pathfinder);
+                mainScene.entities.push_back(pathfinder);
 
 
                 // render

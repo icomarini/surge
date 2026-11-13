@@ -27,9 +27,10 @@ using namespace core::math;
 
 // using SkyboxHandle = load::LoadedSkybox::Handle;
 using GltfHandle = load::Gltf::Handle;
+using ObjHandle  = load::Obj::Handle;
 
 namespace geom {
 using namespace core::geometry;
-using GltfVertex = load::Gltf::Vertex;
+// using GltfVertex = load::Gltf::Vertex;
 }  // namespace geom
 }  // namespace surge
