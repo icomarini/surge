@@ -135,25 +135,15 @@ target_link_libraries(surge.bin LINK_PUBLIC
 
 # shaders
 set(SHADERS
-    gltf_animated.frag
-    gltf_animated.vert
-    gltf_static.frag
-    gltf_static.vert
-    bbox.frag
-    bbox.vert
     line.frag
     line.vert
     point.frag
     point.vert
-    shader.frag
-    shader.vert
     skybox.frag
     skybox.vert
     ui.frag
     ui.vert
     normal.geom
-    base.vert
-    base.frag
     coordinates.vert
     coordinates.frag
     primitive.vert

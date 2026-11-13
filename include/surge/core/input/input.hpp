@@ -158,9 +158,9 @@ using Position = core::math::Vector<2, double>;
 using Offset   = core::math::Vector<2, double>;
 
 const std::map<Action, std::string> toString {
-    { Action::none, "none" },
+    { Action::none,    "none"    },
     { Action::release, "release" },
-    { Action::press, "press" },
-    { Action::repeat, "repeat" },
+    { Action::press,   "press"   },
+    { Action::repeat,  "repeat"  },
 };
 }  // namespace surge::core::input

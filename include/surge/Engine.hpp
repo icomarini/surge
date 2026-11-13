@@ -1,6 +1,6 @@
 #pragma once
 
-// #include "surge/overlay/Overlay.hpp"
+#include "surge/overlay/Overlay.hpp"
 #include "surge/core/colors.hpp"
 #include "surge/core/Presenter.hpp"
 #include "surge/Renderer.hpp"
@@ -23,7 +23,7 @@ public:
                         core::DescriptorAllocation<AnimationLayout> { 16 } }
         , storage { command, descriptors }
         , loader { storage }
-        , renderer { storage, descriptors }  // , overlay { command, {} }
+        , renderer { storage, descriptors }  // , overlay { command }
     {
         log::checkpoint("The surge of urge to purge started");
     }
@@ -123,7 +123,7 @@ public:
     Renderer renderer;
 
     // private:
-    // overlay::Overlay overlay;
+    //     overlay::Overlay overlay;
 
 public:
 };

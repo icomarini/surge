@@ -33,9 +33,9 @@ public:
         , frameTimes {}
         , fontTexture { command, Font {}, load::defaultSampler(), asset::Texture::texture2d }
         , model {}
-        , descriptor { context, 1, asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT> { fontTexture } }
+        // , descriptor { context, 1, asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT> { fontTexture } }
         , graphicsQueue { command.graphicsQueue }
-        , pipelineLayout { core::createPipelineLayout<PCR>(context, descriptor.setLayout) }
+        // , pipelineLayout { core::createPipelineLayout<PCR>(context, descriptor.setLayout) }
         , pipeline { core::createGraphicPipeline<core::shader::Type::ui, LoadedOverlay::Vertex>(
               context, pipelineLayout,
               VkPipelineRasterizationStateCreateInfo {
@@ -198,8 +198,9 @@ public:
 
         ImGuiIO& io = ImGui::GetIO();
 
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptor.set,
-                                0, nullptr);
+        // vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
+        // &descriptor.set,
+        //                         0, nullptr);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
         core::Extern::setPolygonMode(commandBuffer, VK_POLYGON_MODE_FILL);
@@ -289,7 +290,7 @@ private:
 
     asset::Texture                      fontTexture;
     mutable std::optional<asset::Model> model;
-    const core::Descriptor              descriptor;
+    // const core::Descriptor              descriptor;
 
     VkQueue graphicsQueue;
 

@@ -12,16 +12,11 @@ enum class Stage {
 };
 
 enum class Type {
-    gltfAnimated,
-    gltfStatic,
-    bbox,
     line,
     point,
-    shader,
     skybox,
     ui,
     normal,
-    base,
     coordinates,
     primitive,
     primitiveNormal,
@@ -45,31 +40,6 @@ constexpr Entry entry(const Type type, const Stage stage, const EmbeddedData& da
     return Entry { type, stage, data, sizeof(EmbeddedData) };
 }
 
-// clang-format off
-constexpr unsigned char bboxVert[] {
-#embed "/home/ico/projects/surge/build/debug/shaders/bbox.vert.spv"
-};
-
-constexpr unsigned char bboxFrag[] {
-#embed "/home/ico/projects/surge/build/debug/shaders/bbox.frag.spv"
-};
-
-constexpr unsigned char gltfAnimatedVert[] {
-#embed "/home/ico/projects/surge/build/debug/shaders/gltf_animated.vert.spv"
-};
-
-constexpr unsigned char gltfAnimatedFrag[] {
-#embed "/home/ico/projects/surge/build/debug/shaders/gltf_animated.frag.spv"
-};
-
-constexpr unsigned char gltfStaticVert[] {
-#embed "/home/ico/projects/surge/build/debug/shaders/gltf_static.vert.spv"
-};
-
-constexpr unsigned char gltfStaticFrag[] {
-#embed "/home/ico/projects/surge/build/debug/shaders/gltf_static.frag.spv"
-};
-
 constexpr unsigned char lineVert[] {
 #embed "/home/ico/projects/surge/build/debug/shaders/line.vert.spv"
 };
@@ -84,14 +54,6 @@ constexpr unsigned char pointVert[] {
 
 constexpr unsigned char pointFrag[] {
 #embed "/home/ico/projects/surge/build/debug/shaders/point.frag.spv"
-};
-
-constexpr unsigned char shaderVert[] {
-#embed "/home/ico/projects/surge/build/debug/shaders/shader.vert.spv"
-};
-
-constexpr unsigned char shaderFrag[] {
-#embed "/home/ico/projects/surge/build/debug/shaders/shader.frag.spv"
 };
 
 constexpr unsigned char skyboxVert[] {
@@ -112,14 +74,6 @@ constexpr unsigned char uiFrag[] {
 
 constexpr unsigned char normalGeom[] {
 #embed "/home/ico/projects/surge/build/debug/shaders/normal.geom.spv"
-};
-
-constexpr unsigned char baseVert[] {
-#embed "/home/ico/projects/surge/build/debug/shaders/base.vert.spv"
-};
-
-constexpr unsigned char baseFrag[] {
-#embed "/home/ico/projects/surge/build/debug/shaders/base.frag.spv"
 };
 
 constexpr unsigned char coordinatesVert[] {
@@ -190,25 +144,15 @@ constexpr unsigned char phongModelNormalFrag[] {
 
 
 constexpr std::array library {
-    entry(Type::bbox, Stage::vertex, bboxVert),
-    entry(Type::bbox, Stage::fragment, bboxFrag),
-    entry(Type::gltfAnimated, Stage::vertex, gltfAnimatedVert),
-    entry(Type::gltfAnimated, Stage::fragment, gltfAnimatedFrag),
-    entry(Type::gltfStatic, Stage::vertex, gltfStaticVert),
-    entry(Type::gltfStatic, Stage::fragment, gltfStaticFrag),
     entry(Type::line, Stage::vertex, lineVert),
     entry(Type::line, Stage::fragment, lineFrag),
     entry(Type::point, Stage::vertex, pointVert),
     entry(Type::point, Stage::fragment, pointFrag),
-    entry(Type::shader, Stage::vertex, shaderVert),
-    entry(Type::shader, Stage::fragment, shaderFrag),
     entry(Type::skybox, Stage::vertex, skyboxVert),
     entry(Type::skybox, Stage::fragment, skyboxFrag),
     entry(Type::ui, Stage::vertex, uiVert),
     entry(Type::ui, Stage::fragment, uiFrag),
     entry(Type::normal, Stage::geometry, normalGeom),
-    entry(Type::base, Stage::vertex, baseVert),
-    entry(Type::base, Stage::fragment, baseFrag),
     entry(Type::coordinates, Stage::vertex, coordinatesVert),
     entry(Type::coordinates, Stage::fragment, coordinatesFrag),
     entry(Type::primitive, Stage::vertex, primitiveVert),

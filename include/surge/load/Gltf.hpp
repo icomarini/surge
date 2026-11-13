@@ -83,9 +83,9 @@ public:
     fastgltf::Asset                              asset;
     std::map<TextureType, std::filesystem::path> externalTextures;
 
-    core::shader::Type shader() const {
-        return asset.skins.empty() ? core::shader::Type::gltfStatic : core::shader::Type::gltfAnimated;
-    }
+    // core::shader::Type shader() const {
+    //     return asset.skins.empty() ? core::shader::Type::gltfStatic : core::shader::Type::gltfAnimated;
+    // }
 
     asset::Texture::Sampler createSampler(const uint32_t samplerIndex) const {
         constexpr auto extractFilter = [](const fastgltf::Filter filter) {
