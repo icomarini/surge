@@ -1,7 +1,13 @@
 #pragma once
 
-#include "surge/load/Defaults.hpp"
+// #include "surge/load/Defaults.hpp"
 #include "surge/asset/Line.hpp"
+#include "surge/asset/Model.hpp"
+#include "surge/core/utils/Tree.hpp"
+#include "surge/asset/Node.hpp"
+#include "surge/asset/Skin.hpp"
+#include "surge/asset/Animation.hpp"
+#include "surge/load/LoadedTexture.hpp"
 
 namespace surge {
 
@@ -13,7 +19,7 @@ struct Asset {
     // AnimationChannel clones from. For STATIC (unanimated) use, traverse
     // this ONCE at load time with an identity root and bake final
     // transforms directly into it — never recomputed again.
-    core::utils::Tree<asset::Node2> nodeTree;
+    core::utils::Tree<asset::Node> nodeTree;
 
     // Flat list for draw-time iteration -- NO runtime tree walk needed at
     // draw time, ever.
@@ -57,7 +63,7 @@ struct AnimationChannel {
     AnimationSetID                        animationSetId;
     AnimationID                           animationId;
     float                                 progress { 0 };
-    core::utils::Tree<asset::Node2>       nodeTree;
+    core::utils::Tree<asset::Node>        nodeTree;
     std::vector<core::math::Matrix<4, 4>> jointMatrices;
     BufferID                              jointMatricesBufferId;
     MaterialID                            jointMatricesMaterialId;
@@ -67,9 +73,9 @@ struct AnimationChannel {
 struct Storage {
     // static constexpr auto graphicsBindPoint { VK_PIPELINE_BIND_POINT_GRAPHICS };
 
-    const core::Command&                             command;
-    const Descriptors&                               descriptors;
-    load::Defaults                                   defaults;
+    const core::Command& command;
+    const Descriptors&   descriptors;
+    // load::Defaults                                   defaults;
     core::LazyAccessContainer<ModelID, asset::Model> models;
     std::map<BufferID, core::Buffer>                 buffers;
     std::map<TextureID, asset::Texture>              textures;
@@ -83,8 +89,8 @@ struct Storage {
         core::math::Vector<3>    lightPosition;
     };
     core::LazyAccessContainer<MaterialID, VkDescriptorSet>      materials;
-    std::map<MeshID, asset::Mesh2>                              meshes;
-    std::map<NodeTreeID, core::utils::Tree<asset::Node2>>       nodeTrees;
+    std::map<MeshID, asset::Mesh>                               meshes;
+    std::map<NodeTreeID, core::utils::Tree<asset::Node>>        nodeTrees;
     std::map<SkinID, asset::Skin>                               skins;
     std::map<AnimationSetID, std::vector<animation::Animation>> animationSets;
     std::map<AnimationChannelID, AnimationChannel>              animationChannels;
@@ -96,8 +102,7 @@ struct Storage {
 
     Storage(const core::Command& command, const Descriptors& descriptors)
         : command { command }
-        , descriptors { descriptors }
-        , defaults { command }
+        , descriptors { descriptors }  // , defaults { command }
         , defaultTextureId { createTexture(load::createDefaultTextureData(core::RGBA::white, core::RGBA::black)) }
         , whiteTextureId { createTexture(load::createFlatTextureData(core::RGBA::white)) }
         , blackTextureId { createTexture(load::createFlatTextureData(core::RGBA::black)) }
@@ -133,20 +138,20 @@ struct Storage {
     }
 
     NodeTreeID createNodeTree(Storage& storage, const MeshID meshId) {
-        return storage.createNodeTree(core::utils::Tree<asset::Node2> {
+        return storage.createNodeTree(core::utils::Tree<asset::Node> {
             .roots = { 0 },
-            .nodes = { core::utils::Tree<asset::Node2>::Node {
-                asset::Node2 { .meshId         = meshId,
-                               .skinId         = {},
-                               .translation    = { 0, 0, 0 },
-                               .rotation       = core::math::Quaternion<> { 0, 0, 0, 0 },
-                               .scale          = core::math::Vector<3> { 1, 1, 1 },
-                               .transformation = core::math::fullMatrix(core::math::identity<4>) },
+            .nodes = { core::utils::Tree<asset::Node>::Node {
+                asset::Node { .meshId         = meshId,
+                              .skinId         = {},
+                              .translation    = { 0, 0, 0 },
+                              .rotation       = core::math::Quaternion<> { 0, 0, 0, 0 },
+                              .scale          = core::math::Vector<3> { 1, 1, 1 },
+                              .transformation = core::math::fullMatrix(core::math::identity<4>) },
                 {} } },
         });
     }
 
-    NodeTreeID createNodeTree(core::utils::Tree<asset::Node2>&& nodeTree) {
+    NodeTreeID createNodeTree(core::utils::Tree<asset::Node>&& nodeTree) {
         const auto insertion = nodeTrees.emplace(nodeTrees.size(), std::move(nodeTree));
         if (!insertion.second) {
             throw std::runtime_error("Node tree already present");
@@ -154,7 +159,7 @@ struct Storage {
         return insertion.first->first;
     }
 
-    NodeTreeID createNodeTree(const core::utils::Tree<asset::Node2>& nodeTree) {
+    NodeTreeID createNodeTree(const core::utils::Tree<asset::Node>& nodeTree) {
         const auto insertion = nodeTrees.emplace(nodeTrees.size(), nodeTree);
         if (!insertion.second) {
             throw std::runtime_error("Node tree already present");
@@ -163,7 +168,7 @@ struct Storage {
     }
 
 
-    MeshID createMesh(std::vector<asset::Mesh2::Primitive>&& primitives) {
+    MeshID createMesh(std::vector<asset::Mesh::Primitive>&& primitives) {
         const auto insertion = meshes.emplace(meshes.size(), std::move(primitives));
         if (!insertion.second) {
             throw std::runtime_error("Mesh already present");
@@ -259,10 +264,10 @@ struct Storage {
         return insertion.first->first;
     }
 
-    AnimationChannelID createAnimationChannel(const core::utils::Tree<asset::Node2>& nodes,
+    AnimationChannelID createAnimationChannel(const core::utils::Tree<asset::Node>& nodes,
                                               const AnimationSetID animationSetId, const AnimationID animationId) {
         std::size_t bufferSize {};
-        nodes.traverse<core::utils::Traversal::linear>([&](const asset::Node2& node) {
+        nodes.traverse<core::utils::Traversal::linear>([&](const asset::Node& node) {
             if (node.skinId) {
                 bufferSize += sizeof(core::math::Matrix<4, 4>) * skins.at(node.skinId).joints.size();
             }

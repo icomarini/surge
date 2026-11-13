@@ -65,7 +65,7 @@ public:
 
         // traverse nodes
         const auto& nodeTree = storage.nodeTrees.at(entity.nodeTreeId);
-        nodeTree.traverse<core::utils::Traversal::linear>([&](const asset::Node2& node) {
+        nodeTree.traverse<core::utils::Traversal::linear>([&](const asset::Node& node) {
             if (node.meshId) {
                 for (const auto& primitive : storage.meshes.at(node.meshId).primitives) {
                     // bind material

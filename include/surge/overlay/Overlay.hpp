@@ -8,10 +8,10 @@
 #include "surge/load/Defaults.hpp"
 
 #include "surge/core/Pipeline.hpp"
-#include "surge/asset/Asset.hpp"
+// #include "surge/asset/Asset.hpp"
 
 #include "surge/overlay/Font.hpp"
-#include "surge/overlay/AssetOverlay.hpp"
+// #include "surge/overlay/AssetOverlay.hpp"
 
 #include <imgui.h>
 
@@ -27,11 +27,11 @@ public:
 
 
     using PCR = core::PushConstantRange<VK_SHADER_STAGE_VERTEX_BIT, PushConstBlock>;
-    Overlay(const core::Command& command, const std::map<std::string, asset::Asset>& assets)
+    Overlay(const core::Command& command)
         : core::Contextualized { command.context }
         , imGuiContext { 1.5 }
         , frameTimes {}
-        , fontTexture { command, Font {}, load::Defaults::sampler, asset::Texture::texture2d }
+        , fontTexture { command, Font {}, load::defaultSampler(), asset::Texture::texture2d }
         , model {}
         , descriptor { context, 1, asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT> { fontTexture } }
         , graphicsQueue { command.graphicsQueue }
@@ -77,13 +77,12 @@ public:
                   .alphaBlendOp        = VK_BLEND_OP_ADD,
                   .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
                                     VK_COLOR_COMPONENT_A_BIT,
-              }) }
-        , assets { assets } {
+              }) } {
     }
 
 
     void newFrame(const float scale, std::array<float, 50>& frameTimes, const Input& input,
-                  const std::map<std::string, asset::Asset>& assets, const Camera<false>& camera) const {
+                  const Camera<false>& camera) const {
         ImGuiIO&    io             = ImGui::GetIO();
         const auto& extent         = context.window.resolution;
         io.DisplaySize             = ImVec2(extent.width, extent.height);
@@ -152,17 +151,12 @@ public:
         // ImGui::Text("Mouse keyboard d:  %s", ui.toString.at(ui.keyboard.d).c_str());
         // ImGui::Checkbox("Wireframe", &ui.wireframe);
 
-        const auto pos  = ImGui::GetWindowPos();
-        const auto size = ImGui::GetWindowSize();
+        // const auto pos  = ImGui::GetWindowPos();
+        // const auto size = ImGui::GetWindowSize();
         ImGui::End();
 
-        core::math::Vector<2> previousWindowPosition { pos.x, pos.y };
-        core::math::Vector<2> previousWindowSize { size.x, size.y };
-        for (const auto& [name, asset] : assets) {
-            const auto [pos, size] = overlay(asset, previousWindowPosition, previousWindowSize);
-            previousWindowPosition = pos;
-            previousWindowSize     = size;
-        }
+        // core::math::Vector<2> previousWindowPosition { pos.x, pos.y };
+        // core::math::Vector<2> previousWindowSize { size.x, size.y };
 
         ImGui::Render();
     }
@@ -193,7 +187,7 @@ public:
     }
 
     void update(const Input& input, const Camera<false>& camera) const {
-        newFrame(imGuiContext.scale, frameTimes, input, assets, camera);
+        newFrame(imGuiContext.scale, frameTimes, input, camera);
         updateBuffers(graphicsQueue, model);
     }
 
@@ -302,7 +296,7 @@ private:
     VkPipelineLayout pipelineLayout;
     VkPipeline       pipeline;
 
-    const std::map<std::string, asset::Asset>& assets;
+    // const std::map<std::string, asset::Asset>& assets;
 };
 
 }  // namespace surge::overlay

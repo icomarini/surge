@@ -5,7 +5,6 @@
 #include "surge/core/math/matrices.hpp"
 #include "surge/core/Pipeline.hpp"
 #include "surge/asset/Texture.hpp"
-#include "surge/asset/Material.hpp"
 #include "surge/asset/Model.hpp"
 #include "surge/load/LoadedTexture.hpp"
 
@@ -191,9 +190,8 @@ static consteval auto createFlatTextureData(const core::Colors<core::Type::rgba>
     return TextureData<1, 1> { std::array { toUint8(color) } };
 }
 
-class Defaults : public core::Contextualized {
-public:
-    static constexpr asset::Texture::Sampler sampler {
+static consteval asset::Texture::Sampler defaultSampler() {
+    return asset::Texture::Sampler {
         .magFilter    = VK_FILTER_LINEAR,
         .minFilter    = VK_FILTER_LINEAR,
         .mipmapMode   = VK_SAMPLER_MIPMAP_MODE_LINEAR,
@@ -201,72 +199,5 @@ public:
         .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
         .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
     };
-
-
-    static constexpr auto defaultTextureData =
-        createDefaultTextureData(core::Colors<core::Type::rgba>::black, core::Colors<core::Type::rgba>::white);
-    static constexpr auto whiteTextureData = createFlatTextureData(core::Colors<core::Type::rgba>::white);
-    static constexpr auto blackTextureData = createFlatTextureData(core::Colors<core::Type::rgba>::black);
-
-    asset::Texture        texture;
-    asset::Texture        whiteTexture;
-    asset::Texture        blackTexture;
-    VkDescriptorPool      descriptorPool;
-    VkDescriptorSetLayout descriptorSetLayout;
-    asset::Material       material;
-
-    using TextureDescr = asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT>;
-
-    struct NodePushBlock {
-        core::math::Matrix<4, 4> matrix;
-        uint32_t                 vertexStageFlag;
-        uint32_t                 fragmentStageFlag;
-    };
-
-    Defaults(const core::Command& command)
-        : Contextualized { command.context }
-        , texture { command, load::LoadedTexture { "default", defaultTextureData.data(), defaultTextureData.width, defaultTextureData.height }, sampler,
-                    asset::Texture::texture2d }
-        , whiteTexture { command, load::LoadedTexture { "white", whiteTextureData.data(), whiteTextureData.width, whiteTextureData.height }, sampler,
-                         asset::Texture::texture2d }
-        , blackTexture { command, load::LoadedTexture { "black", blackTextureData.data(), blackTextureData.width, blackTextureData.height }, sampler,
-                         asset::Texture::texture2d }
-        , descriptorPool { core::Descriptor::createDescriptorPool(
-              context, 5U, std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5U }) }
-        , descriptorSetLayout { core::Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture
-                                                                            TextureDescr,  // metallic/rough texture
-                                                                            TextureDescr,  // normal texture
-                                                                            TextureDescr,  // occlusion texture
-                                                                            TextureDescr   // emissive texture
-                                                                            >(context, 1) }
-        , material { .name                     = baptize<This::material>(),
-                     .doubleSided              = false,
-                     .unlit                    = false,
-                     .alphaMode                = asset::Material::AlphaMode::opaque,
-                     .alphaCutoff              = 1,
-                     .baseColorTexture         = asset::Material::TextureData { &texture, 0 },
-                     .baseColorFactor          = { 1, 1, 1, 1 },
-                     .metallicRoughnessTexture = asset::Material::TextureData { &texture, 0 },
-                     .metallicFactor           = 1,
-                     .roughnessFactor          = 1,
-                     .emissiveTexture          = asset::Material::TextureData { &texture, 0 },
-                     .emissiveFactor           = { 0, 0, 0, 0 },
-                     .emissiveStrength         = 1,
-                     .normalTexture            = asset::Material::TextureData { &texture, 0 },
-                     .normalScale              = 1,
-                     .occlusionTexture         = asset::Material::TextureData { &texture, 0 },
-                     .occlusionStrength        = 1,
-                     .descriptorSet            = core::Descriptor::createDescriptorSet(
-                         context, descriptorSetLayout, descriptorPool,  //
-                         TextureDescr { texture }, TextureDescr { texture }, TextureDescr { texture },
-                         TextureDescr { texture }, TextureDescr { texture }) }
-    {
-    }
-
-    ~Defaults() {
-        context.destroy(descriptorSetLayout);
-        context.destroy(descriptorPool);
-    }
-};
-
+}
 }  // namespace surge::load

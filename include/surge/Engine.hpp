@@ -6,11 +6,8 @@
 #include "surge/Renderer.hpp"
 #include "surge/Loader.hpp"
 
-#include "surge/entity/Skybox.hpp"
-
 #include "surge/Log.hpp"
 
-#include "surge/entity/Entity.hpp"
 
 namespace surge {
 
@@ -27,8 +24,8 @@ public:
                         core::DescriptorAllocation<AnimationLayout> { 16 } }
         , storage { command, descriptors }
         , loader { storage }
-        , renderer { storage, descriptors }
-        , overlay { command, {} } {
+        , renderer { storage, descriptors }  // , overlay { command, {} }
+    {
         log::checkpoint("The surge of urge to purge started");
     }
 
@@ -65,9 +62,9 @@ public:
         update(storage.nodeTrees.at(entity.nodeTreeId), transformation);
     }
 
-    void update(core::utils::Tree<asset::Node2>& nodeTree, const core::math::StaticMatrix auto& transformation) {
+    void update(core::utils::Tree<asset::Node>& nodeTree, const core::math::StaticMatrix auto& transformation) {
         nodeTree.traverse<core::utils::Traversal::depthFirst>(
-            [](asset::Node2& node, const core::math::Matrix<4, 4>& parent) {
+            [](asset::Node& node, const core::math::Matrix<4, 4>& parent) {
                 node.transformation = parent * core::math::Translation { node.translation } *
                                       core::math::Rotation { node.rotation } * core::math::Scaling { node.scale };
                 return node.transformation;
@@ -93,7 +90,7 @@ public:
 
         update(animationChannel.nodeTree, core::math::identity<4>);
 
-        animationChannel.nodeTree.traverse<core::utils::Traversal::linear>([&](const asset::Node2& node) {
+        animationChannel.nodeTree.traverse<core::utils::Traversal::linear>([&](const asset::Node& node) {
             if (node.skinId) {
                 const auto&                           skin    = storage.skins.at(node.skinId);
                 const auto                            inverse = core::math::inverse(node.transformation);
@@ -101,7 +98,6 @@ public:
                 jointMatrices.reserve(skin.joints.size());
                 for (const auto& [jointNodeIndex, inverseBindMatrix] : skin.joints) {
                     const auto& joint = animationChannel.nodeTree.get(jointNodeIndex).transformation;
-                    // jointMatrices.emplace_back(inverseBindMatrix * joint * inverse);
                     jointMatrices.emplace_back(inverse * joint * inverseBindMatrix);
                 }
                 const auto& buffer = storage.buffers.at(animationChannel.jointMatricesBufferId);
@@ -127,8 +123,8 @@ public:
 public:
     Renderer renderer;
 
-private:
-    overlay::Overlay overlay;
+    // private:
+    // overlay::Overlay overlay;
 
 public:
 };
