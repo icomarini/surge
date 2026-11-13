@@ -243,9 +243,10 @@ int main() {
             surge::GltfHandle { vulkanAssetFolder / "models/oaktree.gltf" });
         const auto oaktree = engine.createEntity(oaktreeAsset);
 
-        const auto pathfinderAsset = engine.loader.loadAsset<surge::ShaderType::phongModel>(
+        const auto pathfinderAsset = engine.loader.loadAsset<surge::ShaderType::phongModelAnimated>(
             surge::GltfHandle { "/home/ico/projects/uploads_files_2619136_Pathfinder_2k/Pathfinder_2k.glb" });
-        const auto pathfinder = engine.createEntity(pathfinderAsset);
+        const auto pathfinderAnimationChannel = engine.storage.createAnimationChannel(pathfinderAsset, 0);
+        const auto pathfinder                 = engine.createEntity(pathfinderAsset, pathfinderAnimationChannel);
 
         double elapsedTime = {};
         auto   start       = std::chrono::high_resolution_clock::now();
@@ -266,6 +267,7 @@ int main() {
                                                                   lightPosition });
 
                 engine.update(cesiumManAnimationChannel, elapsedTime);
+                engine.update(pathfinderAnimationChannel, elapsedTime);
 
                 // channels
                 const surge::Rotation rotationY { surge::toQuaternion(0.0f, 1.0f * engine.input.timer, 0.0f) };

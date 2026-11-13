@@ -189,7 +189,12 @@ using Pipelines = PipelineManager<                                      //
                   shaderStages,                                         //
                   core::geometry::PositionNormalTangentTexture,         //
                   ModelMatrix,                                          //
-                  SceneLayout, PhongMaterialLayout>                     //
+                  SceneLayout, PhongMaterialLayout>,                    //
+    PipelineEntry<core::shader::Type::phongModelAnimated,               //
+                  shaderStages,                                         //
+                  core::geometry::PositionNormalTextureJoint,           //
+                  ModelMatrix,                                          //
+                  SceneLayout, PhongMaterialLayout, AnimationLayout>    //
     >;
 
 }  // namespace surge

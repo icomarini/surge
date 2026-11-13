@@ -160,6 +160,8 @@ set(SHADERS
     phongModel.frag
     phongModelNormal.vert
     phongModelNormal.frag
+    phongModelAnimated.vert
+    phongModelAnimated.frag
 )
 
 list(TRANSFORM SHADERS PREPEND "${PROJECT_SOURCE_DIR}/shaders/")
