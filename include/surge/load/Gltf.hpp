@@ -53,17 +53,16 @@ public:
         std::map<TextureType, std::filesystem::path> externalTextures {};
     };
 
-    using TextureDescr = asset::TextureDescription<VK_SHADER_STAGE_FRAGMENT_BIT>;
-    using Index        = core::geometry::Index;
-    using Vertex       = core::geometry::Vertex<  //
+    using Index  = core::geometry::Index;
+    using Vertex = core::geometry::Vertex<  //
         core::geometry::AttributeSlot<core::geometry::Attribute::position, core::math::Vector<3>, 3,
-                                            core::geometry::Format::sfloat>,
+                                      core::geometry::Format::sfloat>,
         core::geometry::AttributeSlot<core::geometry::Attribute::normal, core::math::Vector<3>, 3,
-                                            core::geometry::Format::sfloat>,
+                                      core::geometry::Format::sfloat>,
         core::geometry::AttributeSlot<core::geometry::Attribute::texCoord, core::math::Vector<2>, 2,
-                                            core::geometry::Format::sfloat>,
+                                      core::geometry::Format::sfloat>,
         core::geometry::AttributeSlot<core::geometry::Attribute::tangent, core::math::Vector<4>, 4,
-                                            core::geometry::Format::sfloat>
+                                      core::geometry::Format::sfloat>
         // core::geometry::AttributeSlot<core::geometry::Attribute::color, core::math::Vector<4>, 4,
         //                                     core::geometry::Format::sfloat>,
         // core::geometry::AttributeSlot<core::geometry::Attribute::jointIndex, core::math::Vector<4>, 4,
@@ -72,16 +71,15 @@ public:
         //                                     core::geometry::Format::sfloat>
         >;
 
-    Gltf(const Handle& handle /*, const Defaults& defaults*/)
+    Gltf(const Handle& handle)
         : name { handle.path.filename() }
-        , path { handle.path }  // , defaults { defaults }
+        , path { handle.path }
         , asset { createAsset(path) }
         , externalTextures { handle.externalTextures } {
     }
 
-    std::string           name;
-    std::filesystem::path path;
-    // const Defaults&                              defaults;
+    std::string                                  name;
+    std::filesystem::path                        path;
     fastgltf::Asset                              asset;
     std::map<TextureType, std::filesystem::path> externalTextures;
 
@@ -144,89 +142,6 @@ public:
             .addressModeV = extractWrap(sampler.wrapT),
             .addressModeW = extractWrap(sampler.wrapT),
         };
-    }
-
-    // std::vector<asset::Texture> createTextures(const core::Command& command) const {
-    //     std::vector<asset::Texture> textures;
-    //     textures.reserve(asset.images.size() + externalTextures.size());
-    //     Index textureId = 0;
-
-    //     // internal textures
-    //     for (const fastgltf::Texture& texture : asset.textures) {
-    //         assert(texture.imageIndex && texture.imageIndex.value() < asset.images.size());
-
-    //         const auto& image = asset.images.at(texture.imageIndex.value());
-    //         const auto  name  = baptize<This::texture>(texture.name, textureId++);
-
-    //         const fastgltf::visitor visitor {
-    //             [](const auto&) -> LoadedTexture { throw std::runtime_error("Unsupported visitor"); },
-    //             [&](const fastgltf::sources::URI& uri) -> LoadedTexture {
-    //                 return LoadedTexture {
-    //                     LoadedTexture::Handle { load::LoadedTexture::Type::texture2d,
-    //                                            path.parent_path() / uri.uri.path() }
-    //                 };
-    //             },
-    //             [&](const fastgltf::sources::Vector& vector) -> LoadedTexture {
-    //                 return LoadedTexture { name, reinterpret_cast<const uint8_t*>(vector.bytes.data()),
-    //                                        vector.bytes.size() };
-    //             },
-    //             [&](const fastgltf::sources::Array& array) -> LoadedTexture {
-    //                 return LoadedTexture { name, reinterpret_cast<const uint8_t*>(array.bytes.data()),
-    //                                        array.bytes.size() };
-    //             },
-    //             [&](const fastgltf::sources::BufferView& view) -> LoadedTexture {
-    //                 const auto&     bufferView = asset.bufferViews.at(view.bufferViewIndex);
-    //                 const auto&     buffer     = asset.buffers.at(bufferView.bufferIndex);
-    //                 const fastgltf::visitor visitor    = {
-    //                     [](const auto&) -> LoadedTexture { throw std::runtime_error("Unsupported visitor"); },
-    //                     [&](const fastgltf::sources::Vector& vector) -> LoadedTexture {
-    //                         return LoadedTexture { name,
-    //                                                reinterpret_cast<const uint8_t*>(vector.bytes.data()) +
-    //                                                    bufferView.byteOffset,
-    //                                                bufferView.byteLength };
-    //                     },
-    //                     [&](const fastgltf::sources::Array& array) -> LoadedTexture {
-    //                         return LoadedTexture { name,
-    //                                                reinterpret_cast<const uint8_t*>(array.bytes.data()) +
-    //                                                    bufferView.byteOffset,
-    //                                                bufferView.byteLength };
-    //                     }
-    //                 };
-    //                 return std::visit(visitor, buffer.data);
-    //             },
-    //         };
-
-    //         const auto sampler =
-    //             texture.samplerIndex ? createSampler(texture.samplerIndex.value()) : load::Defaults::sampler;
-
-    //         textures.emplace_back(command, std::visit(visitor, image.data), sampler, asset::Texture::texture2d);
-    //     }
-
-    //     // external textures
-    //     for (const auto& [textureType, path] : externalTextures) {
-    //         textures.emplace_back(command,
-    //                               LoadedTexture(LoadedTexture::Handle { load::LoadedTexture::Type::texture2d, path
-    //                               }), load::Defaults::sampler, asset::Texture::texture2d);
-    //     }
-
-    //     return textures;
-    // }
-
-    VkDescriptorPool createDescriptorPool(const core::Context& context) const {
-        return core::Descriptor::createDescriptorPool(
-            context, asset.materials.size() + asset.meshes.size() + asset.skins.size() + 32,
-            std::pair { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(5 * asset.materials.size()) },
-            std::pair { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, static_cast<uint32_t>(asset.meshes.size()) },
-            std::pair { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, static_cast<uint32_t>(asset.skins.size() + 32) });
-    }
-
-    VkDescriptorSetLayout createMaterialDescriptorSetLayout(const core::Context& context) const {
-        return core::Descriptor::createDescriptorSetLayout<TextureDescr,  // base color texture
-                                                           TextureDescr,  // metallic/rough texture
-                                                           TextureDescr,  // normal texture
-                                                           TextureDescr,  // occlusion texture
-                                                           TextureDescr   // emissive texture
-                                                           >(context, 1);
     }
 
     std::map<TextureType, const asset::Texture*>

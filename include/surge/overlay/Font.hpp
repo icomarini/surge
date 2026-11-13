@@ -38,7 +38,9 @@ public:
     }
 
     std::vector<std::tuple<uint32_t, uint32_t, uint64_t>> offsets() const {
-        return { { 0, 0, 0 } };
+        return {
+            { 0, 0, 0 }
+        };
     }
 
     uint32_t    width;

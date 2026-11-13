@@ -38,7 +38,8 @@ void slider(const std::string& name, const std::string& nodeName, core::math::Ve
 
 //             {
 //                 std::array<const char*, 3> items { "point", "line", "fill" };
-//                 const char*                currentItem = items.at(static_cast<core::UInt8>(node.state.polygonMode));
+//                 const char*                currentItem =
+items.at(static_cast<core::UInt8>(node.state.polygonMode));
 //                 if (ImGui::BeginCombo("mode", currentItem)) {
 //                     uint32_t itemId = 0;
 //                     for (const auto item : items) {

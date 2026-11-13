@@ -4,9 +4,6 @@
 #include "surge/Camera.hpp"
 #include "surge/physics/Physics.hpp"
 #include "surge/core/Pipeline.hpp"
-
-#include "surge/core/Descriptor.hpp"
-
 #include "surge/Pipelines.hpp"
 
 namespace surge {

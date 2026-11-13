@@ -8,6 +8,9 @@
 #include "surge/asset/Skin.hpp"
 #include "surge/asset/Animation.hpp"
 #include "surge/load/LoadedTexture.hpp"
+#include "surge/core/DescriptorPool.hpp"
+#include "surge/core/Shader.hpp"
+#include "surge/load/Defaults.hpp"
 
 namespace surge {
 

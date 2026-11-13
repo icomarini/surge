@@ -2,7 +2,6 @@
 
 #include "surge/core/Command.hpp"
 #include "surge/core/Image.hpp"
-#include "surge/core/Descriptor.hpp"
 
 namespace surge::asset {
 class Texture : public core::Contextualized {
@@ -102,8 +101,4 @@ private:
         });
     }
 };
-
-template<VkShaderStageFlags stageFlags>
-using TextureDescription = core::Description<VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stageFlags, Texture>;
-
 }  // namespace surge::asset

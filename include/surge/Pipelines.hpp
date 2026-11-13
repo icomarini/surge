@@ -1,7 +1,8 @@
 #pragma once
 
 #include "surge/core/Pipeline.hpp"
-
+#include "surge/core/Shader.hpp"
+#include "surge/core/geometry/shapes.hpp"
 namespace surge {
 
 template<core::shader::Type t, VkShaderStageFlags s, typename V, typename P, typename... Ls>
